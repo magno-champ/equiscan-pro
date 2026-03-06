@@ -13,6 +13,7 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -70,7 +71,8 @@ app.use(express.static(path.join(__dirname, '../public')));
 const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 60,
-  message: { error: 'Demasiados pedidos. Aguarda 1 hora.' }
+  message: { error: 'Demasiados pedidos. Aguarda 1 hora.' },
+  validate: false
 });
 app.use('/api/', limiter);
 

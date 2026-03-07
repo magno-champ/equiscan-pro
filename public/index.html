@@ -640,7 +640,18 @@ window.addEventListener('DOMContentLoaded', function() {
       <button id="btnImportPdf" onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--amber);border:1px solid rgba(212,147,58,.3);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px">
         <span>📄</span> Importar Relatório Vet (PDF) <span id="calibPendingBadge" style="display:none;background:var(--amber);color:#000;font-size:8px;padding:1px 4px;border-radius:2px;margin-left:3px">0</span>
       </button>
-      <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="importVetReport(this)">
+      <button onclick="openCaseStudyModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--ice);border:1px solid rgba(74,201,201,.25);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px">
+        <span>🔬</span> Registar Caso de Estudo
+      </button>
+      <!-- Mapa de Confiança -->
+      <div id="confidencePanelWrap" style="margin-top:10px;display:none">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+          <span>Confiança por Estrutura</span>
+          <button onclick="refreshConfidencePanel()" style="background:transparent;border:none;color:var(--t3);font-size:10px;cursor:pointer" title="Actualizar">↻</button>
+        </div>
+        <div id="confidencePanelBody" style="font-size:9px;line-height:1.8"></div>
+      </div>
+      <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="openImportModeModal(this)">
       <div id="vetPendingBadge" style="display:none;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);cursor:pointer" onclick="openPendingCalibsModal()">&#9888; CALIBs pendentes de aprovação</div>
       <div id="vetImportStatus" style="display:none;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
     </div>
@@ -2752,9 +2763,111 @@ async function run(){
     calibContext += 'INSTRUÇÃO: estas calibrações resultam de correcções de casos reais por veterinário especialista. Têm prioridade absoluta sobre qualquer regra geral.\n';
   }
 
+
+  // ── MEMÓRIA POR CAVALO ──────────────────────────────────────────────────────
+  var horseContext = '';
+  if (window._selectedHorseId) {
+    try {
+      var hData = JSON.parse(localStorage.getItem('eq_horses_v1') || '[]');
+      var hFound = hData.filter(function(h){ return h.id === window._selectedHorseId; })[0];
+      var hExams = JSON.parse(localStorage.getItem('eq_exams_v1') || '[]')
+                    .filter(function(e){ return e.horse_id === window._selectedHorseId; })
+                    .sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
+      if (hFound && hExams.length > 0) {
+        var hSep = '\n' + '='.repeat(40) + '\n';
+        horseContext += hSep;
+        horseContext += 'HISTORICO CLINICO DO PACIENTE: ' + hFound.nome + '\n';
+        horseContext += '='.repeat(40) + '\n';
+        horseContext += 'Raca: '+(hFound.raca||'?')+' | Idade: '+(hFound.idade||'?')+'a | Disciplina: '+(hFound.disciplina||'?')+'\n';
+        if (hFound.notas) horseContext += 'Notas: '+hFound.notas+'\n';
+        horseContext += '\nExames anteriores ('+hExams.length+' registos):\n';
+        var hLast = hExams[hExams.length-1];
+        var hPrev = hExams.slice(0,-1);
+        if (hPrev.length > 0) {
+          hPrev.slice(-4).forEach(function(ex){
+            horseContext += '  * '+(ex.date||'').slice(0,10)+': score='+(ex.score||'?')+' | '+(ex.classe||'?')+(ex.achados>0?' | '+ex.achados+' achados':'')+'\n';
+          });
+          horseContext += '  -> ULTIMO EXAME: '+(hLast.date||'').slice(0,10)+' score='+(hLast.score||'?')+' | '+(hLast.classe||'?')+'\n';
+          horseContext += '\nINSTRUCAO CRITICA — EXAME DE SEGUIMENTO:\n';
+          horseContext += '1. Compara directamente com o exame anterior ('+(hLast.date||'').slice(0,10)+', score '+(hLast.score||'?')+')\n';
+          horseContext += '2. Para cada achado indica: NOVO | ESTAVEL | PROGRESSIVO | RESOLVIDO vs exame anterior\n';
+          horseContext += '3. Na conclusao inclui paragrafo de EVOLUCAO CLINICA\n';
+          horseContext += '4. Se score piorou >10 pts vs anterior: ALERTAR progressao significativa\n';
+        } else {
+          horseContext += '  (primeiro exame registado — sem historico anterior)\n';
+          horseContext += 'INSTRUCAO: marca achados como primeiro_exame\n';
+        }
+        horseContext += '='.repeat(40) + '\n';
+      }
+    } catch(eH) { console.warn('[EQ] horseContext:', eH); }
+  }
+
+  // ── MAPA DE CONFIANÇA POR ESTRUTURA ─────────────────────────────────────────
+  // A app sabe o que ainda não aprendeu — injeta consciência de ignorância no prompt
+  var confidenceMap = {};
+  var ESTRUTURAS_CONHECIDAS = [
+    'IFD','Coffin','Navicular','Boleto','MCP','MTP','Metacarpo','Metatarso',
+    'Carpo','Tarsus','Tarso','TTC','TMT','PIT','Estifle','Coluna','Rádio','Tíbia'
+  ];
+  try {
+    // Contar calibrações por estrutura
+    var allCalibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}');
+    Object.values(allCalibs).forEach(function(c) {
+      var txt = ((c.value || '') + ' ' + (c.horse || '')).toUpperCase();
+      ESTRUTURAS_CONHECIDAS.forEach(function(e) {
+        if (txt.indexOf(e.toUpperCase()) >= 0) {
+          confidenceMap[e] = (confidenceMap[e] || 0) + 1;
+        }
+      });
+    });
+    // Contar exames por estrutura (via classe/achados registados)
+    var allExams = JSON.parse(localStorage.getItem('eq_exams_v1') || '[]');
+    allExams.forEach(function(ex) {
+      var txt = ((ex.estrutura || '') + ' ' + (ex.classe || '') + ' ' + (ex.achados || '')).toUpperCase();
+      ESTRUTURAS_CONHECIDAS.forEach(function(e) {
+        if (txt.indexOf(e.toUpperCase()) >= 0) {
+          confidenceMap[e] = (confidenceMap[e] || 0) + 0.5; // exames valem menos que calibrações
+        }
+      });
+    });
+  } catch(eCM) { console.warn('[EQ] confidenceMap:', eCM); }
+
+  // Classificar estruturas
+  var confAlta = [], confMedia = [], confBaixa = [], confNenhuma = [];
+  ESTRUTURAS_CONHECIDAS.forEach(function(e) {
+    var n = confidenceMap[e] || 0;
+    if (n >= 5)      confAlta.push(e + '(' + Math.round(n) + ')');
+    else if (n >= 2) confMedia.push(e + '(' + Math.round(n) + ')');
+    else if (n >= 1) confBaixa.push(e + '(' + Math.round(n) + ')');
+    else             confNenhuma.push(e);
+  });
+
+  var confContext = '';
+  var totalRefs = Object.values(confidenceMap).reduce(function(a,b){return a+b;}, 0);
+
+  confContext += '\n\n' + '='.repeat(40) + '\n';
+  confContext += 'MAPA DE CONFIANÇA LOCAL (referências desta instalação):\n';
+  confContext += '='.repeat(40) + '\n';
+  confContext += 'Total de referências locais: ' + Math.round(totalRefs) + '\n';
+  if (confAlta.length)    confContext += 'ALTA (>=5 refs): ' + confAlta.join(', ') + '\n';
+  if (confMedia.length)   confContext += 'MEDIA (2-4 refs): ' + confMedia.join(', ') + '\n';
+  if (confBaixa.length)   confContext += 'BAIXA (1 ref): ' + confBaixa.join(', ') + '\n';
+  if (confNenhuma.length) confContext += 'SEM REFERENCIAS LOCAIS: ' + confNenhuma.join(', ') + '\n';
+  confContext += '\nINSTRUCOES OBRIGATORIAS SOBRE INCERTEZA:\n';
+  confContext += '1. Para estruturas com confianca ALTA: analisa normalmente\n';
+  confContext += '2. Para estruturas com confianca MEDIA: menciona "referencia local limitada"\n';
+  confContext += '3. Para estruturas com confianca BAIXA ou SEM REFERENCIAS: declara explicitamente "sem casos de referencia local — interpretar com cautela e confirmar com especialista"\n';
+  confContext += '4. NUNCA uses confianca artificial. Se nao tens referencias, diz que nao tens.\n';
+  confContext += '5. No campo "confianca_local" de cada achado usa: alta | media | baixa | sem_referencias\n';
+  confContext += '='.repeat(40) + '\n';
+
+  S._confidenceMap = confidenceMap;
+  S._confContext = confContext;
   // Guardar contextos para injecção no prompt
   S._webSearchContext = webSearchContext;
   S._calibContext = calibContext;
+  S._horseContext = horseContext;
+  S._confContext = confContext;
 
   document.getElementById('lmsg').textContent = '🔬 A analisar todas as imagens em contexto contínuo…';
 
@@ -2920,6 +3033,8 @@ function buildPrompt(batch,info,bNum,bTotal){
     // Inject web search results + calibrations if available
     (S._webSearchContext || ''),
     (S._calibContext || ''),
+    (S._horseContext || ''),
+    (S._confContext || ''),
     '',
     'IMAGENS RECEBIDAS ('+n+'):',
     imgList,
@@ -3221,6 +3336,155 @@ function loadCalibRules() {
   .catch(function(e){
     console.warn('[EQ] Erro ao carregar calib_rules:', e);
     return '';
+  });
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+// DESTILACAO AUTOMATICA — corre semanalmente em background
+// Detecta padroes de erro, propoe CALIBs pendentes (vet aprova)
+// ═══════════════════════════════════════════════════════
+var AUTO_DISTILL_KEY = 'eq_auto_distill_last';
+var AUTO_DISTILL_INTERVAL = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+function shouldRunAutoDistill() {
+  try {
+    var last = parseInt(localStorage.getItem(AUTO_DISTILL_KEY) || '0');
+    return (Date.now() - last) > AUTO_DISTILL_INTERVAL;
+  } catch(e) { return false; }
+}
+
+function runAutoDistill() {
+  if (!shouldRunAutoDistill()) {
+    console.log('[EQ] Auto-distill: proxima em ' + Math.round((AUTO_DISTILL_INTERVAL - (Date.now() - parseInt(localStorage.getItem(AUTO_DISTILL_KEY)||'0'))) / 86400000) + ' dias');
+    return;
+  }
+  console.log('[EQ] Auto-destilacao: a verificar feedbacks...');
+
+  fetch(SB_URL + '/rest/v1/vet_feedback?order=created_at.desc&limit=200', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
+    if (!Array.isArray(rows)) return;
+    var wrongOnly = rows.filter(function(r){ return r.app_grade !== r.vet_grade || r.vet_notes; });
+    if (wrongOnly.length < 3) {
+      console.log('[EQ] Auto-distill: poucos casos ('+wrongOnly.length+'), aguarda mais feedbacks');
+      localStorage.setItem(AUTO_DISTILL_KEY, String(Date.now()));
+      return;
+    }
+    var casosText = wrongOnly.slice(0,30).map(function(r,i){
+      var t = 'CASO '+(i+1)+':\n';
+      if(r.horse)     t += '  Cavalo: '+r.horse+'\n';
+      if(r.app_grade) t += '  App: '+r.app_grade+'\n';
+      if(r.vet_grade) t += '  Vet: '+r.vet_grade+'\n';
+      if(r.vet_notes) t += '  Obs: '+r.vet_notes+'\n';
+      return t;
+    }).join('\n');
+
+    var sysP = 'Es um especialista em radiologia equina. Analisa estes erros sistematicos de uma IA de diagnostico. Detecta PADROES DE ERRO RECORRENTES e propoe CALIBRACOES concretas. RESPONDE APENAS COM JSON VALIDO. Sem texto. Sem markdown.\nFormato: {"calibracoes":[{"rule_text":"INSTRUCAO directa ao modelo","source_cases":"casos base","rationale":"porque","confidence":"alta|media|baixa","pattern":"padrao detectado"}]}';
+
+    fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: C.MODELS[0] || 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: sysP,
+        messages: [{ role: 'user', content: 'Analisa '+wrongOnly.length+' casos e propoe calibracoes:\n\n'+casosText }]
+      })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var text = (data.content||[]).map(function(b){ return b.text||''; }).join('').replace(/```json|```/g,'').trim();
+      var parsed;
+      try { parsed = JSON.parse(text); } catch(e){ console.warn('[EQ] Auto-distill JSON err',e); return; }
+      var calibs = parsed.calibracoes || parsed.calibrations || [];
+      if (!calibs.length) return;
+
+      var pending = [];
+      try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]'); } catch(e){}
+      var date = new Date().toLocaleDateString('pt-PT');
+      var added = 0;
+      calibs.forEach(function(c,i){
+        var alreadyExists = pending.some(function(p){ return p.regra && p.regra.slice(0,60)===(c.rule_text||'').slice(0,60); });
+        if (alreadyExists) return;
+        pending.push({
+          key:       'AUTO-'+Date.now()+'-'+i,
+          value:     c.rule_text||'',
+          regra:     c.rule_text||'',
+          date:      date,
+          source:    'auto_distill',
+          horse:     c.source_cases||'padrao automatico',
+          achado:    c.pattern||'',
+          prioridade: c.confidence||'media',
+          tipo:      'auto'
+        });
+        added++;
+      });
+      if (added > 0) {
+        localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+        updateSidebarBadges();
+        console.log('[EQ] Auto-destilacao: '+added+' padroes novos → pendentes de aprovacao');
+      }
+      localStorage.setItem(AUTO_DISTILL_KEY, String(Date.now()));
+    })
+    .catch(function(e){ console.warn('[EQ] Auto-distill API falhou:', e); localStorage.setItem(AUTO_DISTILL_KEY, String(Date.now())); });
+  })
+  .catch(function(e){ console.warn('[EQ] Auto-distill Supabase falhou:', e); });
+}
+
+// ═══════════════════════════════════════════════════════
+// MEMÓRIA INSTITUCIONAL — carrega CALIBs do Supabase no arranque
+// Merge com localStorage: Supabase tem prioridade (memória partilhada)
+// localStorage serve de fallback offline
+// ═══════════════════════════════════════════════════════
+function syncCalibsFromSupabase() {
+  return fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      console.log('[EQ] syncCalibsFromSupabase: sem CALIBs no Supabase');
+      return;
+    }
+
+    // Carregar localStorage actual
+    var local = {};
+    try { local = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+
+    // Merge: adicionar/actualizar com as do Supabase
+    var added = 0;
+    rows.forEach(function(row) {
+      var key = 'SB-' + row.id;
+      var existing = local[key];
+      // Só actualiza se Supabase for mais recente ou não existir
+      if (!existing || (row.updated_at && existing.sb_updated_at !== row.updated_at)) {
+        local[key] = {
+          value:      row.rule_text || row.value || '',
+          date:       (row.created_at || '').slice(0, 10),
+          source:     'supabase_sync',
+          sb_id:      row.id,
+          sb_updated_at: row.updated_at || ''
+        };
+        added++;
+      }
+    });
+
+    if (added > 0) {
+      localStorage.setItem('eq_calibrations_v1', JSON.stringify(local));
+      invalidateCalibCache();
+      updateSidebarBadges();
+      console.log('[EQ] syncCalibsFromSupabase: ' + added + ' CALIBs sincronizadas (' + rows.length + ' total activas)');
+    } else {
+      console.log('[EQ] syncCalibsFromSupabase: localStorage já actualizado (' + rows.length + ' CALIBs)');
+    }
+  })
+  .catch(function(e) {
+    // Falha silenciosa — localStorage continua a funcionar como fallback
+    console.warn('[EQ] syncCalibsFromSupabase: erro (usando localStorage como fallback):', e.message || e);
   });
 }
 
@@ -5538,18 +5802,11 @@ function renderReport(r,info){
   '<div id="report-cliente">'+buildClienteReport(r,cl,sc,sc_col,info)+'</div>'+
   '<div id="report-vet" style="display:none">'+
 
-  '<div class="sec">'+secH('01','Identificação','var(--ice)')+
-    '<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px">'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px">'+
-        '<div><div class="lbl9">Paciente</div><div style="font-size:13px;font-weight:600;color:var(--t1)">'+X(info.name||'—')+'</div></div>'+
-        '<div><div class="lbl9">Raça · Idade · Sexo</div><div style="font-size:12px;color:var(--t2)">'+X((info.breed||'—')+' · '+(info.age||'—')+'a · '+(info.sex||'—'))+'</div></div>'+
-        '<div><div class="lbl9">Disciplina</div><div style="font-size:12px;color:var(--t2)">'+X(info.disc||'—')+'</div></div>'+
-        '<div><div class="lbl9">Região Anatómica</div><div style="font-size:12px;color:var(--t2)">'+X(info.reg||'—')+'</div></div>'+
-        (info.symp&&info.symp!=='Não descritos'?'<div style="grid-column:span 2"><div class="lbl9">Sinais Clínicos</div><div style="font-size:12px;color:var(--amber);line-height:1.5">'+X(info.symp)+'</div></div>':'')+
-        (info.hist?'<div style="grid-column:span 2"><div class="lbl9">História Clínica</div><div style="font-size:12px;color:var(--t2);line-height:1.5">'+X(info.hist)+'</div></div>':'')+
-      '</div>'+
-    '</div>'+
-  '</div>'+
+  (resumo?'<div class="sec" style="margin-bottom:16px">'+secH('01','Resumo Executivo','var(--gold)')+'<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
+    resumo.split('\n').map(function(line){return line.trim()?'<div style="margin-bottom:4px">'+X(line)+'</div>':'';}).join('')+
+  '</div></div>':'')+
+
+  '<div class="sec">'+secH('02','Qualidade Radiográfica','var(--t3)')+qHTML+'</div>'+
 
   (false&&r.inventario&&r.inventario.total_recebidas?(function(){
     var inv = r.inventario;
@@ -5657,32 +5914,22 @@ function renderReport(r,info){
     '</div>';
   })():'')+
 
-  '<div class="sec">'+secH('03','Achados Radiográficos','var(--gold)')+
+  '<div class="sec">'+secH('03','Achados Radiológicos','var(--gold)')+
     '<table class="tbl"><thead><tr><th>Estrutura</th><th>Lesão</th><th>Grading</th><th>Severidade</th><th>Impacto Desportivo</th></tr></thead><tbody>'+achRows+'</tbody></table>'+
     (mcHTML&&mcHTML.length>10?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Medições Críticas</div>'+mcHTML+'</div>':'')+
   '</div>'+
 
-  '<div class="sec">'+secH('04','Interpretação Clínica','var(--ice)')+
-    (proseHTML?'<div style="margin-bottom:16px">'+proseHTML+'</div>':'')+
-    (ddHTML?'<div style="margin-top:'+(proseHTML?'0':'0')+'px"><div class="lbl9" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Diagnósticos Diferenciais</div>'+ddHTML+'</div>':'')+
-    (!proseHTML&&!ddHTML?'<div style="padding:12px;color:var(--t3);font-size:13px;font-style:italic">Dados interpretativos não disponíveis para este exame.</div>':'')+
-  '</div>'+
+  (ddHTML?'<div class="sec">'+secH('04','Diagnósticos Diferenciais','var(--t3)')+ddHTML+'</div>':'')+
 
-  '<div class="sec">'+secH('05','Conclusão','var(--green)')+buildVisaoGeral(r.achados||[], cl)+'</div>'+
+  // Conclusão Clínica — only in vet section
+  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
 
-  '<div class="sec">'+secH('06','Prognóstico','var(--green)')+progHTML+'</div>'+
+  '<div class="sec">'+secH('05','Prognóstico','var(--green)')+progHTML+'</div>'+
 
-  '<div class="sec">'+secH('07','Recomendações','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
+  '<div class="sec">'+secH('06','Plano de Acção','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
     (exHTML?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Exames Complementares</div><div style="border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;background:var(--ink2)">'+exHTML+'</div></div>':'')+'</div>'+
 
-  '<div class="sec">'+secH('08','Técnica & Limitações','var(--t3)')+
-    qHTML+
-    (resumo?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div class="lbl9" style="margin-bottom:8px">Resumo da Análise IA</div><div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:10px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
-      resumo.split('\n').map(function(line){return line.trim()?'<div style="margin-bottom:4px">'+X(line)+'</div>':'';}).join('')+
-    '</div></div>':'')+
-  '</div>'+
-
-  (imgList.length?'<div class="sec">'+secH('09','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
+  (imgList.length?'<div class="sec">'+secH('07','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
 
   '</div>'+ /* end report-vet */
 
@@ -5835,6 +6082,270 @@ function exportFeedbackLog(){
 // ═══════════════════════════════════════════════════════
 // IMPORTAR RELATÓRIO VETERINÁRIO — PDF → CALIBs
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// IMPORT VISUAL — análise de imagens RX + texto em par
+// Função nova — importVetReport() original intacta
+// ═══════════════════════════════════════════════════════
+
+function openImportModeModal(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+
+  // Validação tamanho
+  if (file.size > 25 * 1024 * 1024) {
+    var st = document.getElementById('vetImportStatus');
+    if (st) { st.style.display='block'; st.style.color='var(--red)'; st.textContent='❌ PDF demasiado grande (máx 25MB).'; }
+    return;
+  }
+
+  var mono = 'JetBrains Mono,monospace';
+  var ov = document.createElement('div');
+  ov.id = 'importModeOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:980;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML =
+    '<div style="background:var(--ink1);border:1px solid rgba(212,147,58,.4);border-radius:10px;width:100%;max-width:460px;overflow:hidden">' +
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--wire);background:rgba(212,147,58,.05)">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--amber)">📄 Importar Relatório Veterinário</div>' +
+        '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);margin-top:2px">' + file.name + ' · ' + (file.size/1024).toFixed(0) + 'KB</div>' +
+      '</div>' +
+      '<div style="padding:20px;display:flex;flex-direction:column;gap:12px">' +
+        '<button id="importModeText" style="padding:14px 16px;background:rgba(212,147,58,.08);border:1px solid rgba(212,147,58,.3);border-radius:6px;color:var(--t1);text-align:left;cursor:pointer">' +
+          '<div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:4px">📝 Só texto — rápido</div>' +
+          '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);line-height:1.6">Extrai achados e calibrações do texto do relatório.<br>Não analisa imagens RX. ~10 segundos.</div>' +
+        '</button>' +
+        '<button id="importModeVisual" style="padding:14px 16px;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.3);border-radius:6px;color:var(--t1);text-align:left;cursor:pointer">' +
+          '<div style="font-size:12px;font-weight:600;color:var(--ice);margin-bottom:4px">🔬 Texto + imagens RX — completo</div>' +
+          '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);line-height:1.6">Extrai calibrações do texto E analisa cada página RX visualmente.<br>Associa padrões visuais ao diagnóstico confirmado. ~30-60s.</div>' +
+        '</button>' +
+      '</div>' +
+      '<div style="padding:10px 20px;border-top:1px solid var(--wire);text-align:right">' +
+        '<button id="importModeCancel" style="font-family:'+mono+';font-size:10px;padding:7px 16px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer">Cancelar</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(ov);
+  document.getElementById('importModeCancel').onclick = function() { ov.remove(); input.value=''; };
+  document.getElementById('importModeText').onclick = function() {
+    ov.remove();
+    // Chamar importVetReport original — passa o input com o ficheiro já seleccionado
+    importVetReport(input);
+  };
+  document.getElementById('importModeVisual').onclick = function() {
+    ov.remove();
+    importVetReportWithImages(input, file);
+  };
+}
+
+// ─────────────────────────────────────────────────────
+// IMPORT VISUAL — dois passes:
+// PASSE 1: texto → extrai diagnóstico confirmado (JSON)
+// PASSE 2: cada página renderizada → Claude vê RX + diagnóstico → descreve padrões visuais
+// ─────────────────────────────────────────────────────
+async function importVetReportWithImages(input, file) {
+  var status = document.getElementById('vetImportStatus');
+  var importBtn = document.getElementById('btnImportPdf');
+  if (importBtn) { importBtn.disabled=true; importBtn.style.opacity='.5'; }
+  status.style.display='block'; status.style.color='var(--amber)';
+
+  var apiKey = getApiKey ? getApiKey() : '';
+
+  try {
+    // ── PASSE 1: extrair texto/calibrações (igual ao fluxo existente) ──
+    status.textContent = '⏳ Passe 1/2 — A extrair diagnóstico do texto…';
+
+    var base64Pdf = await new Promise(function(res, rej) {
+      var r = new FileReader();
+      r.onload = function(e) { res(e.target.result.split(',')[1]); };
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    var systemPrompt1 = [
+      'És um extractor de calibrações veterinárias. Recebes um relatório equino em PDF.',
+      'Extrai os achados radiológicos CONFIRMADOS e converte em regras de calibração.',
+      'RESPONDE APENAS COM JSON VÁLIDO. Sem texto antes ou depois. Sem markdown.',
+      '',
+      'Formato:',
+      '{"horse":"nome","breed":"raça","age":"idade","discipline":"disciplina","vet_conclusion":"conclusão em 1-2 frases","risk_level":"baixo|moderado|moderado-alto|alto",',
+      '"calibrations":[{"estrutura":"IFD MAD","membro":"MAD","achado":"descrição técnica","severidade":"Leve|Moderado|Severo","confirmado_por":"radiografia|ecografia|clínica","sinais_clinicos":"...","regra":"INSTRUÇÃO DIRECTA ao modelo de IA","prioridade":"alta|média"}],',
+      '"achados_normais":["regiões normais"],"paginas_rx":[1,2,3]}'
+      ,
+      '',
+      'Em paginas_rx: lista os números de página que contêm radiografias (não texto).',
+      'REGRAS: formula cada regra como instrução directa ao modelo. Inclui achados normais para calibrar falsos positivos.'
+    ].join('\n');
+
+    var r1 = await fetch('/api/claude', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-session-token':(AUTH&&AUTH.token)||''},
+      body: JSON.stringify({
+        model: C.MODELS[0]||'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: systemPrompt1,
+        messages:[{role:'user',content:[
+          {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64Pdf}},
+          {type:'text',text:'Extrai calibrações e indica quais páginas têm RX. Responde APENAS com JSON.'}
+        ]}]
+      })
+    });
+    var d1 = await r1.json();
+    var t1 = (d1.content||[]).map(function(b){return b.text||'';}).join('').replace(/```json|```/g,'').trim();
+    var parsed;
+    try { parsed = JSON.parse(t1); } catch(e) {
+      status.style.color='var(--red)';
+      status.textContent='❌ Erro no passe 1. Tenta modo "Só texto".';
+      if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+      return;
+    }
+
+    // ── PASSE 2: renderizar páginas RX e analisar visualmente ──
+    status.textContent = '⏳ Passe 2/2 — A renderizar e analisar imagens RX…';
+
+    var pdfLib = await loadPdfJs();
+    var arrayBuf = await new Promise(function(res, rej) {
+      var r2 = new FileReader();
+      r2.onload = function(e){res(e.target.result);};
+      r2.onerror = rej;
+      r2.readAsArrayBuffer(file);
+    });
+
+    var pdfDoc = await pdfLib.getDocument({data: new Uint8Array(arrayBuf), verbosity:0}).promise;
+    var numPages = pdfDoc.numPages;
+
+    // Determinar páginas a analisar: as indicadas pelo passe 1, ou todas se não especificado
+    var rxPages = Array.isArray(parsed.paginas_rx) && parsed.paginas_rx.length > 0
+      ? parsed.paginas_rx.filter(function(n){return n>=1 && n<=numPages;})
+      : Array.from({length:numPages}, function(_,i){return i+1;});
+
+    // Limitar a 12 páginas para não exceder context
+    rxPages = rxPages.slice(0, 12);
+
+    var visualCalibs = [];
+    var diagSummary = parsed.vet_conclusion || '';
+    var calibSummary = (parsed.calibrations||[]).map(function(c){
+      return (c.estrutura||'?') + ': ' + (c.achado||'') + ' — ' + (c.severidade||'?');
+    }).join('\n');
+
+    for (var pi = 0; pi < rxPages.length; pi++) {
+      var pageNum = rxPages[pi];
+      status.textContent = '🔬 A analisar RX página ' + pageNum + '/' + numPages + '…';
+      try {
+        var page = await pdfDoc.getPage(pageNum);
+        var vp = page.getViewport({scale: 2});
+        var cv = document.createElement('canvas');
+        cv.width = vp.width; cv.height = vp.height;
+        var ctx = cv.getContext('2d');
+        ctx.fillStyle = '#000'; ctx.fillRect(0,0,cv.width,cv.height);
+        await page.render({canvasContext:ctx, viewport:vp}).promise;
+        var imgB64 = cv.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+        var sysVisual = [
+          'És um radiologista equino especializado. Recebes uma radiografia equina e o diagnóstico CONFIRMADO pelo veterinário.',
+          'O teu trabalho: descrever os sinais visuais radiográficos ESPECÍFICOS que confirmam esse diagnóstico.',
+          'Isto vai ser usado para treinar um sistema de IA — precisa de saber EXACTAMENTE o que ver, não o diagnóstico (já sabe).',
+          '',
+          'RESPONDE APENAS COM JSON VÁLIDO.',
+          '{"estrutura":"região anatómica exacta","membro":"MAE|MAD|MPE|MPD|bilateral|?","achado_visual":"descrição radiográfica técnica do que é visível: densidade, margens, espaço articular, reacções periósteas, etc","padroes_visuais":["lista de sinais radiográficos específicos observáveis"],"severidade_visual":"Leve|Moderado|Severo|Normal","regra_visual":"INSTRUÇÃO DIRECTA ao modelo: quando vês X visualmente nesta região → classifica como Y. Descreve o padrão visual com precisão suficiente para reconhecer em casos futuros.","confianca":"alta|media|baixa","tem_rx":true}'
+          ,
+          'Se a página não contém radiografia (só texto), responde: {"tem_rx":false}'
+        ].join('\n');
+
+        var msgVisual = 'Diagnóstico confirmado pelo veterinário:\n' + diagSummary + '\n\nAchados registados:\n' + calibSummary + '\n\nDescreve os sinais visuais radiográficos específicos visíveis nesta imagem que confirmam este diagnóstico.';
+
+        var rv = await fetch('/api/claude', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-session-token':(AUTH&&AUTH.token)||''},
+          body: JSON.stringify({
+            model: C.MODELS[0]||'claude-sonnet-4-6',
+            max_tokens: 1500,
+            system: sysVisual,
+            messages:[{role:'user',content:[
+              {type:'image',source:{type:'base64',media_type:'image/jpeg',data:imgB64}},
+              {type:'text',text:msgVisual}
+            ]}]
+          })
+        });
+        var dv = await rv.json();
+        var tv = (dv.content||[]).map(function(b){return b.text||'';}).join('').replace(/```json|```/g,'').trim();
+        var pv;
+        try { pv = JSON.parse(tv); } catch(e){ continue; }
+        if (!pv || pv.tem_rx === false) continue;
+        if (pv.regra_visual) {
+          visualCalibs.push({
+            key: 'VISUAL-' + (parsed.horse||'X').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase() + '-P' + pageNum,
+            value: '[VISUAL p.' + pageNum + '] ' + (pv.regra_visual||''),
+            regra: pv.regra_visual || '',
+            date: new Date().toLocaleDateString('pt-PT'),
+            source: 'visual_import',
+            horse: (parsed.horse||'?') + ' (p.' + pageNum + ')',
+            estrutura: pv.estrutura || '',
+            achado: pv.achado_visual || '',
+            severidade: pv.severidade_visual || '',
+            padroes: (pv.padroes_visuais||[]).join('; '),
+            prioridade: pv.confianca === 'alta' ? 'alta' : 'média',
+            tipo: 'visual'
+          });
+        }
+      } catch(eP) { console.warn('[EQ] Visual import página ' + pageNum + ':', eP); }
+    }
+
+    // ── COMBINAR: calibrações texto + calibrações visuais ──
+    var date = new Date().toLocaleDateString('pt-PT');
+    var horse = parsed.horse || 'desconhecido';
+    var pending = [];
+    try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]'); } catch(e){}
+
+    // Calibrações de texto (passe 1)
+    (parsed.calibrations||[]).forEach(function(c,i){
+      var key = 'IMPORT-' + horse.replace(/[^A-Za-z0-9]/g,'_').slice(0,12).toUpperCase() + '-' + String(i+1).padStart(3,'0');
+      pending.push({
+        key:key, value:'['+( c.estrutura||'?')+' · '+(c.severidade||'?')+'] '+(c.regra||c.achado||''),
+        date:date, source:'pdf_import', horse:horse,
+        estrutura:c.estrutura||'', achado:c.achado||'', severidade:c.severidade||'',
+        confirmado_por:c.confirmado_por||'', sinais_clinicos:c.sinais_clinicos||'',
+        regra:c.regra||'', prioridade:c.prioridade||'média', tipo:'patologico'
+      });
+    });
+    (parsed.achados_normais||[]).forEach(function(r,i){
+      pending.push({
+        key:'IMPORT-'+horse.replace(/[^A-Za-z0-9]/g,'_').slice(0,12).toUpperCase()+'-N'+String(i+1).padStart(2,'0'),
+        value:'[NORMAL] '+r+' — confirmado normal em '+horse, date:date,
+        source:'pdf_import_normal', horse:horse, estrutura:r, achado:'Normal',
+        severidade:'Normal', regra:'Região confirmada normal', prioridade:'média', tipo:'normal'
+      });
+    });
+
+    // Calibrações visuais (passe 2) — adicionadas à mesma fila
+    visualCalibs.forEach(function(vc){ pending.push(vc); });
+
+    localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+    window._lastVetImport = parsed;
+
+    // Supabase log
+    sbInsert('vet_feedback',{
+      horse:horse, date:date, app_grade:'', vet_grade:parsed.risk_level||'',
+      vet_notes:'[PDF Visual Import] '+diagSummary+' | texto:'+((parsed.calibrations||[]).length)+' calibs | visual:'+visualCalibs.length+' calibs',
+      structures:(parsed.calibrations||[]).map(function(c){return c.estrutura||'';}),
+      user_name:(AUTH&&AUTH.user)||'unknown'
+    }).catch(function(){});
+
+    var total = pending.length;
+    status.style.color='var(--amber)';
+    status.innerHTML = '&#9888; <strong>' + total + ' calibrações</strong> (' + visualCalibs.length + ' visuais) em quarentena.<br>' +
+      '<button onclick="openPendingCalibsModal()" style="font-size:9px;padding:2px 8px;background:rgba(212,147,58,.15);border:1px solid rgba(212,147,58,.4);border-radius:3px;color:var(--amber);cursor:pointer;margin-top:4px;display:inline-block">&#10003; Rever e Aprovar</button>';
+    if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+    updateSidebarBadges();
+    setTimeout(openPendingCalibsModal, 400);
+
+  } catch(eMain) {
+    status.style.color='var(--red)';
+    status.textContent = '❌ Erro: ' + (eMain.message||eMain);
+    if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+    console.error('[EQ] importVetReportWithImages:', eMain);
+  }
+}
+
 function importVetReport(input) {
   var file = input.files && input.files[0];
   if (!file) return;
@@ -6047,6 +6558,187 @@ function importVetReport(input) {
   reader.readAsDataURL(file);
 }
 
+
+
+// ═══════════════════════════════════════════════════════
+// PAINEL DE CONFIANÇA — mostra mapa de conhecimento na sidebar
+// ═══════════════════════════════════════════════════════
+function refreshConfidencePanel() {
+  var body = document.getElementById('confidencePanelBody');
+  var wrap = document.getElementById('confidencePanelWrap');
+  if (!body) return;
+
+  var ESTRUTURAS = [
+    'IFD','Navicular','Boleto','Metacarpo','Metatarso',
+    'Carpo','Tarsus','Estifle','Coluna'
+  ];
+  var map = {};
+  try {
+    var allCalibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}');
+    Object.values(allCalibs).forEach(function(c) {
+      var txt = ((c.value||'') + ' ' + (c.horse||'')).toUpperCase();
+      ESTRUTURAS.forEach(function(e) { if (txt.indexOf(e.toUpperCase()) >= 0) map[e] = (map[e]||0)+1; });
+    });
+    var allExams = JSON.parse(localStorage.getItem('eq_exams_v1') || '[]');
+    allExams.forEach(function(ex) {
+      var txt = ((ex.estrutura||'') + ' ' + (ex.classe||'')).toUpperCase();
+      ESTRUTURAS.forEach(function(e) { if (txt.indexOf(e.toUpperCase()) >= 0) map[e] = (map[e]||0)+0.5; });
+    });
+  } catch(e) {}
+
+  var total = Object.values(map).reduce(function(a,b){return a+b;},0);
+  if (total === 0 && wrap) { wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = 'block';
+
+  var html = '';
+  ESTRUTURAS.forEach(function(e) {
+    var n = Math.round(map[e] || 0);
+    var pct = Math.min(100, Math.round(n / 8 * 100));
+    var col = n >= 5 ? 'var(--green)' : n >= 2 ? 'var(--amber)' : n >= 1 ? 'var(--red)' : 'var(--wire2)';
+    var label = n >= 5 ? 'alta' : n >= 2 ? 'média' : n >= 1 ? 'baixa' : '—';
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
+    html += '<span style="font-family:JetBrains Mono,monospace;width:72px;flex-shrink:0;color:var(--t2)">' + e + '</span>';
+    html += '<div style="flex:1;height:4px;background:var(--ink4);border-radius:2px;overflow:hidden">';
+    html += '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:2px;transition:width .3s"></div>';
+    html += '</div>';
+    html += '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:' + col + ';width:30px;text-align:right">' + label + '</span>';
+    html += '</div>';
+  });
+  html += '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3);margin-top:6px">' + Math.round(total) + ' referências locais total</div>';
+  body.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// CASO DE ESTUDO — registo directo sem análise IA
+// Alimenta a memória institucional com ground truth limpo
+// ═══════════════════════════════════════════════════════
+function openCaseStudyModal() {
+  if (document.getElementById('caseStudyOverlay')) return;
+  var mono = 'JetBrains Mono,monospace';
+  var overlay = document.createElement('div');
+  overlay.id = 'caseStudyOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var sevOpts = '<option value="">— Severidade —</option><option>Leve</option><option>Moderado</option><option>Severo</option><option>Normal</option>';
+  var memOpts = '<option value="">— Membro —</option><option>MAE</option><option>MAD</option><option>MPE</option><option>MPD</option><option>bilateral</option><option>não especificado</option>';
+  var regOpts = '<option value="">— Região —</option><option>IFD/Coffin</option><option>Navicular</option><option>Boleto/MCP</option><option>Metacarpo</option><option>Carpo</option><option>Tarsus</option><option>Metatarso</option><option>Estifle</option><option>Coluna</option><option>Outra</option>';
+  var lbl = function(t) { return '<label style="font-family:'+mono+';font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:3px">'+t+'</label>'; };
+  var inp = function(id,ph) { return '<input id="'+id+'" placeholder="'+ph+'" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:6px 9px;font-family:inherit">'; };
+  var sel = function(id,opts) { return '<select id="'+id+'" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:6px 8px;font-family:'+mono+'">'+opts+'</select>'; };
+
+  overlay.innerHTML =
+    '<div style="background:var(--ink1);border:1px solid rgba(74,201,201,.3);border-radius:10px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire);background:rgba(74,201,201,.05)">' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--ice)">🔬 Registar Caso de Estudo</div>' +
+          '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);margin-top:2px">Ground truth confirmado — alimenta a memória sem fazer diagnóstico</div>' +
+        '</div>' +
+        '<button id="csClose" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">&#x2715;</button>' +
+      '</div>' +
+      '<div style="overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+          '<div>'+lbl('Cavalo *')+inp('csHorse','ex: Storm Prince')+'</div>' +
+          '<div>'+lbl('Raça')+inp('csBreed','ex: Lusitano')+'</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">' +
+          '<div>'+lbl('Idade')+inp('csAge','ex: 8')+'</div>' +
+          '<div>'+lbl('Disciplina')+inp('csDisc','ex: Dressage')+'</div>' +
+          '<div>'+lbl('Data exame')+inp('csDate',new Date().toLocaleDateString('pt-PT'))+'</div>' +
+        '</div>' +
+        '<div style="border-top:1px solid var(--wire);padding-top:10px">' +
+          '<div style="font-family:'+mono+';font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Achado Confirmado</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
+            '<div>'+lbl('Região')+sel('csRegiao',regOpts)+'</div>' +
+            '<div>'+lbl('Membro')+sel('csMembro',memOpts)+'</div>' +
+            '<div>'+lbl('Severidade *')+sel('csSev',sevOpts)+'</div>' +
+          '</div>' +
+          '<div>'+lbl('Descrição do achado *')+'<textarea id="csAchado" rows="2" placeholder="ex: Osteofitose moderada da articulação IFD com esclerose subcondral" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:6px 9px;font-family:inherit;resize:vertical"></textarea></div>' +
+        '</div>' +
+        '<div>' +
+          lbl('Regra de calibração para análises futuras *') +
+          '<textarea id="csRegra" rows="3" placeholder="ex: IFD MAD com osteofitose grau 2 e esclerose subcondral visível em LM e DMPLO = Moderado mesmo sem sinais clínicos activos. Verificar sempre vista skyline navicular em conjunto." style="width:100%;background:rgba(74,201,201,.04);border:1px solid rgba(74,201,201,.25);border-radius:4px;color:var(--ice);font-size:11px;padding:6px 9px;font-family:inherit;resize:vertical"></textarea>' +
+        '</div>' +
+        '<div>' +
+          lbl('Sinais clínicos (se presentes)') +
+          '<input id="csSinais" placeholder="ex: Flexões positivas, claudicação grau 2/5" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:6px 9px;font-family:inherit">' +
+        '</div>' +
+        '<div>' +
+          lbl('Conclusão do veterinário') +
+          '<input id="csConclusao" placeholder="ex: Risco moderado-alto para saltos de alto nível" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:6px 9px;font-family:inherit">' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:12px 18px;border-top:1px solid var(--wire);display:flex;gap:8px;background:var(--ink1)">' +
+        '<button id="csSave" style="flex:1;font-family:'+mono+';font-size:11px;padding:9px;background:rgba(74,201,201,.12);border:1px solid rgba(74,201,201,.4);border-radius:4px;color:var(--ice);cursor:pointer;font-weight:600;letter-spacing:.04em">&#10003; Guardar Caso de Estudo</button>' +
+        '<button id="csCancel" style="font-family:'+mono+';font-size:11px;padding:9px 16px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer">Cancelar</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  document.getElementById('csClose').onclick = function() { overlay.remove(); };
+  document.getElementById('csCancel').onclick = function() { overlay.remove(); };
+  document.getElementById('csSave').onclick = saveCaseStudy;
+  var el = document.getElementById('csHorse'); if (el) el.focus();
+}
+
+function saveCaseStudy() {
+  var horse    = (document.getElementById('csHorse')||{}).value||'';
+  var sev      = (document.getElementById('csSev')||{}).value||'';
+  var achado   = (document.getElementById('csAchado')||{}).value||'';
+  var regra    = (document.getElementById('csRegra')||{}).value||'';
+
+  if (!horse.trim() || !sev || !achado.trim() || !regra.trim()) {
+    showToast('Preenche os campos obrigatórios (*)');
+    return;
+  }
+
+  var breed    = (document.getElementById('csBreed')||{}).value||'';
+  var age      = (document.getElementById('csAge')||{}).value||'';
+  var disc     = (document.getElementById('csDisc')||{}).value||'';
+  var date     = (document.getElementById('csDate')||{}).value || new Date().toLocaleDateString('pt-PT');
+  var regiao   = (document.getElementById('csRegiao')||{}).value||'';
+  var membro   = (document.getElementById('csMembro')||{}).value||'';
+  var sinais   = (document.getElementById('csSinais')||{}).value||'';
+  var conclusao= (document.getElementById('csConclusao')||{}).value||'';
+
+  var key = 'CASE-' + horse.replace(/[^A-Za-z0-9]/g,'_').slice(0,12).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+
+  // 1. Guardar como CALIB pendente → vet confirma antes de activar
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]'); } catch(e) {}
+  pending.push({
+    key:          key,
+    value:        regra,
+    regra:        regra,
+    date:         date,
+    source:       'case_study',
+    horse:        horse + (breed?' ('+breed+')':'') + (age?' '+age+'a':''),
+    estrutura:    regiao + (membro?' '+membro:''),
+    achado:       achado,
+    severidade:   sev,
+    sinais_clinicos: sinais,
+    prioridade:   sev === 'Severo' ? 'alta' : 'média',
+    tipo:         'case_study'
+  });
+  localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+
+  // 2. Guardar no Supabase vet_feedback como ground truth
+  sbInsert('vet_feedback', {
+    horse:     horse,
+    date:      date,
+    app_grade: '',
+    vet_grade: sev,
+    vet_notes: '[CASO DE ESTUDO] ' + regiao + ' ' + membro + ': ' + achado + (conclusao?' | Conclusão: '+conclusao:'') + (sinais?' | Clínica: '+sinais:''),
+    structures: [regiao],
+    user_name: (AUTH && AUTH.user) || 'unknown'
+  }).catch(function(){});
+
+  updateSidebarBadges();
+  var overlay = document.getElementById('caseStudyOverlay');
+  if (overlay) overlay.remove();
+  showToast('Caso registado — vai para aprovação antes de activar.');
+  setTimeout(openPendingCalibsModal, 300);
+}
+
 // ═══════════════════════════════════════════════════════
 // MODAL DE QUARENTENA — Rever e Aprovar CALIBs pendentes
 // ═══════════════════════════════════════════════════════
@@ -6082,42 +6774,67 @@ function openPendingCalibsModal() {
   // Calibrations list
   html += '<div id="pendingCalibsList" style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent">';
 
+  // Agrupar por fonte para distinção visual
+  var groups = {pdf: [], visual: [], study: [], auto: [], manual: []};
   pending.forEach(function(c, i) {
-    var sevCol = c.severidade==='Severo'?'var(--red)':c.severidade==='Moderado'?'var(--amber)':c.severidade==='Normal'?'var(--green)':'var(--blue)';
-    var tipoIcon = c.tipo==='normal' ? '&#10003;' : '&#9888;';
-
-    html += '<div id="pending-item-' + i + '" style="border:1px solid var(--wire);border-radius:6px;padding:12px 14px;margin-bottom:10px;background:var(--ink2)">';
-
-    // Header row
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-    html += '<span style="font-family:' + mono + ';font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 7px;border-radius:2px">' + tipoIcon + ' ' + (c.severidade||'?') + '</span>';
-    html += '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||'') + '</span>';
-    if (c.membro) html += '<span style="font-size:10px;color:var(--t3)">' + c.membro + '</span>';
-    html += '<span style="font-size:10px;color:var(--t3);margin-left:auto">' + (c.confirmado_por||'') + '</span>';
-    html += '</div>';
-
-    // Achado
-    if (c.achado && c.achado !== 'Normal') {
-      html += '<div style="font-size:11px;color:var(--t2);margin-bottom:6px">' + c.achado + '</div>';
-    }
-    if (c.sinais_clinicos) {
-      html += '<div style="font-size:10px;color:var(--amber);margin-bottom:6px">&#9888; Clínica: ' + c.sinais_clinicos + '</div>';
-    }
-
-    // Regra editável
-    html += '<div style="font-size:9px;color:var(--t3);font-family:' + mono + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Regra a guardar (editável):</div>';
-    html += '<textarea id="pending-rule-' + i + '" style="width:100%;box-sizing:border-box;background:rgba(74,201,201,.04);border:1px solid rgba(74,201,201,.2);border-radius:4px;color:var(--ice);font-size:10px;font-family:' + mono + ';padding:6px 8px;resize:vertical;min-height:52px;line-height:1.5">' + (c.regra||c.value||'') + '</textarea>';
-
-    // Fonte
-    html += '<div style="font-size:9px;color:var(--t3);margin-top:4px">Extraído de: <em>' + (c.horse||'?') + '</em> · ' + (c.date||'') + '</div>';
-
-    // Botões
-    html += '<div style="display:flex;gap:8px;margin-top:10px">';
-    html += '<button onclick="approvePendingCalib(' + i + ')" style="flex:1;font-family:' + mono + ';font-size:10px;padding:7px;background:rgba(74,170,122,.15);border:1px solid rgba(74,170,122,.4);border-radius:4px;color:var(--green);cursor:pointer;font-weight:600;letter-spacing:.04em">&#10003; Aprovar</button>';
-    html += '<button onclick="rejectPendingCalib(' + i + ')" style="font-family:' + mono + ';font-size:10px;padding:7px 14px;background:transparent;border:1px solid rgba(224,85,85,.3);border-radius:4px;color:var(--red);cursor:pointer;letter-spacing:.04em">&#10005; Rejeitar</button>';
-    html += '</div>';
-    html += '</div>'; // end item
+    var src = c.source || '';
+    if (src === 'auto_distill') groups.auto.push({c:c, i:i});
+    else if (src === 'case_study') groups.study.push({c:c, i:i});
+    else if (src === 'visual_import') groups.visual.push({c:c, i:i});
+    else if (src.indexOf('pdf_import') === 0) groups.pdf.push({c:c, i:i});
+    else groups.manual.push({c:c, i:i});
   });
+
+  function renderGroup(label, icon, borderCol, bgCol, items) {
+    if (!items.length) return;
+    html += '<div style="margin-bottom:6px;padding:4px 0 6px 0">';
+    html += '<div style="font-family:' + mono + ';font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;padding:4px 0 8px 0;display:flex;align-items:center;gap:6px">';
+    html += '<span style="color:' + borderCol + '">' + icon + '</span>' + label + ' <span style="color:var(--t3)">(' + items.length + ')</span>';
+    html += '</div>';
+    items.forEach(function(obj) {
+      var c = obj.c; var i = obj.i;
+      var sevCol = c.severidade==='Severo'?'var(--red)':c.severidade==='Moderado'?'var(--amber)':c.severidade==='Normal'?'var(--green)':'var(--blue)';
+      html += '<div id="pending-item-' + i + '" style="border:1px solid ' + borderCol + '40;border-left:3px solid ' + borderCol + ';border-radius:0 6px 6px 0;padding:12px 14px;margin-bottom:8px;background:' + bgCol + '">';
+
+      // Origem badge
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+      if (c.severidade) {
+        html += '<span style="font-family:' + mono + ';font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 7px;border-radius:2px">' + (c.severidade||'?') + '</span>';
+      }
+      html += '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||c.horse||'') + '</span>';
+      if (c.membro) html += '<span style="font-size:10px;color:var(--t3)">' + c.membro + '</span>';
+      html += '<span style="font-family:' + mono + ';font-size:8px;color:' + borderCol + ';background:' + bgCol + ';border:1px solid ' + borderCol + '30;padding:1px 6px;border-radius:2px;margin-left:auto">' + icon + ' ' + (c.source||'?') + '</span>';
+      html += '</div>';
+
+      if (c.achado && c.achado !== 'Normal') {
+        html += '<div style="font-size:11px;color:var(--t2);margin-bottom:6px">' + c.achado + '</div>';
+      }
+      if (c.sinais_clinicos) {
+        html += '<div style="font-size:10px;color:var(--amber);margin-bottom:6px">&#9888; Clínica: ' + c.sinais_clinicos + '</div>';
+      }
+      if (c.tipo === 'auto' && c.achado) {
+        html += '<div style="font-size:10px;color:var(--t3);font-style:italic;margin-bottom:6px">Padrão: ' + c.achado + '</div>';
+      }
+
+      html += '<div style="font-size:9px;color:var(--t3);font-family:' + mono + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Regra (editável):</div>';
+      html += '<textarea id="pending-rule-' + i + '" style="width:100%;box-sizing:border-box;background:rgba(74,201,201,.04);border:1px solid rgba(74,201,201,.2);border-radius:4px;color:var(--ice);font-size:10px;font-family:' + mono + ';padding:6px 8px;resize:vertical;min-height:52px;line-height:1.5">' + (c.regra||c.value||'') + '</textarea>';
+
+      html += '<div style="font-size:9px;color:var(--t3);margin-top:4px">Origem: <em>' + (c.horse||'?') + '</em> · ' + (c.date||'') + '</div>';
+
+      html += '<div style="display:flex;gap:8px;margin-top:10px">';
+      html += '<button onclick="approvePendingCalib(' + i + ')" style="flex:1;font-family:' + mono + ';font-size:10px;padding:7px;background:rgba(74,170,122,.15);border:1px solid rgba(74,170,122,.4);border-radius:4px;color:var(--green);cursor:pointer;font-weight:600;letter-spacing:.04em">&#10003; Aprovar</button>';
+      html += '<button onclick="rejectPendingCalib(' + i + ')" style="font-family:' + mono + ';font-size:10px;padding:7px 14px;background:transparent;border:1px solid rgba(224,85,85,.3);border-radius:4px;color:var(--red);cursor:pointer;letter-spacing:.04em">&#10005; Rejeitar</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  renderGroup('Relatórios Veterinários (PDF)', '📄', 'var(--amber)', 'rgba(212,147,58,.04)', groups.pdf);
+  renderGroup('Análise Visual de RX', '🩻', 'var(--green)', 'rgba(74,170,122,.04)', groups.visual);
+  renderGroup('Casos de Estudo', '🔬', 'var(--ice)', 'rgba(74,201,201,.06)', groups.study);
+  renderGroup('Padrões Detectados Automaticamente', '🤖', 'rgba(138,43,226,.8)', 'rgba(138,43,226,.04)', groups.auto);
+  renderGroup('Calibrações Manuais', '✏', 'var(--t3)', 'var(--ink2)', groups.manual);
 
   html += '</div>'; // end list
 
@@ -6157,6 +6874,22 @@ function approvePendingCalib(idx) {
     approved_date: new Date().toLocaleDateString('pt-PT')
   };
   localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
+
+  // Sync para Supabase — memória institucional persistente
+  sbInsert('calib_rules', {
+    rule_text:    editedRule,
+    source_cases: c.horse || '',
+    rationale:    c.achado || '',
+    confidence:   c.prioridade || 'média',
+    status:       'active',
+    approved_at:  new Date().toISOString()
+  }).then(function() {
+    invalidateCalibCache();
+  refreshConfidencePanel();
+    console.log('[EQ] approvePendingCalib → Supabase: ' + c.key);
+  }).catch(function(e) {
+    console.warn('[EQ] approvePendingCalib Supabase falhou (localStorage OK):', e);
+  });
 
   // Remove from pending
   pending.splice(idx, 1);
@@ -6213,6 +6946,25 @@ function approveAllPendingCalibs() {
 
   localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
   localStorage.removeItem('eq_calibrations_pending');
+
+  // Sync todas para Supabase — memória institucional persistente
+  pending.forEach(function(c) {
+    var textarea = document.getElementById('pending-rule-' + pending.indexOf(c));
+    var editedRule = textarea ? textarea.value.trim() : (c.regra || c.value);
+    sbInsert('calib_rules', {
+      rule_text:    editedRule,
+      source_cases: c.horse || '',
+      rationale:    c.achado || '',
+      confidence:   c.prioridade || 'média',
+      status:       'active',
+      approved_at:  new Date().toISOString()
+    }).catch(function(e) {
+      console.warn('[EQ] approveAll Supabase falhou para ' + c.key + ' (localStorage OK):', e);
+    });
+  });
+  invalidateCalibCache();
+  refreshConfidencePanel();
+  console.log('[EQ] approveAllPendingCalibs → Supabase: ' + pending.length + ' CALIBs');
 
   var overlay = document.getElementById('pendingCalibsOverlay');
   if (overlay) {
@@ -6945,6 +7697,12 @@ window.addEventListener('DOMContentLoaded', function(){
   setTimeout(collectDataConsent, 2000);
   setTimeout(updateSidebarBadges, 500); // badges no arranque
   setTimeout(refreshHorseSelect, 300); // cavalos
+  // Memória institucional — sincroniza CALIBs do Supabase (partilhadas entre sessões)
+  setTimeout(syncCalibsFromSupabase, 1000);
+  // Destilação automática semanal — detecta padrões, propõe CALIBs (silenciosa)
+  setTimeout(runAutoDistill, 5000);
+  // Painel de confiança — actualiza após sync
+  setTimeout(refreshConfidencePanel, 1500);
 });
 
 // ═══════════════════════════════════════════════════════
@@ -6954,6 +7712,8 @@ document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
   // Close topmost modal overlay
   var overlays = [
+    document.getElementById('importModeOverlay'),
+    document.getElementById('caseStudyOverlay'),
     document.getElementById('newHorseOverlay'),
     document.getElementById('pendingCalibsOverlay'),
     document.querySelector('[style*="position:fixed"][style*="z-index:960"]'),

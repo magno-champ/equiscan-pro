@@ -1,5 +1,5 @@
 /**
- * EquiScan Pro — Railway Backend v53
+ * EquiScan Pro — Railway Backend v53 (sessões persistentes)
  */
 
 const express = require('express');
@@ -16,6 +16,46 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// ── SESSÕES PERSISTENTES ───────────────────────────────────────────────────────
+// Guarda sessões em ficheiro para sobreviver a reinicios do servidor
+const SESSIONS_FILE = path.join(__dirname, '../data/sessions.json');
+
+function loadSessions() {
+  try {
+    if (fs.existsSync(SESSIONS_FILE)) {
+      return new Map(Object.entries(JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'))));
+    }
+  } catch(e) {}
+  return new Map();
+}
+
+function saveSessions(sessions) {
+  try {
+    ensureDataDir();
+    const obj = {};
+    sessions.forEach((v, k) => { obj[k] = v; });
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj));
+  } catch(e) {}
+}
+
+const sessions = loadSessions();
+
+function createToken(user) {
+  const token = crypto.randomBytes(32).toString('hex');
+  // 30 dias em vez de 24 horas
+  sessions.set(token, { user, expires: Date.now() + 30 * 24 * 60 * 60 * 1000 });
+  saveSessions(sessions);
+  return token;
+}
+
+function validateToken(token) {
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (Date.now() > session.expires) { sessions.delete(token); saveSessions(sessions); return null; }
+  return session.user;
+}
+
 function getUsers() {
   const raw = process.env.USERS || '';
   const users = {};
@@ -24,22 +64,6 @@ function getUsers() {
     if (name && pass) users[name.trim()] = pass.trim();
   });
   return users;
-}
-
-const sessions = new Map();
-
-function createToken(user) {
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { user, expires: Date.now() + 24 * 60 * 60 * 1000 });
-  return token;
-}
-
-function validateToken(token) {
-  if (!token) return null;
-  const session = sessions.get(token);
-  if (!session) return null;
-  if (Date.now() > session.expires) { sessions.delete(token); return null; }
-  return session.user;
 }
 
 function requireAuth(req, res, next) {
@@ -72,7 +96,7 @@ app.post('/api/login', (req, res) => {
 
 app.post('/api/logout', (req, res) => {
   const token = req.headers['x-session-token'];
-  if (token) sessions.delete(token);
+  if (token) { sessions.delete(token); saveSessions(sessions); }
   res.json({ ok: true });
 });
 
@@ -116,7 +140,7 @@ app.post('/api/claude', requireAuth, async (req, res) => {
   }
 });
 
-// ── FEEDBACK DO VETERINÁRIO — NOVO v53 ────────────────────────────────────────
+// ── FEEDBACK DO VETERINÁRIO ────────────────────────────────────────────────────
 function ensureDataDir() {
   const dir = path.join(__dirname, '../data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -167,4 +191,5 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[EQ] EquiScan Pro v53 a correr na porta ${PORT}`);
   console.log(`[EQ] API Key: ${ANTHROPIC_API_KEY ? '✓ configurada' : '✗ FALTA'}`);
+  console.log(`[EQ] Sessões carregadas: ${sessions.size}`);
 });

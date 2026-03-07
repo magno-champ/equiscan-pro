@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v56</title>
+<title>EquiScan Pro v58</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -161,10 +161,18 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .verdict.warning .verdict-class{color:var(--amber)}
 .verdict.critical .verdict-class{color:var(--red)}
 .verdict-sum{font-size:12px;color:var(--t2);line-height:1.55;max-width:380px}
-.score-ring{width:60px;height:60px;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.score-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
-.score-num{font-family:'Lora',serif;font-size:20px;font-weight:700;position:relative;z-index:1;line-height:1}
-.score-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;text-align:center;margin-top:2px}
+.semaphore-wrap{display:flex;gap:10px;flex-shrink:0}
+.semaphore{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:90px}
+.semaphore-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;box-shadow:0 0 12px currentColor}
+.sem-green{background:#4aaa7a;color:#4aaa7a}
+.sem-yellow{background:#d4c03a;color:#d4c03a}
+.sem-orange{background:#d4933a;color:#d4933a}
+.sem-red{background:#e05555;color:#e05555}
+.semaphore-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;text-align:center;line-height:1.4}
+.semaphore-val{font-size:11px;font-weight:600;text-align:center;line-height:1.3}
+.completude-bar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:5px;border:1px solid var(--wire)}
+.completude-track{flex:1;height:3px;background:var(--ink4);border-radius:2px;overflow:hidden}
+.completude-fill{height:100%;border-radius:2px;transition:width .4s ease}
 .verdict-body{padding:9px 15px;font-size:12px;color:var(--t2);line-height:1.55;border-top:1px solid}
 .verdict.ok .verdict-body{border-color:rgba(74,170,122,.1)}
 .verdict.warning .verdict-body{border-color:rgba(212,147,58,.12)}
@@ -2418,7 +2426,7 @@ function buildPrompt(batch,info,bNum,bTotal){
 
   return [
     '════════════════════════════════════════════════════',
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v56'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v58'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -4011,77 +4019,76 @@ function buildClienteReport(r, cl, sc, sc_col, info){
   var sevOrder = {Severo:0,Moderado:1,Leve:2};
   achs = achs.slice().sort(function(a,b){return (sevOrder[a.sev]||2)-(sevOrder[b.sev]||2);});
 
-  // Translate class to plain language
-  var clSimples = cl==='Sem Alterações Significativas'?'✅ Sem alterações significativas':
-                  cl==='Alterações Ligeiras a Moderadas'?'⚠️ Alterações ligeiras a moderadas':
-                  cl==='Alterações Moderadas a Avançadas'?'🔴 Alterações moderadas a avançadas':
-                  '🔴 Inapto para competição';
+  // Semaphore colours for cliente view
+  var hasSev = achs.some(function(a){return a.sev==='Severo';});
+  var nMod = achs.filter(function(a){return a.sev==='Moderado';}).length;
+  var nLev = achs.filter(function(a){return a.sev==='Leve';}).length;
+  var semColor = hasSev?'#e05555':nMod>=1?'#d4933a':nLev>=1?'#d4c03a':'#4aaa7a';
+  var semEmoji = hasSev?'🔴':nMod>=1?'🟠':nLev>=1?'🟡':'🟢';
+  var semTxt = hasSev?'Alterações que requerem atenção veterinária':
+               nMod>=1?'Alterações presentes — consultar veterinário':
+               nLev>=1?'Alterações ligeiras — a monitorizar':
+               'Sem alterações significativas';
 
-  // Build plain-language finding cards
-  var cards = achs.length ? achs.map(function(a){
-    var sev = a.sev||'Leve';
-    var col = sev==='Severo'?'var(--red)':sev==='Moderado'?'var(--amber)':'var(--t3)';
-    var badge = sev==='Severo'?'Atenção':sev==='Moderado'?'A monitorizar':'Ligeiro';
-    // Translate structure to plain Portuguese
-    var est = (a.estrutura||'').replace(/Articulação metatarsofalângica/gi,'Boleto posterior').replace(/Articulação metacarpofalângica/gi,'Boleto anterior').replace(/[Aa]rticulação tarsocrural/g,'Curvilhão').replace(/[Aa]rticulação tarsometatársica/g,'Curvilhão baixo').replace(/[Aa]rticulação interfalângica distal/g,'Articulação do casco').replace(/[Nn]avicular/g,'Osso navicular');
-    var memb = a.membro?'  ('+a.membro+')':'';
-    // Simplify lesion description
-    var les = (a.lesao||a.achado||'').replace(/[Oo]steoartrite/g,'desgaste articular').replace(/[Oo]steófito[s]?/g,'pequenos bicos ósseos').replace(/[Oo]A\s+McIlwraith\s+grau\s+\d/gi,'desgaste articular').replace(/McIlwraith\s+grau\s+\d/gi,'').replace(/sublux[^\s]*/gi,'desalinhamento').replace(/esclerose subcondral/gi,'endurecimento ósseo').trim();
-    les = les.split(/[.;]/)[0].trim();
-    if(les.length>100) les = les.slice(0,97)+'…';
-    var imp = (a.impacto||'').split(/[.;]/)[0].trim();
-    if(imp.length>120) imp = imp.slice(0,117)+'…';
-    return '<div style="border:1px solid var(--wire);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;background:var(--ink2)">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
-        '<div style="font-size:11px;font-weight:600;color:var(--t1)">'+X2(est+memb)+'</div>'+
-        '<div style="font-size:9px;font-weight:700;color:'+col+';letter-spacing:.07em;font-family:JetBrains Mono,monospace">'+badge+'</div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--t2);margin-bottom:4px">'+X2(les)+'</div>'+
-      (imp?'<div style="font-size:10px;color:var(--t3);font-style:italic">'+X2(imp)+'</div>':'')+
-    '</div>';
-  }).join('') : '<div style="color:var(--green);font-size:12px;padding:12px">Sem alterações significativas identificadas.</div>';
-
-  // Build simple recommendations
-  var recs = (r.recomendacoes||r.plano_accao||[]);
-  if(!Array.isArray(recs)) recs=[];
-  var recsSimples = recs.slice(0,4).map(function(rec,i){
-    var desc = rec.descricao||rec.acao||rec.texto||'';
-    desc = desc.split(/[.;]/)[0].trim();
-    if(desc.length>100) desc=desc.slice(0,97)+'…';
-    return '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--wire2)">'+
-      '<div style="font-size:16px;min-width:20px">'+(i===0?'🔍':i===1?'📅':'💡')+'</div>'+
-      '<div style="font-size:11px;color:var(--t2)">'+X2(desc)+'</div>'+
+  // Top 3 findings in plain language
+  var topFindings = achs.slice(0,3).map(function(a){
+    var est = (a.estrutura||'')
+      .replace(/Articulação metatarsofalângica/gi,'Boleto posterior')
+      .replace(/Articulação metacarpofalângica/gi,'Boleto anterior')
+      .replace(/[Aa]rticulação tarsocrural/g,'Curvilhão')
+      .replace(/[Aa]rticulação tarsometatársica/g,'Curvilhão baixo')
+      .replace(/[Aa]rticulação interfalângica distal/g,'Articulação do casco')
+      .replace(/[Nn]avicular/g,'Osso navicular');
+    var memb = a.membro?' ('+a.membro+')':'';
+    var les = (a.lesao||'').replace(/[Oo]steoartrite/g,'desgaste articular')
+      .replace(/[Oo]steófito[s]?/g,'depósitos ósseos menores')
+      .replace(/McIlwraith\s+grau\s+\d/gi,'').trim().split(/[.;]/)[0].trim();
+    if(les.length>80) les=les.slice(0,77)+'…';
+    var dot = a.sev==='Severo'?'🔴':a.sev==='Moderado'?'🟠':'🟡';
+    return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start">'+
+      '<span style="font-size:14px;flex-shrink:0;margin-top:1px">'+dot+'</span>'+
+      '<div><div style="font-size:12px;font-weight:600;color:var(--t1)">'+X2(est+memb)+'</div>'+
+      '<div style="font-size:11px;color:var(--t2);margin-top:2px">'+X2(les)+'</div></div>'+
     '</div>';
   }).join('');
 
-  // Build prognosis plain text
-  var progSimples = (r.prognostico||{}).desportivo || (r.prognostico||{}).prognostico_desportivo || '';
-  progSimples = progSimples.split(/[.;]/)[0].trim();
+  // Single most important recommendation
+  var recs = (r.recomendacoes||r.plano_accao||[]);
+  if(!Array.isArray(recs)) recs=[];
+  var topRec = recs.length>0?(recs[0].descricao||recs[0].acao||recs[0].texto||''):'';
+  topRec = topRec.split(/[.;]/)[0].trim();
+  if(topRec.length>120) topRec=topRec.slice(0,117)+'…';
 
   return '<div style="padding:4px 0">'+
-    // Verdict plain
-    '<div style="background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:14px;margin-bottom:16px;text-align:center">'+
-      '<div style="font-size:16px;font-weight:700;color:'+sc_col+';margin-bottom:6px">'+X2(clSimples)+'</div>'+
-      '<div style="font-size:11px;color:var(--t2)">Pontuação de aptidão: <strong style="color:'+sc_col+'">'+sc+'%</strong></div>'+
-      (progSimples?'<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">'+X2(progSimples)+'</div>':'')+
+
+    // Semaphore verdict — clean and minimal
+    '<div style="border-radius:10px;border:1px solid rgba(255,255,255,.08);overflow:hidden;margin-bottom:18px">'+
+      '<div style="padding:18px 16px;display:flex;align-items:center;gap:14px">'+
+        '<div style="width:44px;height:44px;border-radius:50%;background:'+semColor+';box-shadow:0 0 16px '+semColor+';flex-shrink:0"></div>'+
+        '<div>'+
+          '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:3px">'+semEmoji+' '+X2(cl)+'</div>'+
+          '<div style="font-size:12px;color:var(--t2)">'+X2(semTxt)+'</div>'+
+        '</div>'+
+      '</div>'+
     '</div>'+
 
-    // What was found
-    '<div style="font-size:9px;font-family:JetBrains Mono,monospace;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">O que foi encontrado</div>'+
-    cards+
+    // Findings — max 3, plain language
+    (achs.length>0?
+      '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">O que foi encontrado</div>'+
+      topFindings+
+      (achs.length>3?'<div style="font-size:10px;color:var(--t3);padding:6px 0">+ '+(achs.length-3)+' achado(s) adicional(ais) — ver relatório veterinário</div>':'')
+    :'<div style="color:var(--green);font-size:12px;padding:8px 0">✓ Nenhuma alteração significativa encontrada.</div>')+
 
-    // What to do next
-    (recsSimples?
-      '<div style="font-size:9px;font-family:JetBrains Mono,monospace;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">Próximos passos</div>'+
-      recsSimples
-    :'')+
+    // Next step
+    (topRec?
+      '<div style="margin-top:16px;padding:12px 14px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);border-radius:8px">'+
+        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Próximo passo</div>'+
+        '<div style="font-size:12px;color:var(--t1)">'+X2(topRec)+'</div>'+
+      '</div>':'')+
 
-    // Disclaimer
-    '<div style="margin-top:16px;padding:10px;background:var(--ink3);border-radius:var(--r);border:1px solid var(--wire2)">'+
-      '<div style="font-size:10px;color:var(--t3);line-height:1.6">'+
-        '⚠️ Este resumo é gerado com assistência de inteligência artificial e destina-se a fornecer uma visão geral das alterações identificadas nas radiografias. '+
-        '<strong style="color:var(--amber)">Não substitui a avaliação de um médico veterinário</strong>, que deve sempre confirmar e contextualizar os achados antes de qualquer decisão de compra ou tratamento.'+
-      '</div>'+
+    // Disclaimer — short
+    '<div style="margin-top:16px;font-size:10px;color:var(--t3);line-height:1.6;padding-top:14px;border-top:1px solid var(--wire)">'+
+      'Análise assistida por IA. <strong style="color:var(--t2)">Não substitui avaliação veterinária.</strong> Consulte sempre o médico veterinário responsável pelo exame antes de tomar qualquer decisão.'+
     '</div>'+
   '</div>';
 }
@@ -4122,50 +4129,69 @@ function renderReport(r,info){
   var al = /critico|critical/.test(alRaw.toLowerCase()) ? 'critical'
          : /warning|aviso/.test(alRaw.toLowerCase()) ? 'warning'
          : alExpected;
-  // ── RESUMO EXECUTIVO — rebuilt from consolidated achados (Option C) ──────────
-  // Always reflects all batches. Narrative hint from model when available.
+  // ── RESUMO EXECUTIVO — prosa clínica formal por achado ──────────────────────
   var resumo = (function(){
     var achs = (r.achados||[]).filter(function(a){ return a.sev&&a.sev!=='Normal'&&!isQualidadeAchado(a); });
     if(!achs.length) return '';
 
-    // Sort: Severo first, then Moderado, then Leve
     var sevOrder = {Severo:0, Moderado:1, Leve:2};
     achs = achs.slice().sort(function(a,b){ return (sevOrder[a.sev]||2)-(sevOrder[b.sev]||2); });
 
-    // Build one line per achado: "Estrutura (membro): lesão — grading (Severidade)"
-    var lines = achs.slice(0,8).map(function(a){
+    var disc = (info&&info.disc)||'';
+    var ageNum = parseInt((info&&info.age)||'0')||0;
+    var symp = (info&&info.symp)||'';
+    var hasSympClin = symp && symp!=='Não descritos' && symp.trim().length>3;
+
+    // Verb intro by severity
+    function introVerb(sev){
+      if(sev==='Severo')   return 'Identifica-se ';
+      if(sev==='Moderado') return 'Observa-se ';
+      return 'Constata-se a presença de ';
+    }
+    // Grading suffix in prose
+    function gradSuffix(sev){
+      if(sev==='Severo')   return ', classificada como alteração severa';
+      if(sev==='Moderado') return ', enquadrável em alteração moderada';
+      return ', compatível com alteração ligeira';
+    }
+
+    // Build one prose sentence per achado
+    var sentences = achs.slice(0,8).map(function(a){
       var est  = a.estrutura||'';
-      var memb = a.membro ? ' ('+a.membro+')' : '';
-      var les  = a.lesao||a.achado||'';
-      var grad = a.grading ? ' — '+a.grading : '';
-      var sev  = a.sev&&a.sev!=='Moderado' ? ' ['+a.sev+']' : '';
-      // Keep lesao short: first sentence only
-      les = les.split(/[.;]/)[0].trim();
-      if(les.length>80){
-        // Cut at last space before limit to avoid mid-word cut
-        var cut=les.slice(0,77);
-        var lastSpace=cut.lastIndexOf(' ');
-        les=(lastSpace>40?cut.slice(0,lastSpace):cut)+'…';
-      }
-      return est+memb+': '+les+(grad.length<60?grad:'')+sev+'.';
+      var memb = a.membro ? ' — '+a.membro : '';
+      var les  = (a.lesao||a.achado||'').split(/[.;]/)[0].trim();
+      var grad = a.grading ? ', com '+a.grading.toLowerCase().replace(/^grau\s*/i,'grau ') : '';
+      if(les.length>120){ var cut=les.slice(0,117); les=(cut.slice(0,cut.lastIndexOf(' ')))+'…'; }
+      return est+memb+': '+introVerb(a.sev)+les+grad+gradSuffix(a.sev)+'.';
     });
 
-    var body = lines.join(' ');
+    var body = sentences.join('\n');
 
-    // Append narrative hint from model if it adds clinical context
-    // Use §CC (correlação clínica) or §OS (achados ósseos) markers from narrativa
-    var narr = r.narrativa||'';
-    var ccMatch = narr.match(/§CC\s+([^§]{20,200})/);
-    var osMatch = narr.match(/§OS\s+([^§]{20,200})/);
-    var hint = (ccMatch&&ccMatch[1])||'';
-    if(!hint&&osMatch) hint=osMatch[1];
-    if(hint) hint=hint.trim().replace(/[.\s]+$/,'');
-    if(hint&&hint.length>20) body+=' '+hint+'.';
+    // Clinical interpretation paragraph
+    var interp = '';
+    if(ageNum>0&&disc){
+      var ageCtx = ageNum<=4?'equino jovem de '+ageNum+' anos':
+                   ageNum<=10?'equino de '+ageNum+' anos em actividade':
+                   'equino de '+ageNum+' anos';
+      var discCtx = disc?', em actividade desportiva na modalidade de '+disc:'';
+      var sympCtx = hasSympClin?', com sinais clínicos descritos ('+symp+')':' e na ausência de sinais clínicos reportados';
+      var sevAchs = achs.filter(function(a){return a.sev==='Severo';});
+      var modAchs = achs.filter(function(a){return a.sev==='Moderado';});
+      var progCtx = sevAchs.length>0?
+        'os achados identificados requerem avaliação clínica complementar e decisão terapêutica fundamentada':
+        modAchs.length>0?
+        'estes achados radiográficos são compatíveis com alterações degenerativas em evolução, sendo recomendável monitorização periódica':
+        'estes achados radiográficos são compatíveis com alterações degenerativas iniciais associadas ao uso e carga articular, recomendando-se monitorização activa';
+      interp = 'Em '+ageCtx+discCtx+sympCtx+', '+progCtx+'.';
+    } else {
+      var modAchs2 = achs.filter(function(a){return a.sev==='Moderado';});
+      interp = modAchs2.length>0?
+        'Os achados identificados requerem acompanhamento clínico regular e complementação do protocolo diagnóstico.':
+        'Os achados são compatíveis com alterações degenerativas ligeiras. Recomenda-se monitorização activa.';
+    }
 
-    // Append final classification
-    var scClass=sc>=70?'Sem Alterações Significativas':sc>=50?'Alterações Ligeiras a Moderadas':sc>=30?'Alterações Moderadas a Avançadas':'Alterações Avançadas';
-    body+=' Classificação calculada: '+scClass+'.';
-    return body;
+    var scClass = sc>=70?'Sem Alterações Significativas':sc>=50?'Alterações ligeiras a moderadas':sc>=30?'Alterações moderadas a avançadas':'Alterações avançadas';
+    return body+'\n'+interp+'\nClassificação global estimada: '+scClass+'.';
   })();
   var resumoCl    = r.resumo_cliente||r.resumo_cl||'';
   var narrativa   = r.narrativa||r.relatorio||r.relatorio_descritivo||'';
@@ -4718,21 +4744,93 @@ function renderReport(r,info){
     '</div>'+
   '</div>'+
 
-  '<div class="verdict '+al+'">'+
-    '<div class="verdict-top">'+
-      '<div>'+
-        '<div class="verdict-class">'+X(cl)+'</div>'+
-        buildVisaoGeral(r.achados||[], cl)+
-      '</div>'+
-      '<div style="text-align:center">'+
-        '<div class="score-ring">'+
-          '<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="26" fill="none" stroke="var(--ink4)" stroke-width="4"/><circle cx="28" cy="28" r="26" fill="none" stroke="'+sc_col+'" stroke-width="4" stroke-dasharray="'+dash.toFixed(1)+' '+(C2-dash).toFixed(1)+'" stroke-linecap="round"/></svg>'+
-          '<span class="score-num" style="color:'+sc_col+'">'+sc+'</span>'+
+  (function(){
+    // ── SEMAPHORE CALCULATION ──────────────────────────────
+    var pathAchs=(achados||[]).filter(function(a){return a.sev&&a.sev!=='Normal'&&!isQualidadeAchado(a);});
+    var hasSev=severoAchs.length>0;
+    var nMod=moderadoAchs.length;
+    var nLev=leveAchs.length;
+    var disc=(info&&info.disc||'').toLowerCase();
+    var isSaltos=/salto|cce|cross|jumping/i.test(disc);
+    var isDressage=/dressage|alta escola/i.test(disc);
+
+    // Articulações de alta carga para saltos: boleto, carpo, navicular, coffin
+    var highLoadSaltos=pathAchs.some(function(a){
+      var s=(a.estrutura||'').toLowerCase();
+      return /boleto|carpo|navicular|coffin|ifd|fetlock/i.test(s);
+    });
+    // Articulações críticas dressage: tarsus bilateral, estifle, coluna
+    var highLoadDressage=pathAchs.some(function(a){
+      var s=(a.estrutura||'').toLowerCase();
+      return /tarsus|jarrete|estifle|coluna|dorsal|lombar/i.test(s);
+    });
+
+    // SEMAPHORE 1 — Achados Objectivos
+    var sem1='green', sem1txt='Sem Alterações';
+    if(hasSev){
+      sem1='red'; sem1txt='Alterações Severas';
+    } else if(nMod>=2||bilateralCount>=2||(nMod>=1&&hasCorpoLivre)){
+      sem1='orange'; sem1txt='Alterações Moderadas';
+    } else if(nMod===1){
+      sem1='yellow'; sem1txt='Alteração Moderada';
+    } else if(nLev>=1){
+      sem1='yellow'; sem1txt='Alterações Leves';
+    }
+
+    // SEMAPHORE 2 — Aptidão para Uso Declarado
+    var sem2='green', sem2txt='Apto', sem2lbl='Aptidão para Uso';
+    if(disc){
+      sem2lbl = isSaltos?'Aptidão Saltos':isDressage?'Aptidão Dressage':'Aptidão Declarada';
+      // Start from sem1 and adjust up based on discipline
+      var sem2level = ['green','yellow','orange','red'].indexOf(sem1);
+      if(isSaltos&&highLoadSaltos&&nMod>=1) sem2level=Math.min(3,sem2level+1);
+      if(isSaltos&&bilateralCount>=1&&nMod>=1) sem2level=Math.min(3,sem2level+1);
+      if(isDressage&&highLoadDressage&&nMod>=1) sem2level=Math.min(3,sem2level+1);
+      if(isDressage&&hasSevKS) sem2level=Math.min(3,sem2level+1);
+      sem2=['green','yellow','orange','red'][sem2level];
+      var sem2txts={green:'Apto',yellow:'Apto c/ Restrições',orange:'Aptidão Condicionada',red:'Não Recomendado'};
+      sem2txt=sem2txts[sem2];
+    } else {
+      sem2='green'; sem2txt='—'; sem2lbl='Uso não declarado';
+    }
+
+    // Completude do estudo
+    var totalImgs=(r._info&&r._info.total)||0;
+    var recProj=10; // projecções recomendadas para exame completo
+    var compPct=totalImgs>0?Math.min(100,Math.round((totalImgs/recProj)*100)):0;
+    var compColor=compPct>=80?'var(--green)':compPct>=50?'var(--amber)':'var(--red)';
+
+    var dotClass1='sem-'+sem1, dotClass2='sem-'+sem2;
+    var valColor1=sem1==='green'?'var(--green)':sem1==='yellow'?'#d4c03a':sem1==='orange'?'var(--amber)':'var(--red)';
+    var valColor2=sem2==='green'?'var(--green)':sem2==='yellow'?'#d4c03a':sem2==='orange'?'var(--amber)':'var(--red)';
+
+    return '<div class="verdict '+al+'">'+
+      '<div class="verdict-top">'+
+        '<div style="flex:1">'+
+          '<div class="verdict-class">'+X(cl)+'</div>'+
+          buildVisaoGeral(r.achados||[], cl)+
+          (totalImgs>0?
+            '<div class="completude-bar">'+
+              '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3)">Completude</span>'+
+              '<div class="completude-track"><div class="completude-fill" style="width:'+compPct+'%;background:'+compColor+'"></div></div>'+
+              '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:'+compColor+'">'+totalImgs+'/'+recProj+' proj.</span>'+
+            '</div>':'')+
         '</div>'+
-        '<div class="score-lbl">Aptidão %</div>'+
+        '<div class="semaphore-wrap">'+
+          '<div class="semaphore">'+
+            '<div class="semaphore-dot '+dotClass1+'"></div>'+
+            '<div class="semaphore-val" style="color:'+valColor1+'">'+X(sem1txt)+'</div>'+
+            '<div class="semaphore-lbl">Achados<br>Objectivos</div>'+
+          '</div>'+
+          '<div class="semaphore">'+
+            '<div class="semaphore-dot '+dotClass2+'"></div>'+
+            '<div class="semaphore-val" style="color:'+valColor2+'">'+X(sem2txt)+'</div>'+
+            '<div class="semaphore-lbl">'+X(sem2lbl)+'</div>'+
+          '</div>'+
+        '</div>'+
       '</div>'+
-    '</div>'+
-  '</div>'+
+    '</div>';
+  })()+
 
   '<div style="display:flex;gap:0;border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin:14px 0 18px;font-family:JetBrains Mono,monospace;font-size:10px">'+
     '<button id="btn-mode-vet" onclick="setReportMode(\'vet\')" style="flex:1;padding:8px 4px;background:var(--gold);color:var(--ink1);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.05em;font-weight:700">⚕ VETERINÁRIO</button>'+
@@ -4873,7 +4971,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v56 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v58 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

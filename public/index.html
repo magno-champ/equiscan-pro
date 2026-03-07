@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v63</title>
+<title>EquiScan Pro v64</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2143,6 +2143,54 @@ CONCLUSÃO MULTI-VET ARGOS:
 → OCD estifle bilateral = achado principal (app acertou)
 → Os outros 5 achados = subtis, Leve, a monitorizar (app omitiu todos — CALIB-009+010 devem corrigir)
 → Princípio confirmado: reportar tudo + contextualizar como Leve = melhor que omitir
+
+[CALIB-011] FRAGMENTOS EM PROJECÇÃO ÚNICA — ARTEFACTO vs PATOLOGIA (destilado 07/03/2026)
+Fragmento ósseo visível apenas numa projecção (curvilhão, coffin) e não confirmado em projecções ortogonais = NUNCA classificar como patológico confirmado.
+→ Formato obrigatório: "Fragmento duvidoso/possível artefacto — visível em [proj X], não confirmado em [proj Y]. Recomendar projecção adicional."
+→ A decisão de excluir é do veterinário — NUNCA omitir por "provavelmente é artefacto"
+Confiança: alta | Casos: 1, 4
+
+[CALIB-012] CURVILHÕES — ALTERAÇÕES DEGENERATIVAS AVANÇADAS = RISCO ELEVADO OBRIGATÓRIO (destilado 07/03/2026)
+Osteófitos marcados, esclerose subcondral avançada ou colapso do espaço articular em curvilhões (tarsocrural, intertársica, tarsometatársica) = classificar SEMPRE como "risco elevado" para uso desportivo e compra.
+→ Nunca devolver "correct" ou "a monitorizar" com tarsus avançado bilateral
+→ Recomendação explícita de avaliação clínica e funcional antes de decisão comercial
+Confiança: alta | Casos: 5, 6, 7, 8
+
+[CALIB-013] COFFIN OA — ACHADO MAJOR OBRIGATÓRIO (destilado 07/03/2026)
+Remodelação periarticular, osteófitos bordo dorsal/palmar de P3, esclerose subcondral ou irregularidade da superfície articular coffin = SEMPRE "osteoartrite coffin — achado clinicamente relevante".
+→ Distinguir explicitamente de alterações minor do navicular ou bordo flexor
+→ Nunca subclassificar ou omitir — OA coffin é progressiva e causa claudicação crónica
+Confiança: alta | Casos: 5, 6, 7, 8
+
+[CALIB-014] CERVICAL EM IMAGEM OBLÍQUA — CONFIANÇA REDUZIDA (destilado 07/03/2026)
+Achados cervicais (C5-C6, C6-C7) em radiografia com obliquidade evidente ou posicionamento subóptimo = atribuir score de confiança baixo.
+→ Formato: "Imagem oblíqua — achado cervical com confiança reduzida. Repetir em projecção lateral estrita antes de classificar estenose/esclerose/remodelação."
+→ Não classificar definitivamente sem projecção lateral estrita
+Confiança: média | Casos: 1, 4
+
+[CALIB-015] ORIGEM SUSPENSOR — REPORTAR + CORRELAÇÃO ECOGRÁFICA (destilado 07/03/2026)
+Irregularidade ou esclerose focal na região proximal do MC3/MT3 (origem do ligamento suspensor) = NUNCA classificar como variante normal.
+→ Formato: "Possível entesopatia do suspensor — correlacionar com ecografia"
+→ Lesão frequente em cavalos de desporto com impacto funcional significativo
+Confiança: média | Casos: 4
+
+[CALIB-016] MÚLTIPLOS ACHADOS MINOR SEM MANIFESTAÇÃO CLÍNICA — CONTEXTUALIZAR (destilado 07/03/2026)
+Quando ≥3 achados Leve coexistem sem sinais clínicos reportados, a app DEVE emitir nota de contextualização clínica.
+→ Formato: "Múltiplos achados ligeiros sem manifestação clínica actual. Score de risco moderado — reavaliar se surgir claudicação ou antes de intensificação do treino."
+→ Nunca omitir achados minor só porque o cavalo está clinicamente silencioso
+Confiança: alta | Casos: múltiplos
+
+[CALIB-017] TARSUS AVANÇADO + COFFIN OA = SCORE MÁXIMO OBRIGATÓRIO (destilado 07/03/2026)
+Coexistência de alterações degenerativas avançadas em curvilhões E osteoartrite da coffin = score de risco máximo (≥38/100 penalização), classe "Moderadas a Avançadas" obrigatória.
+→ Esta combinação nunca pode resultar em classificação inferior a "Alterações Moderadas a Avançadas"
+→ Confirma e reforça CALIB-005 com base em padrão recorrente de destilação
+Confiança: alta | Casos: 5, 6, 7, 8, Olímpico
+
+[CALIB-018] SUBMISSÕES REPETIDAS DO MESMO CAVALO EM ≤24H — SINALIZAR (destilado 07/03/2026)
+Quando o mesmo cavalo é submetido mais de uma vez no mesmo dia ou em janela ≤24h, a app DEVE sinalizar e verificar se há divergência entre análises.
+→ Indicar: "Segunda análise do mesmo cavalo — comparar com análise anterior para consistência"
+→ Divergências entre análises do mesmo caso = escalar para revisão veterinária
+Confiança: alta | Casos: Olímpico (3 análises consecutivas)
 ═══════════════════════════════════════════════════
 
 16. PROTOCOLO DE PROJECÇÕES STANDARD (Costa da Silva et al. 2022, HKJC 48-view protocol):
@@ -2739,7 +2787,7 @@ function buildPrompt(batch,info,bNum,bTotal){
   return [
     '════════════════════════════════════════════════════',
     (dicomBlock||''),
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v63'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v64'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -3110,15 +3158,20 @@ function runDistillation(apiKey) {
         'CALIBs já existentes (não repetir):\n'+calibsText+'\n\n'+
         'CASOS COM ERROS:\n'+casesText+'\n\n'+
         'TAREFA: Analisa os padrões de erro e propõe NOVAS regras de calibração que não estejam já cobertas pelas CALIBs existentes.\n\n'+
-        'Responde APENAS em JSON válido, sem texto adicional:\n'+
+        'REGRAS DE NOMENCLATURA OBRIGATÓRIAS:\n'+
+        '- Cada nova CALIB deve ter ID sequencial: CALIB-019, CALIB-020, etc. (nunca NEW-X, NEW-Y ou letras soltas)\n'+
+        '- O campo rule_text deve COMEÇAR com o ID: "CALIB-0NN — [título] — [descrição]"\n'+
+        '- Não repetir CALIBs já existentes no contexto\n\n'+
+        'Responde APENAS em JSON válido, sem texto adicional, sem markdown:\n'+
         '{\n'+
         '  "analysis": "resumo dos padrões de erro identificados (2-3 frases)",\n'+
+        '  "next_calib_id": "CALIB-019",\n'+
         '  "proposed_calibs": [\n'+
         '    {\n'+
-        '      "rule_text": "texto completo da regra CALIB — deve ser específico, accionável e baseado nos casos reais",\n'+
+        '      "rule_text": "CALIB-019 — [TÍTULO] — [descrição completa, específica e accionável]",\n'+
         '      "source_cases": "lista dos casos que originaram esta regra",\n'+
         '      "confidence": "alta|média|baixa",\n'+
-        '      "rationale": "justificação clínica da regra (1-2 frases)"\n'+
+        '      "rationale": "justificação clínica (1-2 frases)"\n'+
         '    }\n'+
         '  ]\n'+
         '}';
@@ -5494,7 +5547,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v63 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v64 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

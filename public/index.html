@@ -50,7 +50,7 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .drop-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)}
 
 /* THUMB GRID */
-.thumb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;display:none}
+.thumb-grid{grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;display:none}
 .thumb{position:relative;aspect-ratio:1;border-radius:4px;overflow:hidden;border:2px solid var(--wire);cursor:pointer;background:#000;transition:border-color .15s}
 .thumb:hover{border-color:var(--wire2)}
 .thumb.active{border-color:var(--gold)}
@@ -588,6 +588,14 @@ window.addEventListener('DOMContentLoaded', function() {
       <button onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s" title="Ver CALIBs activas" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--t3)'">
         ☰ CALIBs
       </button>
+    </div>
+    <!-- IMPORTAR RELATÓRIO VET -->
+    <div style="margin-bottom:8px">
+      <button onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--amber);border:1px solid rgba(212,147,58,.3);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>📄</span> Importar Relatório Vet (PDF)
+      </button>
+      <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="importVetReport(this)">
+      <div id="vetImportStatus" style="display:none;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
     </div>
     <div style="font-size:10px;color:var(--t3);line-height:1.6">Analisa os erros acumulados e propõe novas regras permanentes. As regras aprovadas ficam activas em todas as análises futuras.</div>
   </div>
@@ -5531,10 +5539,6 @@ function renderReport(r,info){
   // Conclusão Clínica — only in vet section
   '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
 
-  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
-
-  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
-
   '<div class="sec">'+secH('05','Prognóstico','var(--green)')+progHTML+'</div>'+
 
   '<div class="sec">'+secH('06','Plano de Acção','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
@@ -5542,7 +5546,7 @@ function renderReport(r,info){
 
   (imgList.length?'<div class="sec">'+secH('07','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
 
-  '</div>'+ /* end report-vet */  (imgList.length?'<div class="sec">'+secH('07','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
+  '</div>'+ /* end report-vet */
 
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
@@ -5670,6 +5674,223 @@ function exportFeedbackLog(){
   a.download = 'equiscan_feedback_'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORTAR RELATÓRIO VETERINÁRIO — PDF → CALIBs
+// ═══════════════════════════════════════════════════════
+function importVetReport(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  input.value = ''; // reset so same file can be re-imported
+
+  var status = document.getElementById('vetImportStatus');
+  status.style.display = 'block';
+  status.style.color = 'var(--amber)';
+  status.textContent = '⏳ A ler PDF…';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result.split(',')[1];
+    status.textContent = '🤖 A extrair achados com IA…';
+
+    var systemPrompt = [
+      'És um extractor de calibrações veterinárias. Recebes um relatório de pré-compra ou exame clínico equino em PDF.',
+      'O teu único trabalho é extrair os achados radiológicos e clínicos CONFIRMADOS pelo veterinário e convertê-los em regras de calibração estruturadas.',
+      '',
+      'RESPONDE APENAS COM JSON VÁLIDO. Sem texto antes ou depois. Sem markdown.',
+      '',
+      'Formato obrigatório:',
+      '{',
+      '  "horse": "nome do cavalo",',
+      '  "breed": "raça",',
+      '  "age": "idade em anos",',
+      '  "discipline": "disciplina declarada",',
+      '  "context": "pré-compra | exame clínico | outro",',
+      '  "vet_name": "nome do veterinário",',
+      '  "vet_conclusion": "conclusão global do vet em 1-2 frases",',
+      '  "risk_level": "baixo | moderado | moderado-alto | alto",',
+      '  "calibrations": [',
+      '    {',
+      '      "id": "IMPORT-001",',
+      '      "estrutura": "estrutura anatómica exacta (ex: IFD MAD, MTC II MAE, navicular MAE)",',
+      '      "membro": "MAE | MAD | MPE | MPD | bilateral | não especificado",',
+      '      "achado": "descrição técnica do achado confirmado",',
+      '      "severidade": "Leve | Moderado | Severo",',
+      '      "confirmado_por": "radiografia | ecografia | clínica | combinação",',
+      '      "sinais_clinicos": "sinais clínicos associados se descritos, ou vazio",',
+      '      "regra": "REGRA DE CALIBRAÇÃO para análise futura — fraseada como instrução directa ao modelo de IA",',
+      '      "prioridade": "alta | média"',
+      '    }',
+      '  ],',
+      '  "achados_normais": ["lista de regiões declaradas normais pelo vet — útil para calibrar falsos positivos"],',
+      '  "notas_especiais": "ex: história cirúrgica relevante, medicação, achados incidentais"',
+      '}',
+      '',
+      'REGRAS DE EXTRACÇÃO:',
+      '1. Extrai TODOS os achados confirmados pelo vet, incluindo achados normais (para calibrar falsos positivos)',
+      '2. Para cada achado patológico, formula uma "regra" como instrução directa: ex: "Reacção de periósteo MTC II MAE visível radiograficamente — classificar como Moderado em pré-compra mesmo sem sinais. Verificar sempre MTC II proximal em ambos os membros anteriores."',
+      '3. Se o vet diz que uma região está NORMAL, cria um achado_normal para essa região',
+      '4. Inclui história cirúrgica (ex: osteotomia) como calibração própria',
+      '5. Flexões positivas = sinal clínico crítico — inclui na regra correspondente',
+      '6. Se o vet deu conclusão de risco moderado-alto, formula uma regra global de threshold conservador'
+    ].join('
+');
+
+    fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: C.MODELS[0] || 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+          }, {
+            type: 'text',
+            text: 'Extrai todas as calibrações deste relatório veterinário. Responde APENAS com JSON.'
+          }]
+        }]
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
+      // Strip possible markdown fences
+      text = text.replace(/```json|```/g, '').trim();
+      var parsed;
+      try { parsed = JSON.parse(text); } catch(e) {
+        status.style.color = 'var(--red)';
+        status.textContent = '❌ Erro ao interpretar resposta da IA. Tenta novamente.';
+        console.error('[VetImport] JSON parse error:', e, text.slice(0, 300));
+        return;
+      }
+
+      // Save to localStorage calibrations
+      var calibrations = {};
+      try { calibrations = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+
+      var added = 0;
+      var horse = parsed.horse || 'desconhecido';
+      var date = new Date().toLocaleDateString('pt-PT');
+
+      // Add each calibration as a CALIB entry
+      (parsed.calibrations || []).forEach(function(c, i) {
+        var key = 'IMPORT-' + horse.replace(/\s+/g,'_').slice(0,12).toUpperCase() + '-' + String(i+1).padStart(3,'0');
+        calibrations[key] = {
+          value: '[' + (c.estrutura||'?') + ' · ' + (c.severidade||'?') + '] ' + (c.regra||c.achado||''),
+          date: date,
+          source: 'pdf_import',
+          horse: horse,
+          confirmado_por: c.confirmado_por || '',
+          sinais_clinicos: c.sinais_clinicos || '',
+          prioridade: c.prioridade || 'média'
+        };
+        added++;
+      });
+
+      // Add normal findings as anti-false-positive rules
+      (parsed.achados_normais || []).forEach(function(regiao, i) {
+        var key = 'IMPORT-' + horse.replace(/\s+/g,'_').slice(0,12).toUpperCase() + '-N' + String(i+1).padStart(2,'0');
+        calibrations[key] = {
+          value: '[NORMAL confirmado] ' + regiao + ' — se o modelo detectar achados nesta região em casos similares, verificar se não é falso positivo. Vet confirmou normal em ' + horse + ' (' + (parsed.breed||'?') + ', ' + (parsed.age||'?') + 'a).',
+          date: date,
+          source: 'pdf_import_normal',
+          horse: horse,
+          prioridade: 'média'
+        };
+        added++;
+      });
+
+      localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
+
+      // Also save to Supabase vet_feedback for permanent record
+      sbInsert('vet_feedback', {
+        horse: horse,
+        date: date,
+        app_grade: '',
+        vet_grade: parsed.risk_level || '',
+        vet_notes: '[PDF Import] ' + (parsed.vet_conclusion || '') + ' | Calibrações: ' + added,
+        structures: (parsed.calibrations||[]).map(function(c){ return c.estrutura||''; }),
+        user_name: (AUTH && AUTH.user) || 'unknown'
+      }).catch(function(){});
+
+      // Show modal with imported calibrations
+      status.style.color = 'var(--green)';
+      status.innerHTML = '✅ <strong>' + added + ' calibrações</strong> importadas de <em>' + horse + '</em>.<br>' +
+        '<span style="color:var(--t3)">Activas em todas as análises futuras.</span> ' +
+        '<button onclick="openVetImportModal(' + JSON.stringify(JSON.stringify(parsed)).replace(/</g,'&lt;') + ')" style="font-size:9px;padding:1px 6px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:3px;color:var(--gold);cursor:pointer;margin-left:4px">Ver detalhes</button>';
+
+      // Store last import for modal
+      window._lastVetImport = parsed;
+    })
+    .catch(function(err) {
+      status.style.color = 'var(--red)';
+      status.textContent = '❌ Erro de rede: ' + err.message;
+    });
+  };
+  reader.onerror = function() {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ Erro ao ler o ficheiro.';
+  };
+  reader.readAsDataURL(file);
+}
+
+// Modal para mostrar detalhes do import
+function openVetImportModal(jsonStr) {
+  var parsed;
+  try { parsed = JSON.parse(jsonStr); } catch(e) { parsed = window._lastVetImport || {}; }
+
+  var html = '<div style="position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">' +
+    '<div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;width:100%;max-width:640px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire)">' +
+      '<div>' +
+        '<div style="font-size:13px;font-weight:600;color:var(--t1)">📄 Calibrações Importadas</div>' +
+        '<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:2px">' + (parsed.horse||'?') + ' · ' + (parsed.breed||'?') + ' · ' + (parsed.age||'?') + 'a · ' + (parsed.context||'') + '</div>' +
+      '</div>' +
+      '<button onclick="this.closest('div[style*=fixed]').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">✕</button>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin">';
+
+  // Conclusion banner
+  var riskCol = {'alto':'var(--red)','moderado-alto':'var(--red)','moderado':'var(--amber)','baixo':'var(--green)'}[parsed.risk_level] || 'var(--t2)';
+  html += '<div style="padding:10px 14px;border-radius:6px;border:1px solid;border-color:' + riskCol + '30;background:' + riskCol + '08;margin-bottom:14px">' +
+    '<div style="font-size:11px;font-weight:600;color:' + riskCol + ';margin-bottom:3px">Risco: ' + (parsed.risk_level||'?').toUpperCase() + '</div>' +
+    '<div style="font-size:12px;color:var(--t2)">' + (parsed.vet_conclusion||'') + '</div>' +
+    (parsed.vet_name ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">— Dr. ' + parsed.vet_name + '</div>' : '') +
+    '</div>';
+
+  // Calibrations list
+  (parsed.calibrations||[]).forEach(function(c, i) {
+    var sevCol = c.severidade==='Severo'?'var(--red)':c.severidade==='Moderado'?'var(--amber)':'var(--blue)';
+    html += '<div style="border:1px solid var(--wire);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:var(--ink2)">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+        '<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 6px;border-radius:2px">' + (c.severidade||'?') + '</span>' +
+        '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||'') + '</span>' +
+        '<span style="font-size:10px;color:var(--t3);margin-left:auto">' + (c.confirmado_por||'') + '</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--t2);margin-bottom:4px">' + (c.achado||'') + '</div>' +
+      (c.sinais_clinicos ? '<div style="font-size:10px;color:var(--amber);margin-bottom:4px">⚠ Clínica: ' + c.sinais_clinicos + '</div>' : '') +
+      '<div style="font-size:10px;color:var(--ice);padding:6px 8px;background:rgba(74,201,201,.06);border-radius:3px;border-left:2px solid var(--ice)">📌 ' + (c.regra||'') + '</div>' +
+    '</div>';
+  });
+
+  if (parsed.achados_normais && parsed.achados_normais.length) {
+    html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--wire)">' +
+      '<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Regiões Normais (anti-falsos-positivos)</div>' +
+      parsed.achados_normais.map(function(r){ return '<span style="font-size:11px;color:var(--green);border:1px solid rgba(74,170,122,.2);padding:2px 8px;border-radius:3px;margin:2px;display:inline-block">✓ ' + r + '</span>'; }).join('') +
+    '</div>';
+  }
+
+  if (parsed.notas_especiais) {
+    html += '<div style="margin-top:10px;font-size:11px;color:var(--t3);padding:8px;background:var(--ink3);border-radius:4px">📝 ' + parsed.notas_especiais + '</div>';
+  }
+
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 function exportJSON(){

@@ -328,6 +328,13 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 // ── AUTENTICAÇÃO ──────────────────────────────────────────────────────────────
 var AUTH = { token: null, user: null };
 
+// Persistência do token entre recargas e reinicios do servidor
+try {
+  var _savedToken = localStorage.getItem('eq_session_token');
+  var _savedUser  = localStorage.getItem('eq_session_user');
+  if (_savedToken && _savedUser) { AUTH.token = _savedToken; AUTH.user = _savedUser; }
+} catch(e) {}
+
 async function doLogin() {
   var user = document.getElementById('loginUser').value.trim();
   var pass = document.getElementById('loginPass').value;
@@ -343,6 +350,7 @@ async function doLogin() {
     if (d.ok) {
       AUTH.token = d.token;
       AUTH.user  = d.user;
+      try { localStorage.setItem('eq_session_token', d.token); localStorage.setItem('eq_session_user', d.user); } catch(e) {}
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('appShell').style.display = '';
       showToast('Bem-vindo, ' + d.user + '!');
@@ -369,6 +377,9 @@ async function checkSession() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('appShell').style.display = '';
     } else {
+      // Token expirou — limpar e mostrar login
+      try { localStorage.removeItem('eq_session_token'); localStorage.removeItem('eq_session_user'); } catch(e) {}
+      AUTH.token = null; AUTH.user = null;
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('appShell').style.display = 'none';
     }

@@ -921,7 +921,7 @@ function autoDetectModels(key){
       }
     }catch(e){}
   };
-  xhr.send();
+  try { xhr.send(); } catch(e) { /* Railway injects xhr.open() — safe to ignore locally */ }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6119,7 +6119,10 @@ function openImportModeModal(input) {
           '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);line-height:1.6">Extrai calibrações do texto E analisa cada página RX visualmente.<br>Associa padrões visuais ao diagnóstico confirmado. ~30-60s.</div>' +
         '</button>' +
       '</div>' +
-      '<div style="padding:10px 20px;border-top:1px solid var(--wire);text-align:right">' +
+      '<div style="padding:10px 20px;border-top:1px solid var(--wire);display:flex;align-items:center;justify-content:space-between">' +
+        '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'+mono+';font-size:9px;color:var(--t3)">' +
+          '<input type="checkbox" id="importAnonimizar" style="accent-color:var(--ice)"> Anonimizar para treino' +
+        '</label>' +
         '<button id="importModeCancel" style="font-family:'+mono+';font-size:10px;padding:7px 16px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer">Cancelar</button>' +
       '</div>' +
     '</div>';
@@ -6132,8 +6135,9 @@ function openImportModeModal(input) {
     importVetReport(input);
   };
   document.getElementById('importModeVisual').onclick = function() {
+    var anon = !!(document.getElementById('importAnonimizar') && document.getElementById('importAnonimizar').checked);
     ov.remove();
-    importVetReportWithImages(input, file);
+    importVetReportWithImages(input, file, anon);
   };
 }
 
@@ -6142,7 +6146,7 @@ function openImportModeModal(input) {
 // PASSE 1: texto → extrai diagnóstico confirmado (JSON)
 // PASSE 2: cada página renderizada → Claude vê RX + diagnóstico → descreve padrões visuais
 // ─────────────────────────────────────────────────────
-async function importVetReportWithImages(input, file) {
+async function importVetReportWithImages(input, file, anonimizar) {
   var status = document.getElementById('vetImportStatus');
   var importBtn = document.getElementById('btnImportPdf');
   if (importBtn) { importBtn.disabled=true; importBtn.style.opacity='.5'; }
@@ -6162,18 +6166,34 @@ async function importVetReportWithImages(input, file) {
     });
 
     var systemPrompt1 = [
-      'És um extractor de calibrações veterinárias. Recebes um relatório equino em PDF.',
-      'Extrai os achados radiológicos CONFIRMADOS e converte em regras de calibração.',
-      'RESPONDE APENAS COM JSON VÁLIDO. Sem texto antes ou depois. Sem markdown.',
+      'Es um extractor de calibracoes veterinarias. Recebes um relatorio equino em PDF.',
+      'Extrai os achados radiologicos CONFIRMADOS e converte em regras de calibracao.',
+      'RESPONDE APENAS COM JSON VALIDO. Sem texto. Sem markdown.',
       '',
-      'Formato:',
-      '{"horse":"nome","breed":"raça","age":"idade","discipline":"disciplina","vet_conclusion":"conclusão em 1-2 frases","risk_level":"baixo|moderado|moderado-alto|alto",',
-      '"calibrations":[{"estrutura":"IFD MAD","membro":"MAD","achado":"descrição técnica","severidade":"Leve|Moderado|Severo","confirmado_por":"radiografia|ecografia|clínica","sinais_clinicos":"...","regra":"INSTRUÇÃO DIRECTA ao modelo de IA","prioridade":"alta|média"}],',
-      '"achados_normais":["regiões normais"],"paginas_rx":[1,2,3]}'
-      ,
+      'Formato exacto (todos os campos obrigatorios):',
+      '{"horse":"nome","breed":"raca","age":"idade","discipline":"disciplina",',
+      '"vet_conclusion":"conclusao 1-2 frases","risk_level":"baixo|moderado|moderado-alto|alto",',
+      '"calibrations":[{',
+      '  "estrutura":"IFD MAD","membro":"MAD","achado":"descricao tecnica",',
+      '  "severidade":"Leve|Moderado|Severo","confirmado_por":"radiografia|ecografia|clinica",',
+      '  "sinais_clinicos":"...","regra":"INSTRUCAO DIRECTA ao modelo de IA",',
+      '  "regra_melhorada":"versao mais detalhada — obrigatoria se raridade=raro ou cirurgico",',
+      '  "prioridade":"alta|media",',
+      '  "raridade":"comum|incomum|raro|cirurgico",',
+      '  "raridade_motivo":"porque e raro em 1 frase"',
+      '}],"achados_normais":["regioes normais"],"paginas_rx":[11,12,13]}',
       '',
-      'Em paginas_rx: lista os números de página que contêm radiografias (não texto).',
-      'REGRAS: formula cada regra como instrução directa ao modelo. Inclui achados normais para calibrar falsos positivos.'
+      'RARIDADE:',
+      '  cirurgico = osteotomia, artroscopia, fixacao, remocao ossea, implante',
+      '  raro = OCD, kissing spines, fractura antiga, anomalia congenita, navicular grave jovem',
+      '  incomum = esclerose navicular precoce, periosteo MTC II, osteofitose bilateral jovem',
+      '  comum = osteofitose IFD grau 1-2, artrose leve, espaco articular ligeiramente reduzido',
+      '',
+      'REGRA MELHORADA: obrigatoria quando raridade=raro|cirurgico.',
+      'Deve incluir: o que ver radiograficamente, onde exatamente, como distinguir de artefacto, implicacao clinica.',
+      '',
+      'paginas_rx: APENAS paginas com radiografias reais (nao texto, nao ecografias, nao fotos).',
+      'REGRAS: instrucao directa ao modelo. Inclui achados normais para calibrar falsos positivos.'
     ].join('\n');
 
     var r1 = await fetch('/api/claude', {
@@ -6241,14 +6261,21 @@ async function importVetReportWithImages(input, file) {
         var imgB64 = cv.toDataURL('image/jpeg', 0.85).split(',')[1];
 
         var sysVisual = [
-          'És um radiologista equino especializado. Recebes uma radiografia equina e o diagnóstico CONFIRMADO pelo veterinário.',
-          'O teu trabalho: descrever os sinais visuais radiográficos ESPECÍFICOS que confirmam esse diagnóstico.',
-          'Isto vai ser usado para treinar um sistema de IA — precisa de saber EXACTAMENTE o que ver, não o diagnóstico (já sabe).',
+          'Es um radiologista equino especializado. Recebes uma radiografia equina e o diagnostico CONFIRMADO pelo veterinario.',
+          'Descreve os sinais visuais radiograficos ESPECIFICOS que confirmam esse diagnostico.',
+          'Para treino de IA — precisa de saber EXACTAMENTE o que ver radiograficamente.',
           '',
-          'RESPONDE APENAS COM JSON VÁLIDO.',
-          '{"estrutura":"região anatómica exacta","membro":"MAE|MAD|MPE|MPD|bilateral|?","achado_visual":"descrição radiográfica técnica do que é visível: densidade, margens, espaço articular, reacções periósteas, etc","padroes_visuais":["lista de sinais radiográficos específicos observáveis"],"severidade_visual":"Leve|Moderado|Severo|Normal","regra_visual":"INSTRUÇÃO DIRECTA ao modelo: quando vês X visualmente nesta região → classifica como Y. Descreve o padrão visual com precisão suficiente para reconhecer em casos futuros.","confianca":"alta|media|baixa","tem_rx":true}'
-          ,
-          'Se a página não contém radiografia (só texto), responde: {"tem_rx":false}'
+          'RESPONDE APENAS COM JSON VALIDO.',
+          '{"estrutura":"regiao anatomica exacta","membro":"MAE|MAD|MPE|MPD|bilateral|?",',
+          '"achado_visual":"descricao radiografica tecnica: densidade, margens, espaco articular, reacoes periosteais",',
+          '"padroes_visuais":["sinal 1","sinal 2"],',
+          '"severidade_visual":"Leve|Moderado|Severo|Normal",',
+          '"raridade":"comum|incomum|raro|cirurgico",',
+          '"regra_visual":"INSTRUCAO DIRECTA: quando ves X visualmente nesta regiao classifica como Y",',
+          '"regra_visual_detalhada":"versao expandida — obrigatoria se raridade=raro|cirurgico. Inclui: o que ver, onde exactamente, como distinguir de artefacto, implicacao clinica",',
+          '"confianca":"alta|media|baixa","tem_rx":true}',
+          '',
+          'Se a pagina nao contem radiografia real responde: {"tem_rx":false}'
         ].join('\n');
 
         var msgVisual = 'Diagnóstico confirmado pelo veterinário:\n' + diagSummary + '\n\nAchados registados:\n' + calibSummary + '\n\nDescreve os sinais visuais radiográficos específicos visíveis nesta imagem que confirmam este diagnóstico.';
@@ -6272,18 +6299,23 @@ async function importVetReportWithImages(input, file) {
         try { pv = JSON.parse(tv); } catch(e){ continue; }
         if (!pv || pv.tem_rx === false) continue;
         if (pv.regra_visual) {
+          var visRare = pv.raridade === 'raro' || pv.raridade === 'cirurgico';
+          var visKey = 'VISUAL-' + (anonimizar ? horse : (parsed.horse||'X').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase()) + '-P' + pageNum;
           visualCalibs.push({
-            key: 'VISUAL-' + (parsed.horse||'X').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase() + '-P' + pageNum,
+            key: visKey,
             value: '[VISUAL p.' + pageNum + '] ' + (pv.regra_visual||''),
             regra: pv.regra_visual || '',
+            regra_melhorada: pv.regra_visual_detalhada || '',
             date: new Date().toLocaleDateString('pt-PT'),
             source: 'visual_import',
-            horse: (parsed.horse||'?') + ' (p.' + pageNum + ')',
+            horse: horse + ' (p.' + pageNum + ')',
             estrutura: pv.estrutura || '',
             achado: pv.achado_visual || '',
             severidade: pv.severidade_visual || '',
             padroes: (pv.padroes_visuais||[]).join('; '),
-            prioridade: pv.confianca === 'alta' ? 'alta' : 'média',
+            raridade: pv.raridade || 'comum',
+            raridade_motivo: visRare ? 'Achado visual raro detectado automaticamente' : '',
+            prioridade: visRare ? 'alta' : (pv.confianca === 'alta' ? 'alta' : 'media'),
             tipo: 'visual'
           });
         }
@@ -6292,7 +6324,10 @@ async function importVetReportWithImages(input, file) {
 
     // ── COMBINAR: calibrações texto + calibrações visuais ──
     var date = new Date().toLocaleDateString('pt-PT');
-    var horse = parsed.horse || 'desconhecido';
+    var horseRaw = parsed.horse || 'desconhecido';
+    var horse = anonimizar
+      ? ((parsed.breed||'?').replace(/\s+/g,'').slice(0,6)+'-'+(parsed.age||'?')+'a-'+(parsed.discipline||'?').replace(/\s+/g,'').slice(0,4)).toUpperCase()
+      : horseRaw;
     var pending = [];
     try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]'); } catch(e){}
 
@@ -6304,7 +6339,7 @@ async function importVetReportWithImages(input, file) {
         date:date, source:'pdf_import', horse:horse,
         estrutura:c.estrutura||'', achado:c.achado||'', severidade:c.severidade||'',
         confirmado_por:c.confirmado_por||'', sinais_clinicos:c.sinais_clinicos||'',
-        regra:c.regra||'', prioridade:c.prioridade||'média', tipo:'patologico'
+        regra:c.regra||'', regra_melhorada:c.regra_melhorada||'', raridade:c.raridade||'comum', raridade_motivo:c.raridade_motivo||'', prioridade:c.prioridade||'média', tipo:'patologico'
       });
     });
     (parsed.achados_normais||[]).forEach(function(r,i){
@@ -6794,17 +6829,27 @@ function openPendingCalibsModal() {
     items.forEach(function(obj) {
       var c = obj.c; var i = obj.i;
       var sevCol = c.severidade==='Severo'?'var(--red)':c.severidade==='Moderado'?'var(--amber)':c.severidade==='Normal'?'var(--green)':'var(--blue)';
-      html += '<div id="pending-item-' + i + '" style="border:1px solid ' + borderCol + '40;border-left:3px solid ' + borderCol + ';border-radius:0 6px 6px 0;padding:12px 14px;margin-bottom:8px;background:' + bgCol + '">';
+      // Badge de raridade para item border
+      var isRare = c.raridade === 'raro' || c.raridade === 'cirurgico';
+      var rarBorderCol = isRare ? 'var(--red)' : borderCol;
+      var rarBgCol = isRare ? 'rgba(224,85,85,.06)' : bgCol;
+      html += '<div id="pending-item-' + i + '" style="border:1px solid ' + rarBorderCol + '50;border-left:3px solid ' + rarBorderCol + ';border-radius:0 6px 6px 0;padding:12px 14px;margin-bottom:8px;background:' + rarBgCol + '">';
 
-      // Origem badge
+      // Origem badge + raridade
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
       if (c.severidade) {
         html += '<span style="font-family:' + mono + ';font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 7px;border-radius:2px">' + (c.severidade||'?') + '</span>';
       }
       html += '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||c.horse||'') + '</span>';
       if (c.membro) html += '<span style="font-size:10px;color:var(--t3)">' + c.membro + '</span>';
+      if (isRare) {
+        html += '<span style="font-family:' + mono + ';font-size:8px;color:var(--red);background:rgba(224,85,85,.12);border:1px solid rgba(224,85,85,.4);padding:1px 6px;border-radius:2px">&#9888; ' + (c.raridade||'raro').toUpperCase() + '</span>';
+      }
       html += '<span style="font-family:' + mono + ';font-size:8px;color:' + borderCol + ';background:' + bgCol + ';border:1px solid ' + borderCol + '30;padding:1px 6px;border-radius:2px;margin-left:auto">' + icon + ' ' + (c.source||'?') + '</span>';
       html += '</div>';
+      if (isRare && c.raridade_motivo) {
+        html += '<div style="font-size:9px;color:var(--red);background:rgba(224,85,85,.06);border-radius:3px;padding:4px 8px;margin-bottom:6px">&#9888; ' + c.raridade_motivo + '</div>';
+      }
 
       if (c.achado && c.achado !== 'Normal') {
         html += '<div style="font-size:11px;color:var(--t2);margin-bottom:6px">' + c.achado + '</div>';
@@ -6816,8 +6861,18 @@ function openPendingCalibsModal() {
         html += '<div style="font-size:10px;color:var(--t3);font-style:italic;margin-bottom:6px">Padrão: ' + c.achado + '</div>';
       }
 
-      html += '<div style="font-size:9px;color:var(--t3);font-family:' + mono + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Regra (editável):</div>';
-      html += '<textarea id="pending-rule-' + i + '" style="width:100%;box-sizing:border-box;background:rgba(74,201,201,.04);border:1px solid rgba(74,201,201,.2);border-radius:4px;color:var(--ice);font-size:10px;font-family:' + mono + ';padding:6px 8px;resize:vertical;min-height:52px;line-height:1.5">' + (c.regra||c.value||'') + '</textarea>';
+      // Mostrar regra_melhorada para achados raros — dois botões de escolha
+      if (isRare && c.regra_melhorada) {
+        html += '<div style="font-size:9px;color:var(--red);font-family:' + mono + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">&#9888; Regra melhorada disponível — revê e escolhe:</div>';
+        html += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+        html += '<button onclick="setPendingRule(' + i + ',0)" style="flex:1;font-family:' + mono + ';font-size:8px;padding:3px 6px;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);border-radius:3px;color:var(--ice);cursor:pointer">Regra base</button>';
+        html += '<button onclick="setPendingRule(' + i + ',1)" style="flex:1;font-family:' + mono + ';font-size:8px;padding:3px 6px;background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.3);border-radius:3px;color:var(--red);cursor:pointer">&#9733; Regra melhorada</button>';
+        html += '</div>';
+      } else {
+        html += '<div style="font-size:9px;color:var(--t3);font-family:' + mono + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Regra (editável):</div>';
+      }
+      var defaultRule = (isRare && c.regra_melhorada) ? c.regra_melhorada : (c.regra||c.value||'');
+      html += '<textarea id="pending-rule-' + i + '" style="width:100%;box-sizing:border-box;background:rgba(74,201,201,.04);border:1px solid rgba(74,201,201,.2);border-radius:4px;color:var(--ice);font-size:10px;font-family:' + mono + ';padding:6px 8px;resize:vertical;min-height:52px;line-height:1.5">' + defaultRule + '</textarea>';
 
       html += '<div style="font-size:9px;color:var(--t3);margin-top:4px">Origem: <em>' + (c.horse||'?') + '</em> · ' + (c.date||'') + '</div>';
 
@@ -6847,6 +6902,21 @@ function openPendingCalibsModal() {
 
   html += '</div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// setPendingRule(idx, version): 0=regra base, 1=regra melhorada
+function setPendingRule(idx, version) {
+  try {
+    var pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]');
+    var c = pending[idx];
+    if (!c) return;
+    var ta = document.getElementById('pending-rule-' + idx);
+    if (!ta) return;
+    ta.value = version === 1 ? (c.regra_melhorada || c.regra || '') : (c.regra || '');
+    // Highlight temporário
+    ta.style.borderColor = version === 1 ? 'var(--red)' : 'var(--ice)';
+    setTimeout(function(){ ta.style.borderColor = 'rgba(74,201,201,.2)'; }, 1200);
+  } catch(e) { console.warn('[EQ] setPendingRule:', e); }
 }
 
 function approvePendingCalib(idx) {

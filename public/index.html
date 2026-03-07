@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v62</title>
+<title>EquiScan Pro v63</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2739,7 +2739,7 @@ function buildPrompt(batch,info,bNum,bTotal){
   return [
     '════════════════════════════════════════════════════',
     (dicomBlock||''),
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v62'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v63'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -3142,8 +3142,65 @@ function runDistillation(apiKey) {
   .then(function(resp){ return resp.json(); })
   .then(function(data){
     var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
-    var clean = text.replace(/```json|```/g,'').trim();
-    var result = JSON.parse(clean);
+
+    // Robust JSON extraction — multiple strategies
+    var result = null;
+
+    // Strategy 1: clean markdown fences and parse directly
+    try {
+      var clean = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+      result = JSON.parse(clean);
+    } catch(e1) {}
+
+    // Strategy 2: extract first {...} block (handles leading/trailing text)
+    if(!result) {
+      try {
+        var m = text.match(/\{[\s\S]*\}/);
+        if(m) result = JSON.parse(m[0]);
+      } catch(e2) {}
+    }
+
+    // Strategy 3: sanitise common Claude JSON mistakes
+    // - unescaped newlines inside strings
+    // - unescaped quotes inside strings
+    if(!result) {
+      try {
+        var sanitised = text
+          .replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim()
+          // Replace literal newlines inside JSON string values with \n
+          .replace(/("(?:[^"\\]|\\.)*")|(\n)/g, function(m, str, nl){
+            if(str) return str; // keep strings intact
+            return '\\n';       // escape bare newlines outside strings
+          })
+          // Remove trailing commas before } or ]
+          .replace(/,\s*([\]}])/g,'$1');
+        result = JSON.parse(sanitised);
+      } catch(e3) {}
+    }
+
+    // Strategy 4: extract proposed_calibs manually with regex if JSON is malformed
+    if(!result) {
+      console.warn('[EQ Distill] JSON parse failed — attempting manual extraction');
+      var props = [];
+      // Find rule_text values
+      var ruleMatches = text.matchAll(/"rule_text"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+      var confMatches = text.matchAll(/"confidence"\s*:\s*"([^"]+)"/g);
+      var ratMatches  = text.matchAll(/"rationale"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+      var srcMatches  = text.matchAll(/"source_cases"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+      var rules=[],confs=[],rats=[],srcs=[];
+      for(var m of ruleMatches) rules.push(m[1]);
+      for(var m of confMatches) confs.push(m[1]);
+      for(var m of ratMatches)  rats.push(m[1]);
+      for(var m of srcMatches)  srcs.push(m[1]);
+      rules.forEach(function(r,i){
+        props.push({rule_text:r, confidence:confs[i]||'média', rationale:rats[i]||'', source_cases:srcs[i]||''});
+      });
+      var analysisM = text.match(/"analysis"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      result = { analysis: analysisM?analysisM[1]:'Análise extraída parcialmente.', proposed_calibs: props };
+    }
+
+    if(!result) throw new Error('Não foi possível interpretar a resposta JSON do Claude.');
+
     renderDistillResult(result);
     return result;
   })
@@ -5437,7 +5494,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v62 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v63 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

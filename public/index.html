@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v51</title>
+<title>EquiScan Pro v53</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1689,6 +1689,64 @@ ERRO HISTÓRICO A NÃO REPETIR:
 - CORRECÇÃO: foot LM left front = avaliar IFD obrigatoriamente mesmo sem texto "coffin" no nome
 ═══════════════════════════════════════════════════
 
+[CALIB-009] ARGOS VAN HET BRUNO'SHOF — ACHADOS SUBTIS SEM MANIFESTAÇÃO CLÍNICA (caso 19/02/2026)
+Fonte: veterinário ECVDI, caso KWPN 3 anos, Paardenkliniek De Watermolen
+Vet: "São apontamentos que não tendo manifestação clínica, não preocupam, devendo sempre descartar os fragmentos duvidosos. Pequenas coisas."
+
+ERRO DA APP NESTE CASO: classificou como "normal" ou omitiu 6 achados que o veterinário identificou.
+CORRECÇÃO FUNDAMENTAL: "não preocupante" NÃO significa "não reportar" — significa REPORTAR + CONTEXTUALIZAR.
+
+ACHADOS CONFIRMADOS QUE A APP OMITIU:
+
+(A) COLO CERVICAL — IMAGENS PARCIALMENTE AVALIÁVEIS:
+    → Série cervical com 1 projecção muito oblíqua NÃO anula as restantes projecções da mesma série
+    → Se ≥1 projecção cervical é avaliável: reportar achados com nota "avaliação parcial — projecção X não diagnóstica"
+    → Esclerose discreta C6/C7 em projecção cervical lateral = reportar como "Leve — a confirmar se relevante clinicamente"
+    → Dúvida C5/C6 em imagem oblíqua = reportar como "suspeita em projecção de qualidade subóptima — excluir artefacto"
+    → NUNCA descartar série cervical inteira por 1 projecção má quando outras são avaliáveis
+
+(B) NAVICULAR — ALTERAÇÕES MÍNIMAS NO CÓRTEX FLEXOR:
+    → Irregularidade/alteração de densidade no bordo flexor do navicular, mesmo subtil = REPORTAR
+    → Classificação correcta: "Alterações mínimas no córtex flexor — Leve, a monitorizar"
+    → NÃO classificar como "normal" quando há qualquer desvio da superfície flexora limpa
+    → Esta alteração SEM sinais clínicos = grau Leve, não preocupante, mas VISÍVEL no relatório
+    → Omissão navicular bilateral com alterações = falso negativo crítico em pré-compra
+
+(C) BOLETOS ANTERIORES — OSTEÓFITOS DISCRETOS:
+    → Osteófitos periarticulares discretos visíveis em projecções oblíquas (DLPMO/DMPLO) = REPORTAR
+    → Classificação correcta: "Osteofitose periarticular discreta bilateral — Leve, sem distensão articular"
+    → NÃO reportar "sem alterações detectáveis" quando há irregularidade marginal nos sesamóides ou boleto
+    → Jovem KWPN com osteófitos discretos sem sinais clínicos = achado Leve, contexto prognóstico favorável
+
+(D) FRAGMENTOS DUVIDOSOS (COFFIN + CURVILHÃO):
+    → Opacidade presente em 1 projecção mas ausente noutras = REPORTAR como "suspeita de fragmento — provável artefacto, excluir com projecção adicional"
+    → NÃO omitir porque "provavelmente é artefacto" — a decisão de excluir é do veterinário, não da app
+    → Formato correcto: "Suspeita de fragmento ossificado na [estrutura] — visível em [projecção X], não confirmado em [projecção Y]. Recomendar projecção adicional para exclusão."
+
+(E) QUARTELA — BORDO ÓSSEO SUBÓPTIMO:
+    → Irregularidade do bordo cortical da quartela (P1 ou P2) sem distensão articular = REPORTAR como "Leve"
+    → Contexto correcto: "Contorno cortical irregular na quartela [membro] — sem evidência de distensão articular ou fragmento livre. Leve."
+    → "Sendo num pé, menos mal" (vet) = achado Leve, menor impacto prognóstico em membro posterior vs anterior
+
+(F) ORIGEM DO SUSPENSOR — ALTERAÇÃO DE DENSIDADE ÓSSEA:
+    → Alteração focal de densidade óssea na origem do ligamento suspensor = REPORTAR sempre
+    → Classificação: "Alteração de densidade óssea na origem do suspensor [membro] — Leve, sem fragmento livre confirmado"
+    → Correlacionar com história clínica — mesmo sem sinais = achado a monitorizar em atleta
+
+REGRA GERAL DESTE CASO — ACHADOS SUBTIS SEM SINAIS CLÍNICOS:
+→ O veterinário ENCONTROU todos estes achados e classificou-os como Leve/não preocupantes
+→ A app NÃO os encontrou = falso negativo — pior resultado do que encontrá-los e classificá-los correctamente
+→ Princípio: REPORTAR SEMPRE + CONTEXTUALIZAR O GRAU
+→ "Subtil, sem sinais clínicos, a monitorizar" é uma classificação válida e útil — não é alarme
+→ "Normal" só se não há absolutamente nenhum desvio do padrão normal — não usar como substituto de "subtil"
+
+SCORE ARGOS — PADRÃO OCD BILATERAL JOVEM + ACHADOS SUBTIS MÚLTIPLOS SEM SINAIS CLÍNICOS:
+→ OCD estifle bilateral sem fragmento livre + múltiplos achados Leve = score 52-62/100
+→ Classificação: "Alterações Ligeiras a Moderadas"
+→ Prognóstico: favorável com contexto etário (3 anos, OCD frequente, potencial de remodelação)
+→ NÃO penalizar excessivamente achados Leve sem sinais clínicos — contexto importa
+═══════════════════════════════════════════════════
+
 16. PROTOCOLO DE PROJECÇÕES STANDARD (Costa da Silva et al. 2022, HKJC 48-view protocol):
 BOLETO ANT (5 standard): LM + DP + DLPMO 45° + DMPLO 45° + FLEXED LM. Avaliação completa ≥3 projecções. Com 2 = A Confirmar.
 BOLETO POST (4 standard): LM + DP + DLPMO 45° + DMPLO 45°.
@@ -2252,7 +2310,7 @@ function buildPrompt(batch,info,bNum,bTotal){
 
   return [
     '════════════════════════════════════════════════════',
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v51'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v53'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -4423,7 +4481,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v51 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v53 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

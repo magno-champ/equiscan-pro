@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v61</title>
+<title>EquiScan Pro v62</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -762,16 +762,52 @@ function saveClinic(){
   try{localStorage.setItem('eq_clinic',JSON.stringify({clinic:document.getElementById('fClinic').value,vet:document.getElementById('fVet').value}));}catch(e){}
 }
 
+function buildImgPage(){
+  // Build a page of all radiograph thumbnails for PDF export
+  if(!S.imgs||!S.imgs.length) return '';
+  var cols = S.imgs.length<=6?2:3;
+  var html = '<div style="page-break-before:always;padding:16px 0">';
+  html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#8B6914;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;text-align:center">Radiografias · '+S.imgs.length+' imagem'+(S.imgs.length>1?'ns':'')+'</div>';
+  html += '<div style="font-size:10px;color:#555;text-align:center;margin-bottom:12px;font-style:italic">Imagens incluídas para referência — qualidade pode variar consoante o formato original</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:10px">';
+  S.imgs.forEach(function(im, i){
+    var badge = im.isDICOM?'<span style="font-family:JetBrains Mono,monospace;font-size:7px;background:#1a7a7a;color:#fff;padding:1px 4px;border-radius:2px;margin-left:4px">DCM</span>':'';
+    var scaleBadge = im.pxPerMm?'<span style="font-family:JetBrains Mono,monospace;font-size:7px;background:#1a6a1a;color:#fff;padding:1px 4px;border-radius:2px;margin-left:2px">mm✓</span>':'';
+    html += '<div style="break-inside:avoid;text-align:center">';
+    html += '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:#555;margin-bottom:3px">IMG'+String(i+1).padStart(2,'0')+'</div>';
+    html += '<img src="'+im.url+'" style="width:100%;max-height:220px;object-fit:contain;border:1px solid #ddd;border-radius:3px;background:#000">';
+    html += '<div style="font-size:9px;color:#333;margin-top:3px;word-break:break-all">'+im.name+badge+scaleBadge+'</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
 function printReport(){
   // Ensure both vet and cliente sections are visible for print
   var vetEl  = document.getElementById('report-vet');
   var cliEl  = document.getElementById('report-cliente');
   var sepEl  = document.getElementById('print-owner-sep');
+  var imgEl  = document.getElementById('print-img-page');
 
-  // Make both visible (print CSS handles layout)
+  // Build and inject images page if not yet present
+  if(!imgEl){
+    imgEl = document.createElement('div');
+    imgEl.id = 'print-img-page';
+    imgEl.className = 'no-print'; // hidden on screen
+    imgEl.innerHTML = buildImgPage();
+    // Insert after vet section, before owner separator
+    var sepRef = document.getElementById('print-owner-sep');
+    if(sepRef) sepRef.parentNode.insertBefore(imgEl, sepRef);
+  } else {
+    imgEl.innerHTML = buildImgPage(); // refresh in case images changed
+  }
+
+  // Make all sections visible for print
   if(vetEl)  vetEl.style.display='block';
   if(cliEl)  cliEl.style.display='block';
   if(sepEl)  sepEl.style.display='block';
+  if(imgEl)  imgEl.style.display='block';
 
   // Clinic header
   var clinic=document.getElementById('fClinic').value.trim();
@@ -790,6 +826,7 @@ function printReport(){
     if(vetEl)  vetEl.style.display = mode==='vet'?'block':'none';
     if(cliEl)  cliEl.style.display = mode==='cli'?'block':'none';
     if(sepEl)  sepEl.style.display = 'none';
+    if(imgEl)  imgEl.style.display = 'none';
   }, 1000);
 }
 
@@ -2702,7 +2739,7 @@ function buildPrompt(batch,info,bNum,bTotal){
   return [
     '════════════════════════════════════════════════════',
     (dicomBlock||''),
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v61'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v62'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -2868,7 +2905,7 @@ function buildPrompt(batch,info,bNum,bTotal){
     '"score":0,"_INSTRUCAO_SCORE":"CALCULA o score de 0-100 com base nos achados reais — NÃO uses este valor como âncora. 0=pior, 100=melhor. Começa em 100 e subtrai: Severo=-25, Moderado=-15, Leve=-5, bilateral×1.5, pré-compra×0.9",',
     '"classe":"",',
     '"alerta":"ok",',
-    '"resumo":"[ACHADO PRINCIPAL]: [lesão + grading]. [ACHADO 2 se existir]. Classificação: [classe]. Prioridade: [urgente/alta/baixa].",',
+    '"resumo":"[OBRIGATÓRIO — prosa clínica, máximo 5 frases. Para cada achado Moderado/Severo: [Estrutura - Membro]: [lesão + grading]. Terminar com: Classificação global estimada: [classe]. PROIBIDO: nomes de projecções (LM, DP, Oxspring, DMPLO), nomes de autores (McIlwraith, Dyson), referências a imagens (IMG01, pág.X). APENAS achados clínicos em prosa. EXEMPLO CORRECTO navicular: Osso navicular MAE - irregularidade do cortex flexor e invaginações sinoviais alargadas, compatível com alteração ligeira. EXEMPLO ERRADO: Navicular MAE avaliado em Oxspring DP 60 + LM - alteração ligeira.",',
     '"resumo_cliente":"[OBRIGATÓRIO — 2-3 frases — terminologia equestre correcta, sem jargão radiológico, sem reencaminhar para veterinário, nunca usar a palavra patas] Ex: Artrose bilateral nos boletos anteriores com síndrome navicular incipiente. Pode causar claudicação grau 1-2 em piso duro e perda de soltura na aterragem após obstáculos. Com continuação dos saltos sem tratamento, o risco de agravamento é real."',
     '"qualidade":{"geral":"Boa","posicionamento":"","projeccoes_presentes":[],"projeccoes_faltam":[]},',
     '"por_imagem":['+imgTemplates+'],',
@@ -4417,6 +4454,13 @@ function buildClienteReport(r, cl, sc, sc_col, info){
   var clinicName='',vetName='';
   try{var cel=document.getElementById('fClinic');var vel=document.getElementById('fVet');if(cel)clinicName=cel.value.trim();if(vel)vetName=vel.value.trim();}catch(e){}
 
+  // Friendly labels — no technical jargon
+  var friendlyClass = hasSev?'Atenção veterinária urgente':
+                      nMod>=2?'Alterações que merecem atenção':
+                      nMod===1?'Alteração presente — consultar veterinário':
+                      nLev>=1?'Alterações ligeiras detectadas':
+                      'Sem alterações significativas';
+
   return '<div style="padding:4px 0">'+
 
     // Repeat clinic header for owner section (print only)
@@ -4427,7 +4471,7 @@ function buildClienteReport(r, cl, sc, sc_col, info){
       '<div style="padding:18px 16px;display:flex;align-items:center;gap:14px">'+
         '<div style="width:44px;height:44px;border-radius:50%;background:'+semColor+';box-shadow:0 0 16px '+semColor+';flex-shrink:0"></div>'+
         '<div>'+
-          '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:3px">'+semEmoji+' '+X2(cl)+'</div>'+
+          '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:3px">'+semEmoji+' '+X2(friendlyClass)+'</div>'+
           '<div style="font-size:12px;color:var(--t2)">'+X2(semTxt)+'</div>'+
         '</div>'+
       '</div>'+
@@ -5168,15 +5212,32 @@ function renderReport(r,info){
     }
 
     // SEMAPHORE 2 — Aptidão para Uso Declarado
+    // Regra: sem2 parte de sem1 e sobe NO MÁXIMO 1 nível
+    // "Não Recomendado" só com Severo OU ≥2 Moderados em articulações críticas
     var sem2='green', sem2txt='Apto', sem2lbl='Aptidão para Uso';
     if(disc){
       sem2lbl = isSaltos?'Aptidão Saltos':isDressage?'Aptidão Dressage':'Aptidão Declarada';
-      // Start from sem1 and adjust up based on discipline
-      var sem2level = ['green','yellow','orange','red'].indexOf(sem1);
-      if(isSaltos&&highLoadSaltos&&nMod>=1) sem2level=Math.min(3,sem2level+1);
-      if(isSaltos&&bilateralCount>=1&&nMod>=1) sem2level=Math.min(3,sem2level+1);
-      if(isDressage&&highLoadDressage&&nMod>=1) sem2level=Math.min(3,sem2level+1);
-      if(isDressage&&hasSevKS) sem2level=Math.min(3,sem2level+1);
+      var sem1level = ['green','yellow','orange','red'].indexOf(sem1);
+      var sem2level = sem1level;
+
+      // Penalização saltos: +1 apenas se Moderado em articulação de alta carga
+      // bilateral Leve NÃO penaliza — só bilateral Moderado
+      var bilateralMod = moderadoAchs.filter(function(a){
+        return a.bilateral || (pathAchs.filter(function(b){
+          return b.sev==='Moderado' && (b.estrutura||'').toLowerCase().replace(/\s/g,'') ===
+                 (a.estrutura||'').toLowerCase().replace(/\s/g,'') && b!==a;
+        }).length > 0);
+      }).length;
+
+      if(isSaltos && highLoadSaltos && nMod>=1) sem2level = Math.min(3, sem2level+1);
+      if(isSaltos && bilateralMod>=2) sem2level = Math.min(3, sem2level+1); // só bilateral Moderado
+      if(isDressage && highLoadDressage && nMod>=1) sem2level = Math.min(3, sem2level+1);
+      if(isDressage && hasSevKS) sem2level = Math.min(3, sem2level+1);
+
+      // Hard cap: sem2 nunca sobe mais de 1 nível acima de sem1
+      // excepto se hasSev (aí pode ir directo a vermelho)
+      if(!hasSev) sem2level = Math.min(sem1level+1, sem2level);
+
       sem2=['green','yellow','orange','red'][sem2level];
       var sem2txts={green:'Apto',yellow:'Apto c/ Restrições',orange:'Aptidão Condicionada',red:'Não Recomendado'};
       sem2txt=sem2txts[sem2];
@@ -5198,7 +5259,6 @@ function renderReport(r,info){
       '<div class="verdict-top">'+
         '<div style="flex:1">'+
           '<div class="verdict-class">'+X(cl)+'</div>'+
-          buildVisaoGeral(r.achados||[], cl)+
           (totalImgs>0?
             '<div class="completude-bar">'+
               '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3)">Completude</span>'+
@@ -5358,6 +5418,13 @@ function renderReport(r,info){
 
   (ddHTML?'<div class="sec">'+secH('04','Diagnósticos Diferenciais','var(--t3)')+ddHTML+'</div>':'')+
 
+  // Conclusão Clínica — only in vet section
+  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
+
+  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
+
+  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
+
   '<div class="sec">'+secH('05','Prognóstico','var(--green)')+progHTML+'</div>'+
 
   '<div class="sec">'+secH('06','Plano de Acção','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
@@ -5370,7 +5437,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v61 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v62 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

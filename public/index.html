@@ -2018,7 +2018,8 @@ async function run(){
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'anthropic-beta': 'interleaved-thinking-2025-05-14'
+          'anthropic-beta': 'interleaved-thinking-2025-05-14',
+          'x-session-token': (AUTH && AUTH.token) || ''
         },
         body: JSON.stringify({
           model: C.MODELS[0],
@@ -2529,7 +2530,8 @@ function callApi(key,batch,info,bNum,bTotal){
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'accept': 'text/event-stream'
+          'accept': 'text/event-stream',
+          'x-session-token': (AUTH && AUTH.token) || ''
         },
         body: JSON.stringify({
           model: model,
@@ -2599,6 +2601,7 @@ function callApi(key,batch,info,bNum,bTotal){
         var xhr = new XMLHttpRequest();
         xhr.open('POST','/api/claude',true);
         xhr.setRequestHeader('Content-Type','application/json');
+        xhr.setRequestHeader('x-session-token', (AUTH && AUTH.token) || '');
         xhr.timeout = C.TIMEOUT;
         xhr.onload = function() {
           if (xhr.status === 401) { reject(new Error('API Key inválida (401)')); return; }

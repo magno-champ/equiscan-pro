@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v53</title>
+<title>EquiScan Pro v54</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1747,6 +1747,60 @@ SCORE ARGOS — PADRÃO OCD BILATERAL JOVEM + ACHADOS SUBTIS MÚLTIPLOS SEM SINA
 → NÃO penalizar excessivamente achados Leve sem sinais clínicos — contexto importa
 ═══════════════════════════════════════════════════
 
+[CALIB-010] ARGOS VAN HET BRUNO'SHOF — VALIDAÇÃO MULTI-VETERINÁRIO (3 VETs independentes, 01/03/2026)
+Fonte: 3 veterinários independentes sobre o mesmo caso (Argos Van Het Bruno'shof, KWPN 3 anos, 19/02/2026)
+Consenso: "Não vejo nada de muita preocupação" / "Small things on the neck, rest is ok" / "Apontamentos sem manifestação clínica"
+
+ACHADOS CONFIRMADOS POR ≥1 VET QUE A APP OMITIU:
+
+(A) NAVICULAR — ALTERAÇÕES BORDO FLEXOR (Vet 1):
+    → "Naviculares com ligeiras alterações de densidade no bordo flexor"
+    → Confirmado por Vet 1 apesar das imagens Oxspring não estarem no lote principal
+    → REGRA: quando o vet submete o caso com referência a alterações naviculares, a app DEVE pesquisar activamente nas imagens LM do pé disponíveis
+    → Se Foot LM presente: avaliar córtex flexor do navicular em perfil — qualquer aumento de densidade = reportar
+    → Classificação: "Alterações mínimas córtex flexor — Leve, a monitorizar. Confirmação recomendada com Oxspring."
+
+(B) FRAGMENTO DUVIDOSO COFFIN LF + CURVILHÃO RH (Vets 1 e 2):
+    → Vet 1: "num rx parece ter um fragmento na coffin esquerda, mas noutras imagens já não se vê — talvez artefacto; o mesmo num curvilhão"
+    → Vet 2: "O curvilhão direito tem uma ligeira alteração no contorno ósseo na Tarso-metatársica"
+    → REGRA: opacidade visível em 1 projecção mas não confirmada noutras = REPORTAR como suspeita
+    → Formato obrigatório: "Suspeita de fragmento/irregularidade óssea em [estrutura] — visível em [projecção X], não confirmado em [projecção Y]. Provável artefacto — recomendar projecção adicional para exclusão definitiva."
+    → NUNCA omitir por "provavelmente é artefacto" — a decisão de excluir é do veterinário
+    → Vet 2 confirmou TMT RH mesmo sem projecção DMPLO, apenas em LM — a app deve reportar irregularidades de contorno ósseo TMT visíveis em LM mesmo sem oblíqua
+
+(C) QUARTELA — BORDO CORTICAL SUBÓPTIMO (Vet 1):
+    → "Num dos pés o bordo do osso na quartela não é fantástico, mas não se vê que a articulação esteja distendida"
+    → Achado presente nas imagens LM do pé/quartela — a app não avaliou P1/P2 nas imagens foot LM
+    → REGRA: nas imagens foot LM e fetlock LM, avaliar SEMPRE P1 (quartela) e P2 (coroa) além do boleto
+    → Irregularidade cortical P1 sem distensão articular = "Contorno cortical irregular — Leve, sem efusão articular evidente"
+    → "Sendo num pé, menos mal" (Vet 1) = Leve, menor impacto prognóstico que em membro anterior
+
+(D) ORIGEM DO LIGAMENTO SUSPENSOR — ALTERAÇÃO DE DENSIDADE (Vet 1):
+    → "Zona de origem do suspensor num pé tem ligeira alteração de densidade óssea"
+    → Visível em projecções DP ou LM do boleto posterior/MT3 proximal
+    → REGRA: avaliar sempre a zona proximal do MT3/MC3 (origem do suspensor) nas projecções DP e LM
+    → Alteração focal de densidade nessa zona = "Alteração de densidade na origem do ligamento suspensor — Leve, sem fragmento confirmado. A monitorizar em atleta."
+
+(E) PESCOÇO — CONFIRMAÇÃO MULTI-VET (Vets 1 e 3):
+    → Vet 1: "Dúvida cervical C5/C6 + discreta esclerose C6/C7"
+    → Vet 3: "Something on the neck"
+    → A app v54 reportou a dúvida C5/C6 correctamente (CALIB-009 funcionou) ✓
+    → CONFIRMAR: a CALIB-009 está a produzir o comportamento correcto para cervical parcialmente avaliável
+
+REGRA ADICIONAL — CURVILHÃO EM LM SEM DMPLO:
+→ Projecção LM do hock disponível mas sem DMPLO = avaliação incompleta MAS não zero
+→ Irregularidade de contorno ósseo TMT visível em LM = REPORTAR mesmo sem oblíqua
+→ Classificação: "Irregularidade contorno ósseo TMT [membro] visível em LM — avaliação incompleta sem DMPLO. Leve a confirmar. Recomendar projecção oblíqua DMPLO."
+→ NÃO classificar como "não avaliável" se há algo visível — reportar o que se vê + pedir projecção adicional
+
+CONCLUSÃO MULTI-VET ARGOS:
+→ 3 vets independentes concordam: achados presentes mas não preocupantes, sem sinais clínicos
+→ Score correcto: 55-62/100, Alterações Ligeiras a Moderadas
+→ OCD estifle bilateral = achado principal (app acertou)
+→ Os outros 5 achados = subtis, Leve, a monitorizar (app omitiu todos — CALIB-009+010 devem corrigir)
+→ Princípio confirmado: reportar tudo + contextualizar como Leve = melhor que omitir
+═══════════════════════════════════════════════════
+
 16. PROTOCOLO DE PROJECÇÕES STANDARD (Costa da Silva et al. 2022, HKJC 48-view protocol):
 BOLETO ANT (5 standard): LM + DP + DLPMO 45° + DMPLO 45° + FLEXED LM. Avaliação completa ≥3 projecções. Com 2 = A Confirmar.
 BOLETO POST (4 standard): LM + DP + DLPMO 45° + DMPLO 45°.
@@ -2310,7 +2364,7 @@ function buildPrompt(batch,info,bNum,bTotal){
 
   return [
     '════════════════════════════════════════════════════',
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v53'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v54'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -4481,7 +4535,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v53 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v54 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

@@ -148,6 +148,19 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .mf-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em}
 .mf-v{font-size:12px;color:var(--t2);margin-top:1px}
 .lbl9{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:2px}
+
+/* CAVALOS */
+.horse-select{width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 8px;cursor:pointer;appearance:none;-webkit-appearance:none}
+.horse-select:focus{outline:none;border-color:rgba(201,168,76,.4)}
+.horse-card{background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:8px 10px;margin-top:6px;display:none}
+.horse-card.active{display:block}
+.horse-stat{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.horse-stat-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+.horse-stat-val{font-size:11px;color:var(--t1);font-weight:600}
+.horse-timeline{margin-top:8px;border-top:1px solid var(--wire);padding-top:8px}
+.horse-exam-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.horse-exam-row:last-child{border-bottom:none}
+
 .verdict{border-radius:8px;margin-bottom:24px;overflow:hidden;border:1px solid}
 .verdict.ok{border-color:rgba(74,170,122,.2)}
 .verdict.warning{border-color:rgba(212,147,58,.25)}
@@ -499,6 +512,39 @@ window.addEventListener('DOMContentLoaded', function() {
     <input type="file" id="addIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" style="display:none" onchange="onFileInput(this)">
     <div id="clearRow" style="display:none;margin-top:6px">
       <button onclick="clearImages()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.15);border-radius:3px;padding:5px;cursor:pointer;letter-spacing:.04em">✕ LIMPAR IMAGENS</button>
+    </div>
+  </div>
+
+  <!-- CAVALOS -->
+  <div class="sb" id="sbCavallos">
+    <div class="sb-lbl">Cavalos <span id="horseBadge" style="color:var(--gold);margin-left:2px"></span></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <select id="horseSelect" class="horse-select" onchange="onHorseSelect(this.value)" style="flex:1">
+        <option value="">— Seleccionar cavalo —</option>
+      </select>
+      <button onclick="openNewHorseModal()" title="Criar novo cavalo" style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--ink3);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:4px 10px;cursor:pointer;flex-shrink:0">+</button>
+    </div>
+    <div class="horse-card" id="horseCard">
+      <div class="horse-stat">
+        <span class="horse-stat-label">Raça</span>
+        <span class="horse-stat-val" id="hcRaca">—</span>
+      </div>
+      <div class="horse-stat">
+        <span class="horse-stat-label">Idade</span>
+        <span class="horse-stat-val" id="hcIdade">—</span>
+      </div>
+      <div class="horse-stat">
+        <span class="horse-stat-label">Disciplina</span>
+        <span class="horse-stat-val" id="hcDisc">—</span>
+      </div>
+      <div class="horse-stat">
+        <span class="horse-stat-label">Exames</span>
+        <span class="horse-stat-val" id="hcExames">0</span>
+      </div>
+      <div class="horse-timeline" id="hcTimeline" style="display:none">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Histórico</div>
+        <div id="hcTimelineList"></div>
+      </div>
     </div>
   </div>
 
@@ -2762,6 +2808,10 @@ async function run(){
     saveToHistory(merged, info);
     renderReport(merged, info);
     collectSession(merged);
+    // Guardar exame no perfil do cavalo seleccionado
+    if (window._selectedHorseId) {
+      try { saveExamForHorse(window._selectedHorseId, merged, merged.score||0, merged.classe||merged.classe_risco||''); } catch(e) {}
+    }
   } catch(renderErr) {
     console.error('[EQ] renderReport error:', renderErr);
     showErr('Erro ao gerar relatório', renderErr.message||String(renderErr), 'Abre a consola do browser (F12) e partilha o erro completo.');
@@ -5488,11 +5538,18 @@ function renderReport(r,info){
   '<div id="report-cliente">'+buildClienteReport(r,cl,sc,sc_col,info)+'</div>'+
   '<div id="report-vet" style="display:none">'+
 
-  (resumo?'<div class="sec" style="margin-bottom:16px">'+secH('01','Resumo Executivo','var(--gold)')+'<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
-    resumo.split('\n').map(function(line){return line.trim()?'<div style="margin-bottom:4px">'+X(line)+'</div>':'';}).join('')+
-  '</div></div>':'')+
-
-  '<div class="sec">'+secH('02','Qualidade Radiográfica','var(--t3)')+qHTML+'</div>'+
+  '<div class="sec">'+secH('01','Identificação','var(--ice)')+
+    '<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px">'+
+        '<div><div class="lbl9">Paciente</div><div style="font-size:13px;font-weight:600;color:var(--t1)">'+X(info.name||'—')+'</div></div>'+
+        '<div><div class="lbl9">Raça · Idade · Sexo</div><div style="font-size:12px;color:var(--t2)">'+X((info.breed||'—')+' · '+(info.age||'—')+'a · '+(info.sex||'—'))+'</div></div>'+
+        '<div><div class="lbl9">Disciplina</div><div style="font-size:12px;color:var(--t2)">'+X(info.disc||'—')+'</div></div>'+
+        '<div><div class="lbl9">Região Anatómica</div><div style="font-size:12px;color:var(--t2)">'+X(info.reg||'—')+'</div></div>'+
+        (info.symp&&info.symp!=='Não descritos'?'<div style="grid-column:span 2"><div class="lbl9">Sinais Clínicos</div><div style="font-size:12px;color:var(--amber);line-height:1.5">'+X(info.symp)+'</div></div>':'')+
+        (info.hist?'<div style="grid-column:span 2"><div class="lbl9">História Clínica</div><div style="font-size:12px;color:var(--t2);line-height:1.5">'+X(info.hist)+'</div></div>':'')+
+      '</div>'+
+    '</div>'+
+  '</div>'+
 
   (false&&r.inventario&&r.inventario.total_recebidas?(function(){
     var inv = r.inventario;
@@ -5600,22 +5657,32 @@ function renderReport(r,info){
     '</div>';
   })():'')+
 
-  '<div class="sec">'+secH('03','Achados Radiológicos','var(--gold)')+
+  '<div class="sec">'+secH('03','Achados Radiográficos','var(--gold)')+
     '<table class="tbl"><thead><tr><th>Estrutura</th><th>Lesão</th><th>Grading</th><th>Severidade</th><th>Impacto Desportivo</th></tr></thead><tbody>'+achRows+'</tbody></table>'+
     (mcHTML&&mcHTML.length>10?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Medições Críticas</div>'+mcHTML+'</div>':'')+
   '</div>'+
 
-  (ddHTML?'<div class="sec">'+secH('04','Diagnósticos Diferenciais','var(--t3)')+ddHTML+'</div>':'')+
+  '<div class="sec">'+secH('04','Interpretação Clínica','var(--ice)')+
+    (proseHTML?'<div style="margin-bottom:16px">'+proseHTML+'</div>':'')+
+    (ddHTML?'<div style="margin-top:'+(proseHTML?'0':'0')+'px"><div class="lbl9" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Diagnósticos Diferenciais</div>'+ddHTML+'</div>':'')+
+    (!proseHTML&&!ddHTML?'<div style="padding:12px;color:var(--t3);font-size:13px;font-style:italic">Dados interpretativos não disponíveis para este exame.</div>':'')+
+  '</div>'+
 
-  // Conclusão Clínica — only in vet section
-  '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
+  '<div class="sec">'+secH('05','Conclusão','var(--green)')+buildVisaoGeral(r.achados||[], cl)+'</div>'+
 
-  '<div class="sec">'+secH('05','Prognóstico','var(--green)')+progHTML+'</div>'+
+  '<div class="sec">'+secH('06','Prognóstico','var(--green)')+progHTML+'</div>'+
 
-  '<div class="sec">'+secH('06','Plano de Acção','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
+  '<div class="sec">'+secH('07','Recomendações','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
     (exHTML?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Exames Complementares</div><div style="border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;background:var(--ink2)">'+exHTML+'</div></div>':'')+'</div>'+
 
-  (imgList.length?'<div class="sec">'+secH('07','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
+  '<div class="sec">'+secH('08','Técnica & Limitações','var(--t3)')+
+    qHTML+
+    (resumo?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div class="lbl9" style="margin-bottom:8px">Resumo da Análise IA</div><div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:10px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
+      resumo.split('\n').map(function(line){return line.trim()?'<div style="margin-bottom:4px">'+X(line)+'</div>':'';}).join('')+
+    '</div></div>':'')+
+  '</div>'+
+
+  (imgList.length?'<div class="sec">'+secH('09','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
 
   '</div>'+ /* end report-vet */
 
@@ -6161,7 +6228,7 @@ function approveAllPendingCalibs() {
   updateSidebarBadges();
 }
 
-function deactivateApprovedCalib(key) {
+function removeLocalCalib(key) {
   if (!confirm('Remover calibração "' + key + '" das CALIBs activas?')) return;
   var calibs = {};
   try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
@@ -6218,19 +6285,7 @@ function updateSidebarBadges() {
   }
 }
 
-function updateSidebarBadges() {
-  var pending = [];
-  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
-  var statusEl = document.getElementById('vetImportStatus');
-  if (pending.length > 0 && statusEl) {
-    statusEl.style.display = 'block';
-    statusEl.style.color = 'var(--amber)';
-    statusEl.innerHTML = '&#9888; <strong>' + pending.length + ' pendentes</strong> — ' +
-      '<button onclick="openPendingCalibsModal()" style="font-size:9px;padding:1px 6px;background:rgba(212,147,58,.15);border:1px solid rgba(212,147,58,.3);border-radius:3px;color:var(--amber);cursor:pointer">Rever</button>';
-  } else if (statusEl && pending.length === 0) {
-    // Keep green message if already shown
-  }
-}
+// updateSidebarBadges — ver versão completa acima
 
 
 // Modal para mostrar detalhes do import
@@ -6605,6 +6660,216 @@ function atlasZoomIn(idx) {
 var SB_URL = 'https://egwvssdakicnfsukgmsz.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnd3Zzc2Rha2ljbmZzdWtnbXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDU0NjcsImV4cCI6MjA4ODM4MTQ2N30.hvbKAUh_VIBThR-QeLvp6AVhvyEA7f-F3grSeksAwMM';
 
+
+// ═══════════════════════════════════════════════════════
+// CAVALOS — Perfil + Histórico
+// ═══════════════════════════════════════════════════════
+var HORSES_KEY = 'eq_horses_v1';
+var EXAMS_KEY  = 'eq_exams_v1';
+
+function loadHorses() {
+  try { return JSON.parse(localStorage.getItem(HORSES_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveHorses(horses) {
+  localStorage.setItem(HORSES_KEY, JSON.stringify(horses));
+}
+function loadExams() {
+  try { return JSON.parse(localStorage.getItem(EXAMS_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveExams(exams) {
+  localStorage.setItem(EXAMS_KEY, JSON.stringify(exams));
+}
+
+function refreshHorseSelect() {
+  var horses = loadHorses();
+  var sel = document.getElementById('horseSelect');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar cavalo —</option>';
+  horses.forEach(function(h) {
+    var opt = document.createElement('option');
+    opt.value = h.id;
+    opt.textContent = h.nome + (h.raca ? ' · ' + h.raca : '') + (h.idade ? ' · ' + h.idade + 'a' : '');
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+  var badge = document.getElementById('horseBadge');
+  if (badge) badge.textContent = horses.length > 0 ? '(' + horses.length + ')' : '';
+}
+
+function onHorseSelect(id) {
+  var card = document.getElementById('horseCard');
+  if (!id) { if (card) card.classList.remove('active'); return; }
+  var horses = loadHorses();
+  var horse = horses.find(function(h) { return h.id === id; });
+  if (!horse) return;
+
+  // Fill horse card
+  document.getElementById('hcRaca').textContent  = horse.raca || '—';
+  document.getElementById('hcIdade').textContent = horse.idade ? horse.idade + ' anos' : '—';
+  document.getElementById('hcDisc').textContent  = horse.disciplina || '—';
+
+  // Fill patient fields from horse profile
+  var fName = document.getElementById('fName');
+  var fBreed = document.getElementById('fBreed');
+  var fAge = document.getElementById('fAge');
+  var fDisc = document.getElementById('fDisc');
+  if (fName && horse.nome) fName.value = horse.nome;
+  if (fBreed && horse.raca) fBreed.value = horse.raca;
+  if (fAge && horse.idade) fAge.value = horse.idade;
+  if (fDisc && horse.disciplina) fDisc.value = horse.disciplina;
+
+  // Load exams for this horse
+  var exams = loadExams().filter(function(e) { return e.horse_id === id; });
+  document.getElementById('hcExames').textContent = exams.length;
+
+  var tlEl = document.getElementById('hcTimeline');
+  var tlList = document.getElementById('hcTimelineList');
+  if (exams.length > 0 && tlEl && tlList) {
+    tlEl.style.display = 'block';
+    var sorted = exams.slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+    var mono = 'JetBrains Mono,monospace';
+    tlList.innerHTML = sorted.slice(0, 5).map(function(ex) {
+      var scoreCol = ex.score >= 70 ? 'var(--green)' : ex.score >= 50 ? 'var(--amber)' : 'var(--red)';
+      return '<div class="horse-exam-row">' +
+        '<span style="font-family:' + mono + ';font-size:8px;color:var(--t3)">' + (ex.date || '').slice(0, 10) + '</span>' +
+        '<span style="flex:1;font-size:9px;color:var(--t2);padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ex.classe || '—') + '</span>' +
+        (ex.score ? '<span style="font-family:' + mono + ';font-size:9px;color:' + scoreCol + ';font-weight:600">' + ex.score + '</span>' : '') +
+        '</div>';
+    }).join('');
+    if (sorted.length > 5) {
+      tlList.innerHTML += '<div style="font-family:' + mono + ';font-size:8px;color:var(--t3);text-align:center;padding-top:4px">+ ' + (sorted.length - 5) + ' exames anteriores</div>';
+    }
+  } else if (tlEl) {
+    tlEl.style.display = 'none';
+  }
+
+  if (card) card.classList.add('active');
+  window._selectedHorseId = id;
+}
+
+function openNewHorseModal() {
+  if (document.getElementById('newHorseOverlay')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'newHorseOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var mono = 'JetBrains Mono,monospace';
+  var lbl = function(txt) {
+    return '<label style="font-family:' + mono + ';font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">' + txt + '</label>';
+  };
+  var inp = function(id, ph, type) {
+    return '<input id="' + id + '" type="' + (type||'text') + '"' + (type==='number'?' min="1" max="35"':'') + ' placeholder="' + ph + '" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:12px;padding:7px 10px;font-family:inherit">';
+  };
+  var sel = function(id, opts) {
+    return '<select id="' + id + '" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:7px 8px;font-family:' + mono + '">' + opts + '</select>';
+  };
+  var raceOpts = '<option value="">—</option><option>Lusitano</option><option>PSI</option><option>KWPN</option><option>Hanoveriano</option><option>Westfaliano</option><option>PRE</option><option>Árabe</option><option>Lipizzaner</option><option>Quarto de Milha</option><option>Outra</option>';
+  var sexOpts  = '<option value="">—</option><option>Garanhão</option><option>Castrado</option><option>Égua</option>';
+  var discOpts = '<option value="">—</option><option>Dressage</option><option>Saltos</option><option>CCE</option><option>Endurance</option><option>Alta Escola</option><option>Pré-compra</option><option>Outra</option>';
+
+  overlay.innerHTML =
+    '<div style="background:var(--ink1);border:1px solid rgba(201,168,76,.3);border-radius:10px;width:100%;max-width:420px;overflow:hidden">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire);background:rgba(201,168,76,.05)">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--gold)">🐴 Novo Cavalo</div>' +
+        '<button id="newHorseClose" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">&#x2715;</button>' +
+      '</div>' +
+      '<div style="padding:18px;display:flex;flex-direction:column;gap:12px">' +
+        '<div>' + lbl('Nome *') + inp('nhNome', 'ex: Storm Twinkeling') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+          '<div>' + lbl('Raça') + sel('nhRaca', raceOpts) + '</div>' +
+          '<div>' + lbl('Idade') + inp('nhIdade', '8', 'number') + '</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+          '<div>' + lbl('Sexo') + sel('nhSexo', sexOpts) + '</div>' +
+          '<div>' + lbl('Disciplina') + sel('nhDisc', discOpts) + '</div>' +
+        '</div>' +
+        '<div>' + lbl('Proprietário') + inp('nhOwner', 'ex: João Silva') + '</div>' +
+        '<div>' + lbl('Notas') + '<textarea id="nhNotas" rows="2" placeholder="história cirúrgica, medicação..." style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:7px 10px;font-family:inherit;resize:vertical"></textarea></div>' +
+      '</div>' +
+      '<div style="padding:12px 18px;border-top:1px solid var(--wire);display:flex;gap:8px;background:var(--ink1)">' +
+        '<button id="newHorseSave" style="flex:1;font-family:' + mono + ';font-size:11px;padding:9px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);border-radius:4px;color:var(--gold);cursor:pointer;font-weight:600;letter-spacing:.04em">&#10003; Criar Cavalo</button>' +
+        '<button id="newHorseCancel" style="font-family:' + mono + ';font-size:11px;padding:9px 16px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer">Cancelar</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  document.getElementById('newHorseClose').onclick = function() { overlay.remove(); };
+  document.getElementById('newHorseCancel').onclick = function() { overlay.remove(); };
+  document.getElementById('newHorseSave').onclick = saveNewHorse;
+  var nhNome = document.getElementById('nhNome');
+  if (nhNome) nhNome.focus();
+}
+
+
+function saveNewHorse() {
+  var nome = (document.getElementById('nhNome') || {}).value || '';
+  if (!nome.trim()) { showToast('Nome do cavalo é obrigatório.'); return; }
+  var horse = {
+    id:         'h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    nome:       nome.trim(),
+    raca:       (document.getElementById('nhRaca') || {}).value || '',
+    idade:      (document.getElementById('nhIdade') || {}).value || '',
+    sexo:       (document.getElementById('nhSexo') || {}).value || '',
+    disciplina: (document.getElementById('nhDisc') || {}).value || '',
+    owner:      (document.getElementById('nhOwner') || {}).value || '',
+    notas:      (document.getElementById('nhNotas') || {}).value || '',
+    created:    new Date().toISOString()
+  };
+  var horses = loadHorses();
+  horses.push(horse);
+  saveHorses(horses);
+
+  // Sync to Supabase (non-blocking, best-effort)
+  sbInsert('cavalos', {
+    client_id:  horse.id,
+    nome:       horse.nome,
+    raca:       horse.raca,
+    idade:      horse.idade ? parseInt(horse.idade) : null,
+    sexo:       horse.sexo,
+    disciplina: horse.disciplina,
+    owner:      horse.owner,
+    notas:      horse.notas,
+    user_name:  (AUTH && AUTH.user) || 'unknown'
+  }).catch(function(){});
+
+  refreshHorseSelect();
+  document.getElementById('newHorseOverlay').remove();
+  var sel = document.getElementById('horseSelect');
+  if (sel) { sel.value = horse.id; onHorseSelect(horse.id); }
+  showToast('Cavalo "' + horse.nome + '" criado.');
+}
+
+function saveExamForHorse(horseId, reportResult, score, classe) {
+  if (!horseId) return;
+  var exam = {
+    id:       'ex_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    horse_id: horseId,
+    date:     new Date().toISOString(),
+    score:    score || 0,
+    classe:   classe || '',
+    achados:  (reportResult && reportResult.achados) ? reportResult.achados.length : 0,
+    ref:      (reportResult && reportResult.ref) || ''
+  };
+  var exams = loadExams();
+  exams.push(exam);
+  saveExams(exams);
+
+  // Sync to Supabase (non-blocking)
+  sbInsert('exames', {
+    client_id:  exam.id,
+    horse_id:   horseId,
+    score:      exam.score,
+    classe:     exam.classe,
+    n_achados:  exam.achados,
+    ref:        exam.ref,
+    user_name:  (AUTH && AUTH.user) || 'unknown'
+  }).catch(function(){});
+
+  // Refresh horse card
+  onHorseSelect(horseId);
+}
+
 function sbInsert(table, data) {
   return fetch(SB_URL + '/rest/v1/' + table, {
     method: 'POST',
@@ -6679,6 +6944,7 @@ function collectSession(reportData) {
 window.addEventListener('DOMContentLoaded', function(){
   setTimeout(collectDataConsent, 2000);
   setTimeout(updateSidebarBadges, 500); // badges no arranque
+  setTimeout(refreshHorseSelect, 300); // cavalos
 });
 
 // ═══════════════════════════════════════════════════════
@@ -6688,6 +6954,7 @@ document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
   // Close topmost modal overlay
   var overlays = [
+    document.getElementById('newHorseOverlay'),
     document.getElementById('pendingCalibsOverlay'),
     document.querySelector('[style*="position:fixed"][style*="z-index:960"]'),
     document.querySelector('[style*="position:fixed"][style*="z-index:950"]'),

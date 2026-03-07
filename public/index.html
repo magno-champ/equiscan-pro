@@ -2453,7 +2453,54 @@ function getAnaRefBlocks(){
 function getSysBlocks(){ if(!window.ANA_REF_IMGS||!ANA_REF_IMGS.length) return SYS; if(!SYS_BLOCKS) SYS_BLOCKS=buildSystemBlocks(); return SYS_BLOCKS; }
 
 
+// ═══════════════════════════════════════════════════════
+// APRENDIZAGEM CONTÍNUA — Feedback do Supabase → System Prompt
+// ═══════════════════════════════════════════════════════
+var _fbCache = null;
+var _fbCacheTime = 0;
+var FB_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+function loadFeedbacksFromSupabase() {
+  var now = Date.now();
+  if (_fbCache && (now - _fbCacheTime) < FB_CACHE_TTL) {
+    return Promise.resolve(_fbCache);
+  }
+  return fetch(SB_URL + '/rest/v1/vet_feedback?order=created_at.desc&limit=50', {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY
+    }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
+    if (!Array.isArray(rows) || rows.length === 0) return '';
+    var wrongOnly = rows.filter(function(r){ return r.app_grade !== r.vet_grade || r.vet_notes; });
+    if (wrongOnly.length === 0) return '';
+    var block = '\n\n═══ CORRECÇÕES REAIS DE VETERINÁRIOS (aprendizagem contínua) ═══\n';
+    block += 'Os seguintes casos foram corrigidos por veterinários — aplica estas lições:\n\n';
+    wrongOnly.slice(0, 20).forEach(function(r, i){
+      block += 'CASO ' + (i+1) + ':\n';
+      if (r.horse)     block += '  Cavalo: ' + r.horse + '\n';
+      if (r.app_grade) block += '  App classificou: ' + r.app_grade + '\n';
+      if (r.vet_grade) block += '  Vet corrigiu para: ' + r.vet_grade + '\n';
+      if (r.vet_notes) block += '  Observação: ' + r.vet_notes + '\n';
+      block += '\n';
+    });
+    block += '═══════════════════════════════════════════════════════\n';
+    _fbCache = block;
+    _fbCacheTime = now;
+    console.log('[EQ] ' + wrongOnly.length + ' correcções de veterinários carregadas do Supabase');
+    return block;
+  })
+  .catch(function(e){
+    console.warn('[EQ] Erro ao carregar feedbacks:', e);
+    return '';
+  });
+}
+
+
 function callApi(key,batch,info,bNum,bTotal){
+  return loadFeedbacksFromSupabase().then(function(fbBlock){
   return new Promise(function(resolve,reject){
     var mIdx=0;
     function attempt(){
@@ -2464,7 +2511,8 @@ function callApi(key,batch,info,bNum,bTotal){
         content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
       });
       content.push({type:'text',text:buildPrompt(batch,info,bNum,bTotal)});
-      var sysVal = [{type:'text', text:SYS, cache_control:{type:'ephemeral'}}];
+      var sysText = SYS + (fbBlock || '');
+      var sysVal = [{type:'text', text:sysText, cache_control:{type:'ephemeral'}}];
       var msgContent=content;
       var hasRealRefs = window.ANA_REF_IMGS && ANA_REF_IMGS.some(function(r){return r.b64 && r.b64.length >= 10;});
       if(hasRealRefs){
@@ -2626,6 +2674,7 @@ function callApi(key,batch,info,bNum,bTotal){
     }
     attempt();
   });
+  }); // end loadFeedbacksFromSupabase
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4323,57 +4372,36 @@ function renderReport(r,info){
 }
 
 function buildFeedbackPanel(r, ref){
-  var achados = (r.achados||[]).filter(function(a){return a.sev&&a.sev!=='Normal'&&!isQualidadeAchado(a);});
-  var achadoOpts = achados.map(function(a,i){
-    var label = (a.estrutura||'?')+' ('+(a.membro||'?')+') — '+(a.sev||'?');
-    return '<option value="'+i+'">'+x(label)+'</option>';
-  }).join('');
-
-  return '<div class="sec" style="margin-top:20px;border:1px solid rgba(74,201,201,.2);border-radius:var(--r);background:rgba(74,201,201,.03)" id="feedbackPanel">'+
-    '<div style="padding:12px 14px;border-bottom:1px solid rgba(74,201,201,.15)">'+
-      '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px">📋 Feedback Veterinário</div>'+
-      '<div style="font-size:10px;color:var(--t3)">Correcções guardadas localmente — melhoram a calibração do sistema</div>'+
+  return '<div class="sec" style="margin-top:20px;border:2px solid rgba(74,201,201,.3);border-radius:var(--r);background:rgba(74,201,201,.04)" id="feedbackPanel">'+
+    '<div style="padding:16px 18px;border-bottom:1px solid rgba(74,201,201,.15)">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--ice);margin-bottom:2px">📋 Correcção do Veterinário</div>'+
+      '<div style="font-size:11px;color:var(--t3)">Guardado no Supabase — melhora a calibração do sistema</div>'+
     '</div>'+
-    '<div style="padding:12px 14px" id="fbContent">'+
+    '<div style="padding:16px 18px">'+
 
-      // Inventário — estado de validação (ligado ao inventário interactivo)
-      '<div style="margin-bottom:14px;padding:8px 10px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r)" id="fbInventarioStatus">'+
-        '<div style="display:flex;align-items:center;justify-content:space-between">'+
-          '<span style="font-size:10px;font-weight:600;color:var(--t1)">Inventário de imagens</span>'+
-          '<span id="fbInvBadge" style="font-size:9px;font-family:JetBrains Mono,monospace;color:var(--t3)">— não validado</span>'+
+      // Veredicto — 2 botões grandes
+      '<div style="margin-bottom:16px">'+
+        '<div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:10px">A classificação da app estava:</div>'+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+          '<label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:2px solid var(--wire);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--t1);background:var(--ink3)" id="fbLabelCorrect">'+
+            '<input type="radio" name="fbVerdict" value="correct" onchange="document.getElementById('fbLabelCorrect').style.borderColor='#4acc88';document.getElementById('fbLabelWrong').style.borderColor='var(--wire)'"> ✅ Correcta'+
+          '</label>'+
+          '<label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:2px solid var(--wire);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--t1);background:var(--ink3)" id="fbLabelWrong">'+
+            '<input type="radio" name="fbVerdict" value="wrong" onchange="document.getElementById('fbLabelWrong').style.borderColor='#e05';document.getElementById('fbLabelCorrect').style.borderColor='var(--wire)'"> ❌ Errada'+
+          '</label>'+
         '</div>'+
-        '<div style="font-size:9px;color:var(--t3);margin-top:3px">Valide cada imagem no inventário acima (✓ / ✎) antes de guardar feedback</div>'+
       '</div>'+
 
-      // Classificação final
-      '<div style="margin-bottom:14px">'+
-        '<div style="font-size:10px;font-weight:600;color:var(--t1);margin-bottom:6px">Classificação final do sistema</div>'+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-          '<label style="font-size:10px;color:var(--t2);display:flex;align-items:center;gap:4px"><input type="radio" name="fbVerdict" value="correct"> ✅ Correcta</label>'+
-          '<label style="font-size:10px;color:var(--t2);display:flex;align-items:center;gap:4px"><input type="radio" name="fbVerdict" value="too_permissive"> ⬆️ Demasiado permissiva</label>'+
-          '<label style="font-size:10px;color:var(--t2);display:flex;align-items:center;gap:4px"><input type="radio" name="fbVerdict" value="too_conservative"> ⬇️ Demasiado conservadora</label>'+
-        '</div>'+
-        '<input id="fbVerdictCorrect" placeholder="Classificação correcta (ex: Apto com Restrições)" style="margin-top:6px;width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire);border-radius:3px;color:var(--t1);font-size:10px;padding:5px 8px;font-family:inherit">'+
+      // Notas — campo grande e claro
+      '<div style="margin-bottom:16px">'+
+        '<div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:8px">O que estava errado / observações clínicas:</div>'+
+        '<textarea id="fbNotes" rows="4" placeholder="Ex: Alterações avançadas nos corvalhões não detectadas. Coffin MAE com osteoartrite. Score devia ser <40..." style="width:100%;box-sizing:border-box;background:var(--ink2);border:1px solid var(--wire);border-radius:6px;color:var(--t1);font-size:13px;padding:10px 12px;font-family:inherit;resize:vertical;line-height:1.5"></textarea>'+
       '</div>'+
 
-      // Achados errados
-      (achadoOpts?
-      '<div style="margin-bottom:14px">'+
-        '<div style="font-size:10px;font-weight:600;color:var(--t1);margin-bottom:6px">Achados com grading errado</div>'+
-        '<div id="fbAchadoRows" style="display:flex;flex-direction:column;gap:6px"></div>'+
-        '<button onclick="addFbAchado(\''+x(JSON.stringify(achados).replace(/'/g,"\\'"))+'\')" style="margin-top:6px;font-size:9px;font-family:JetBrains Mono,monospace;background:transparent;border:1px dashed var(--wire);color:var(--t3);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">+ Achado com erro</button>'+
-      '</div>':'') +
-
-      // Notas livres
-      '<div style="margin-bottom:14px">'+
-        '<div style="font-size:10px;font-weight:600;color:var(--t1);margin-bottom:6px">Notas livres</div>'+
-        '<textarea id="fbNotes" rows="2" placeholder="Observações clínicas, contexto adicional, achados não identificados..." style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire);border-radius:3px;color:var(--t1);font-size:10px;padding:6px 8px;font-family:inherit;resize:vertical"></textarea>'+
-      '</div>'+
-
-      '<div style="display:flex;gap:8px;align-items:center">'+
-        '<button onclick="saveFeedback(\''+x(ref)+'\')" style="font-family:JetBrains Mono,monospace;font-size:9px;background:var(--ice-dim);color:var(--ice);border:1px solid rgba(74,201,201,.3);padding:6px 14px;border-radius:3px;cursor:pointer;letter-spacing:.05em">💾 Guardar Feedback</button>'+
-        '<button onclick="exportFeedbackLog()" style="font-family:JetBrains Mono,monospace;font-size:9px;background:transparent;color:var(--t3);border:1px solid var(--wire);padding:6px 14px;border-radius:3px;cursor:pointer;letter-spacing:.05em">⬇ Exportar Log</button>'+
-        '<span id="fbSaveMsg" style="font-size:9px;color:var(--green);display:none">✓ Guardado</span>'+
+      // Botão guardar — grande e visível
+      '<div style="display:flex;gap:10px;align-items:center">'+
+        '<button onclick="saveFeedback(\''+x(ref)+'\')" style="font-size:13px;font-weight:700;background:var(--ice);color:#000;border:none;padding:12px 24px;border-radius:6px;cursor:pointer;letter-spacing:.02em">💾 Guardar Correcção</button>'+
+        '<span id="fbSaveMsg" style="font-size:12px;color:var(--green);display:none">✓ Guardado no Supabase</span>'+
       '</div>'+
     '</div>'+
   '</div>';

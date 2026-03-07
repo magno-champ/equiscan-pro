@@ -921,7 +921,7 @@ function autoDetectModels(key){
       }
     }catch(e){}
   };
-  try { xhr.send(); } catch(e) { /* Railway injects xhr.open() — safe to ignore locally */ }
+  xhr.send();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6712,6 +6712,25 @@ function openCaseStudyModal() {
   document.getElementById('csClose').onclick = function() { overlay.remove(); };
   document.getElementById('csCancel').onclick = function() { overlay.remove(); };
   document.getElementById('csSave').onclick = saveCaseStudy;
+
+  // Pre-preencher com cavalo seleccionado na sidebar
+  try {
+    if (S._selectedHorseId) {
+      var horses = JSON.parse(localStorage.getItem('eq_horses_v1')||'[]');
+      var h = horses.find(function(x){ return x.id === S._selectedHorseId; });
+      if (h) {
+        var elH = document.getElementById('csHorse');
+        var elB = document.getElementById('csBreed');
+        var elA = document.getElementById('csAge');
+        var elD = document.getElementById('csDisc');
+        if (elH && !elH.value) elH.value = h.name || '';
+        if (elB && !elB.value) elB.value = h.breed || '';
+        if (elA && !elA.value) elA.value = h.age || '';
+        if (elD && !elD.value) elD.value = h.discipline || '';
+      }
+    }
+  } catch(e) {}
+
   var el = document.getElementById('csHorse'); if (el) el.focus();
 }
 

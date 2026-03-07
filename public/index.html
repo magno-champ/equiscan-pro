@@ -585,14 +585,14 @@ window.addEventListener('DOMContentLoaded', function() {
       <button onclick="openDistillModal()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--ice);border:1px solid rgba(74,201,201,.25);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s" onmouseover="this.style.background='rgba(74,201,201,.08)'" onmouseout="this.style.background='var(--ink3)'">
         ⟳ Destilar Feedbacks
       </button>
-      <button onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s" title="Ver CALIBs activas" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--t3)'">
-        ☰ CALIBs
+      <button id="btnCalibsActive" onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;position:relative" title="Ver CALIBs activas" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--t3)'">
+        ☰ CALIBs <span id="calibActiveBadge" style="display:none;background:var(--gold);color:#000;font-size:8px;padding:1px 4px;border-radius:2px;margin-left:3px">0</span>
       </button>
     </div>
     <!-- IMPORTAR RELATÓRIO VET -->
     <div style="margin-bottom:8px">
-      <button onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--amber);border:1px solid rgba(212,147,58,.3);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px">
-        <span>📄</span> Importar Relatório Vet (PDF)
+      <button id="btnImportPdf" onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--amber);border:1px solid rgba(212,147,58,.3);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>📄</span> Importar Relatório Vet (PDF) <span id="calibPendingBadge" style="display:none;background:var(--amber);color:#000;font-size:8px;padding:1px 4px;border-radius:2px;margin-left:3px">0</span>
       </button>
       <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="importVetReport(this)">
       <div id="vetPendingBadge" style="display:none;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);cursor:pointer" onclick="openPendingCalibsModal()">&#9888; CALIBs pendentes de aprovação</div>
@@ -653,9 +653,14 @@ window.addEventListener('DOMContentLoaded', function() {
       <div style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:10px">
         O Claude vai analisar todos os feedbacks veterinários acumulados, identificar padrões de erro recorrentes e propor novas regras de calibração. Cada regra proposta pode ser aprovada (fica activa permanentemente) ou rejeitada.
       </div>
-      <button onclick="runDistillation()" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(74,201,201,.12);color:var(--ice);border:1px solid rgba(74,201,201,.3);padding:8px 18px;border-radius:5px;cursor:pointer;font-weight:600;letter-spacing:.05em">
-        ⟳ Iniciar Destilação
-      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="runDistillation()" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(74,201,201,.12);color:var(--ice);border:1px solid rgba(74,201,201,.3);padding:8px 18px;border-radius:5px;cursor:pointer;font-weight:600;letter-spacing:.05em">
+          ⟳ Iniciar Destilação
+        </button>
+        <button onclick="exportApprovedCalibs()" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:transparent;color:var(--t3);border:1px solid var(--wire);padding:8px 14px;border-radius:5px;cursor:pointer;letter-spacing:.05em" title="Exportar todas as CALIBs activas como JSON">
+          ↓ Exportar CALIBs
+        </button>
+      </div>
     </div>
     <div id="distillPanel" style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent">
       <div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Prima "Iniciar Destilação" para começar.</div>
@@ -3188,7 +3193,29 @@ function runDistillation(apiKey) {
   .then(function(rows){
     if(!Array.isArray(rows)||rows.length===0) throw new Error('Sem feedbacks para destilar');
     var wrongOnly = rows.filter(function(r){ return r.app_grade !== r.vet_grade || r.vet_notes; });
-    if(wrongOnly.length===0) throw new Error('Sem erros para analisar');
+
+    // Incluir imports de PDF aprovados na destilação
+    var approvedImports = [];
+    try {
+      var activeCalibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}');
+      Object.keys(activeCalibs).forEach(function(k) {
+        var c = activeCalibs[k];
+        if (c.source && c.source.indexOf('pdf_import') === 0 && c.approved) {
+          approvedImports.push({
+            horse: c.horse || '?',
+            app_grade: '',
+            vet_grade: c.severidade || '',
+            vet_notes: '[PDF Import aprovado] ' + (c.value || ''),
+            created_at: c.approved_date || c.date || ''
+          });
+        }
+      });
+    } catch(e) {}
+
+    // Combinar feedbacks manuais + imports aprovados
+    var allCases = wrongOnly.concat(approvedImports);
+    if(allCases.length===0) throw new Error('Sem erros para analisar');
+    wrongOnly = allCases;
 
     // 2. Carregar CALIBs actuais para contexto
     return fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
@@ -3431,7 +3458,7 @@ function loadActiveCalibsUI() {
       if(r.source_cases) html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:4px">→ '+escH(r.source_cases)+'</div>';
       html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:2px">Activada: '+(r.approved_at||r.created_at||'').slice(0,10)+'</div>';
       html += '</div>';
-      html += '<button onclick="deactivateCalib(\''+r.id+'\')" title="Desactivar" style="padding:4px 8px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0">✕</button>';
+      html += '<button onclick="deactivateApprovedCalib(\''+r.id+'\')" title="Desactivar" style="padding:4px 8px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0">✕</button>';
       html += '</div>';
     });
     panel.innerHTML = html;
@@ -3442,7 +3469,7 @@ function loadActiveCalibsUI() {
 }
 
 // Desactiva uma CALIB
-function deactivateCalib(id) {
+function deactivateApprovedCalib(id) {
   if(!confirm('Desactivar esta CALIB? Deixará de ser usada nas análises.')) return;
   fetch(SB_URL + '/rest/v1/calib_rules?id=eq.'+id, {
     method: 'PATCH',
@@ -5333,14 +5360,9 @@ function renderReport(r,info){
         +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--amber)">DICOM sem pixel spacing — medições numéricas desactivadas. Grading qualitativo utilizado.</span>'
         +'</div>';
     } else {
-      return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin-bottom:14px;background:rgba(255,77,106,.06);border:1px solid rgba(255,77,106,.25);border-radius:6px">'
-        +'<span style="font-size:16px;line-height:1.2">⚠</span>'
-        +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--red);line-height:1.8">'
-        +'<strong>JPEG / PDF — medições numéricas desactivadas</strong><br>'
-        +'Imagens comprimidas não permitem medir estruturas de 1–3mm com fiabilidade. '
-        +'Todos os achados usam grading qualitativo (discreto / moderado / avançado).<br>'
-        +'Para medições calibradas em mm, carregue os ficheiros DICOM originais.'
-        +'</div>'
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:5px">'
+        +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:var(--t3);letter-spacing:.06em;text-transform:uppercase">ℹ JPEG/PDF</span>'
+        +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3);line-height:1.5">Grading qualitativo · Medições numéricas indisponíveis sem DICOM</span>'
         +'</div>';
     }
   })()+
@@ -5450,8 +5472,8 @@ function renderReport(r,info){
   })()+
 
   '<div style="display:flex;gap:0;border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin:14px 0 18px;font-family:JetBrains Mono,monospace;font-size:10px">'+
-    '<button id="btn-mode-vet" onclick="setReportMode(\'vet\')" style="flex:1;padding:8px 4px;background:var(--gold);color:var(--ink1);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.05em;font-weight:700">⚕ VETERINÁRIO</button>'+
-    '<button id="btn-mode-cli" onclick="setReportMode(\'cli\')" style="flex:1;padding:8px 4px;background:var(--ink3);color:var(--t2);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.05em">👤 CLIENTE / PROPRIETÁRIO</button>'+
+    '<button id="btn-mode-cli" onclick="setReportMode(\'cli\')" style="flex:1;padding:8px 4px;background:var(--gold);color:var(--ink1);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.05em;font-weight:700">📋 VISÃO GERAL</button>'+
+    '<button id="btn-mode-vet" onclick="setReportMode(\'vet\')" style="flex:1;padding:8px 4px;background:var(--ink3);color:var(--t2);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.05em">⚕ DETALHE VETERINÁRIO</button>'+
   '</div>'+
 
   // Owner section separator — visible only in print
@@ -5463,8 +5485,8 @@ function renderReport(r,info){
     '</div>'+
   '</div>'+
 
-  '<div id="report-cliente" style="display:none">'+buildClienteReport(r,cl,sc,sc_col,info)+'</div>'+
-  '<div id="report-vet">'+
+  '<div id="report-cliente">'+buildClienteReport(r,cl,sc,sc_col,info)+'</div>'+
+  '<div id="report-vet" style="display:none">'+
 
   (resumo?'<div class="sec" style="margin-bottom:16px">'+secH('01','Resumo Executivo','var(--gold)')+'<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
     resumo.split('\n').map(function(line){return line.trim()?'<div style="margin-bottom:4px">'+X(line)+'</div>':'';}).join('')+
@@ -5713,6 +5735,24 @@ function saveFeedback(ref){
   if(msg){msg.style.display='inline';setTimeout(function(){msg.style.display='none';},2500);}
 }
 
+function exportApprovedCalibs() {
+  var calibs = {};
+  try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+  if (!Object.keys(calibs).length) { alert('Nenhuma calibração activa para exportar.'); return; }
+  var exportData = {
+    exported_at: new Date().toISOString(),
+    version: 'eq_calibrations_v1',
+    total: Object.keys(calibs).length,
+    calibrations: calibs
+  };
+  var blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'equiscan_calibs_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function exportFeedbackLog(){
   var log = [];
   try{ log = JSON.parse(localStorage.getItem('eq_feedback_log')||'[]'); }catch(e){}
@@ -5734,9 +5774,22 @@ function importVetReport(input) {
   input.value = ''; // reset so same file can be re-imported
 
   var status = document.getElementById('vetImportStatus');
+  var importBtn = document.getElementById('btnImportPdf');
+  if (importBtn) { importBtn.disabled = true; importBtn.style.opacity = '.5'; importBtn.style.cursor = 'not-allowed'; }
   status.style.display = 'block';
   status.style.color = 'var(--amber)';
   status.textContent = '⏳ A ler PDF…';
+
+  // Validação de tamanho (máx 15MB)
+  if (file.size > 15 * 1024 * 1024) {
+    status.style.display = 'block';
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ PDF demasiado grande (' + (file.size/1024/1024).toFixed(1) + 'MB). Máximo: 15MB.';
+    return;
+  }
+  // Validação básica de nome (aviso não bloqueante)
+  var fname = file.name.toLowerCase();
+  var looksLikeVetReport = fname.includes('report') || fname.includes('relat') || fname.includes('exam') || fname.includes('pre') || fname.includes('purchase') || fname.includes('vet') || fname.includes('clinic') || true; // permissivo — só avisa
 
   var reader = new FileReader();
   reader.onload = function(e) {
@@ -5863,11 +5916,27 @@ function importVetReport(input) {
         });
       });
 
-      // Guardar em fila de quarentena (não activas ainda)
+      // Guardar em fila de quarentena — detecção de duplicado
       var existingPending = [];
       try { existingPending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
-      // Evitar duplicados do mesmo cavalo
-      existingPending = existingPending.filter(function(p){ return p.horse !== horse; });
+      var alreadyExists = existingPending.some(function(p){ return p.horse === horse; });
+      var existingActive = {};
+      try { existingActive = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+      var alreadyActive = Object.values(existingActive).some(function(c){ return c.horse === horse; });
+
+      if (alreadyExists || alreadyActive) {
+        var where = alreadyExists ? 'pendentes' : 'activas';
+        var confirmMsg = '\u26a0 Já existem calibrações de "' + horse + '" nas CALIBs ' + where + '.\n\nSubstituir pelas novas (recomendado se o relatório for mais recente)\nou Acumular (mantém as antigas e adiciona as novas)?';
+        var doReplace = confirm(confirmMsg + '\n\n[OK = Substituir] [Cancelar = Acumular]');
+        if (doReplace) {
+          existingPending = existingPending.filter(function(p){ return p.horse !== horse; });
+          // Remove active calibs from same horse
+          Object.keys(existingActive).forEach(function(k){
+            if (existingActive[k].horse === horse) delete existingActive[k];
+          });
+          localStorage.setItem('eq_calibrations_v1', JSON.stringify(existingActive));
+        }
+      }
       existingPending = existingPending.concat(pending);
       localStorage.setItem('eq_calibrations_pending', JSON.stringify(existingPending));
 
@@ -5890,12 +5959,18 @@ function importVetReport(input) {
       status.innerHTML = '&#9888; <strong>' + pending.length + ' calibrações em quarentena</strong> — aguardam aprovação.<br>' +
         '<button onclick="openPendingCalibsModal()" style="font-size:9px;padding:2px 8px;background:rgba(212,147,58,.15);border:1px solid rgba(212,147,58,.4);border-radius:3px;color:var(--amber);cursor:pointer;margin-top:4px;display:inline-block">&#10003; Rever e Aprovar</button>';
 
+      // Re-enable import button
+      var importBtn = document.getElementById('btnImportPdf');
+      if (importBtn) { importBtn.disabled = false; importBtn.style.opacity = '1'; importBtn.style.cursor = 'pointer'; }
+      updateSidebarBadges();
       // Abrir modal de aprovação automaticamente
       setTimeout(openPendingCalibsModal, 400);
     })
     .catch(function(err) {
       status.style.color = 'var(--red)';
       status.textContent = '❌ Erro de rede: ' + err.message;
+      var importBtn = document.getElementById('btnImportPdf');
+      if (importBtn) { importBtn.disabled = false; importBtn.style.opacity = '1'; importBtn.style.cursor = 'pointer'; }
     });
   };
   reader.onerror = function() {
@@ -6029,7 +6104,7 @@ function approvePendingCalib(idx) {
   }
 
   // Update status badge
-  updatePendingBadge();
+  updateSidebarBadges();
 }
 
 function rejectPendingCalib(idx) {
@@ -6044,7 +6119,7 @@ function rejectPendingCalib(idx) {
     item.style.borderColor = 'rgba(224,85,85,.3)';
     item.innerHTML = '<div style="text-align:center;padding:12px;color:var(--red);font-size:12px">&#10005; Rejeitada</div>';
   }
-  updatePendingBadge();
+  updateSidebarBadges();
 }
 
 function approveAllPendingCalibs() {
@@ -6083,17 +6158,67 @@ function approveAllPendingCalibs() {
     overlay.style.justifyContent = 'center';
     overlay.style.alignItems = 'center';
   }
-  updatePendingBadge();
+  updateSidebarBadges();
+}
+
+function deactivateApprovedCalib(key) {
+  if (!confirm('Remover calibração "' + key + '" das CALIBs activas?')) return;
+  var calibs = {};
+  try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+  delete calibs[key];
+  localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibs));
+  updateSidebarBadges();
+  showToast('Calibração removida das activas.');
+  // Refresh modal if open
+  var overlay = document.getElementById('calibsModal');
+  if (overlay && overlay.style.display === 'flex') openCalibsModal();
 }
 
 function rejectAllPendingCalibs() {
   localStorage.removeItem('eq_calibrations_pending');
   var overlay = document.getElementById('pendingCalibsOverlay');
   if (overlay) overlay.remove();
-  updatePendingBadge();
+  updateSidebarBadges();
 }
 
-function updatePendingBadge() {
+function updateSidebarBadges() {
+  // Badge CALIBs activas
+  var calibs = {};
+  try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+  var activeCount = Object.keys(calibs).length;
+  var activeBadge = document.getElementById('calibActiveBadge');
+  if (activeBadge) {
+    activeBadge.textContent = activeCount;
+    activeBadge.style.display = activeCount > 0 ? 'inline' : 'none';
+  }
+
+  // Badge CALIBs pendentes
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+  var pendingCount = pending.length;
+  var pendingBadge = document.getElementById('calibPendingBadge');
+  if (pendingBadge) {
+    pendingBadge.textContent = pendingCount;
+    pendingBadge.style.display = pendingCount > 0 ? 'inline' : 'none';
+  }
+
+  // Legacy badge row
+  var legacyBadge = document.getElementById('vetPendingBadge');
+  if (legacyBadge) {
+    legacyBadge.style.display = pendingCount > 0 ? 'block' : 'none';
+    if (pendingCount > 0) legacyBadge.innerHTML = '&#9888; ' + pendingCount + ' CALIBs pendentes de aprovação';
+  }
+
+  // Status div update
+  var statusEl = document.getElementById('vetImportStatus');
+  if (statusEl && pendingCount > 0 && statusEl.style.display === 'none') {
+    statusEl.style.display = 'block';
+    statusEl.style.color = 'var(--amber)';
+    statusEl.innerHTML = '&#9888; <strong>' + pendingCount + ' pendentes</strong> — <button onclick="openPendingCalibsModal()" style="font-size:9px;padding:1px 6px;background:rgba(212,147,58,.15);border:1px solid rgba(212,147,58,.3);border-radius:3px;color:var(--amber);cursor:pointer">Rever</button>';
+  }
+}
+
+function updateSidebarBadges() {
   var pending = [];
   try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
   var statusEl = document.getElementById('vetImportStatus');
@@ -6553,6 +6678,30 @@ function collectSession(reportData) {
 // Chamar consentimento no boot
 window.addEventListener('DOMContentLoaded', function(){
   setTimeout(collectDataConsent, 2000);
+  setTimeout(updateSidebarBadges, 500); // badges no arranque
+});
+
+// ═══════════════════════════════════════════════════════
+// FECHAR MODAIS COM ESC
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  // Close topmost modal overlay
+  var overlays = [
+    document.getElementById('pendingCalibsOverlay'),
+    document.querySelector('[style*="position:fixed"][style*="z-index:960"]'),
+    document.querySelector('[style*="position:fixed"][style*="z-index:950"]'),
+    document.getElementById('distillModal'),
+    document.getElementById('calibsModal'),
+  ];
+  for (var i = 0; i < overlays.length; i++) {
+    if (overlays[i] && overlays[i].style.display !== 'none') {
+      overlays[i].style.display === 'flex'
+        ? (overlays[i].style.display = 'none')
+        : overlays[i].remove();
+      break;
+    }
+  }
 });
 
 function showToast(msg) {
@@ -6802,7 +6951,7 @@ async function runSecondOpinion() {
 // Inicializar atlas no boot
 window.addEventListener('DOMContentLoaded', function(){
   renderAtlas();
-  updatePendingBadge();
+  updateSidebarBadges();
 });
 </script>
 

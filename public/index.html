@@ -595,6 +595,7 @@ window.addEventListener('DOMContentLoaded', function() {
         <span>📄</span> Importar Relatório Vet (PDF)
       </button>
       <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="importVetReport(this)">
+      <div id="vetPendingBadge" style="display:none;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);cursor:pointer" onclick="openPendingCalibsModal()">&#9888; CALIBs pendentes de aprovação</div>
       <div id="vetImportStatus" style="display:none;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
     </div>
     <div style="font-size:10px;color:var(--t3);line-height:1.6">Analisa os erros acumulados e propõe novas regras permanentes. As regras aprovadas ficam activas em todas as análises futuras.</div>
@@ -2200,6 +2201,54 @@ Quando o mesmo cavalo é submetido mais de uma vez no mesmo dia ou em janela ≤
 → Divergências entre análises do mesmo caso = escalar para revisão veterinária
 Confiança: alta | Casos: Olímpico (3 análises consecutivas)
 ═══════════════════════════════════════════════════
+
+[CALIB-019] REACÇÃO DE PERIÓSTEO MTC II — ACHADO OBRIGATÓRIO EM EXAMES ANTERIORES (validado Dr. Miguel Bahia, MB Vet, caso Storm's Twinkeling, 30/01/2026)
+Fonte: exame pré-compra real com correlação clínica + radiográfica confirmada.
+PROBLEMA IDENTIFICADO: reacção de periósteo no bordo proximal de MTC II (2º metacarpiano — "splint bone") não estava a ser detectada/reportada, apesar de ser visível em projecções AP do metacarpo.
+REGRA OBRIGATÓRIA: em qualquer exame que inclua projecções AP/DP do metacarpo (MAE ou MAD), verificar ACTIVAMENTE o bordo proximal de MTC II e MCIV:
+  - Reacção de periósteo MTC II proximal (MAE e/ou MAD) = achado independente a reportar obrigatoriamente
+  - Bilateral = risco de interferência com LSB (ligamento suspensor do boleto) = Moderado em pré-compra
+  - Unilateral discreta sem sinais = Leve com nota de monitorização
+  - Se existe imagem compatível com osteotomia/ressecção parcial de MTC II = ACHADO CIRÚRGICO CRÍTICO — reportar como "história cirúrgica confirmada radiograficamente" = Moderado obrigatório
+CORRELAÇÃO CLÍNICA: reacção periósteo MTC II proximal + flexão conjunta anterior positiva = risco de compressão LSB → escalar para Moderado mesmo sem claudicação declarada.
+Confiança: alta | Fonte: caso validado com relatório veterinário completo (VES-Altitude VHAC000035)
+
+[CALIB-020] OSTEOTOMIA / CIRURGIA PRÉVIA VISÍVEL EM RADIOGRAFIA — PROTOCOLO DE DETECÇÃO (validado Dr. Miguel Bahia, caso Storm's Twinkeling, 30/01/2026)
+PROBLEMA: osteotomia para remoção de porção de MTC II MAE (cirurgia prévia confirmada) não foi detectada pelo modelo apesar de ser visível como alteração de contorno ósseo.
+PADRÃO RADIOGRÁFICO DE OSTEOTOMIA MTC II: bordo cortical com ângulo de corte regular (linha recta ou levemente curva), ausência da porção distal do MTC II, corticalização da superfície de ressecção, sem sinais de fractura aguda (margens regulares).
+REGRA: qualquer alteração de contorno de MTC II ou MCIV que seja incompatível com variante normal ou fractura = descrever como "imagem compatível com osteotomia/ressecção — história cirúrgica a confirmar". NUNCA ignorar.
+Em contexto pré-compra: história cirúrgica confirmada radiograficamente = Moderado obrigatório, independentemente de ausência de sinais actuais.
+Confiança: alta | Caso: Storm's Twinkeling, Belgian Warmblood, 7 anos
+
+[CALIB-021] FLEXÕES POSITIVAS → CORRELAÇÃO OBRIGATÓRIA COM GRADING IFD/QUARTELA (validado Dr. Miguel Bahia, caso Storm's Twinkeling, 30/01/2026)
+PROBLEMA: flexões P/P (pastern/pastern = IFP+IFD isoladas) positivas descritas nos sinais clínicos não aumentaram o grading das articulações interfalângicas.
+REGRA ABSOLUTA: se o campo "sinais clínicos" ou "história" menciona:
+  - "flexão P/P positiva" → IFD (coffin) e/ou IFP (pastern) do membro afectado = MÍNIMO Moderado, mesmo com alterações subtis em radiografia
+  - "flexão conjunta positiva anterior" → boleto + IFD + IFP anteriores = risco acumulativo → escalar grading global em +1 nível
+  - "testador de cascos positivo" → navicular e/ou IFD = mínimo Moderado em pré-compra
+A correlação clínico-radiográfica é OBRIGATÓRIA — sinais clínicos positivos validam e escalam achados radiográficos subtis que de outra forma seriam Leve.
+HIERARQUIA: sinal clínico positivo + achado radiográfico subtil = Moderado. Sinal clínico positivo + sem achado radiográfico = reportar discordância, não omitir sinal.
+Confiança: muito alta | Caso validado com conclusão de risco moderado-alto pelo veterinário
+
+[CALIB-022] QUARTELA / IFD MAD — REACÇÃO DE PERIÓSTEO P2 COM CORRELAÇÃO ECOGRÁFICA (validado Dr. Miguel Bahia, caso Storm's Twinkeling, 30/01/2026)
+PROBLEMA: reacção de periósteo no bordo articular medial P2 MAD com osteófitos periarticulares + confirmação ecográfica P2/P3 não foi detectada pelo modelo. IFD foi classificada como "Normal".
+PADRÃO RADIOGRÁFICO: reacção de periósteo bordo articular medial P2 = irregularidade da cortical na margem medial de P2, visível em projecção DP ou oblíqua medial.
+REGRA: em exames com projecções oblíquas da quartela (MAE/MAD), verificar ACTIVAMENTE:
+  - Bordos articulares medial e lateral de P1 e P2 (zonas de inserção ligamentar)
+  - Reacção perióstica = irregular, menos densa que osso cortical, espiculada ou fluffy
+  - Osteófito periarticular P1/P2 = OA IFP/IFD confirmada = Leve a Moderado conforme extensão
+CORRELAÇÃO ECOGRÁFICA: se o vet menciona "irregularidade superfície óssea dorso-medial P2/P3" ou "osteofito periarticular P2/P3" em ecografia = achado CONFIRMADO por 2 modalidades = SEMPRE Moderado, nunca Leve.
+Projecções úteis: DP 0° (bordos medial/lateral), oblíqua DMPLO (bordo medial P2), LM (bordos dorsal/palmar).
+Confiança: alta | Caso: Storm's Twinkeling MAD
+
+[CALIB-023] BOLETOS POSTERIORES ADULTO — CALIBRAÇÃO ANTI-FALSO-POSITIVO (validado por comparação com relatório veterinário Dr. Miguel Bahia)
+PROBLEMA RECORRENTE: o modelo classifica osteofitose grau 1 nos boletos posteriores de cavalos adultos (≥6 anos) em actividade como "Leve" quando o veterinário confirma "Normal" clinicamente.
+CALIBRAÇÃO: boletos posteriores (MPE e MPD) em cavalo de ≥6 anos em actividade desportiva:
+  - Osteófito dorsal discreto MC3/MT3 grau 1, espaço articular preservado, sem fragmento = VARIANTE NORMAL DE IDADE — não reportar como achado patológico isolado
+  - Apenas classificar como achado patológico se: grau ≥2 (múltiplos pontos afectados), espaço articular comprometido, fragmento identificado, ou sinais clínicos associados (claudicação, flexão positiva boleto)
+  - NÃO criar achado "Leve" em boletos posteriores apenas por osteofitose discreta grau 1 bilateral em cavalo adulto sem sinais — é sobrecarga fisiológica de uso, não patologia
+EXCEPÇÃO: manter achado Leve se: unilateral marcado, ou associado a efusão, ou em cavalo jovem (<5 anos).
+Confiança: alta | Base: correlação directa com exame clínico validado
 
 16. PROTOCOLO DE PROJECÇÕES STANDARD (Costa da Silva et al. 2022, HKJC 48-view protocol):
 BOLETO ANT (5 standard): LM + DP + DLPMO 45° + DMPLO 45° + FLEXED LM. Avaliação completa ≥3 projecções. Com 2 = A Confirmar.
@@ -5736,9 +5785,12 @@ function importVetReport(input) {
       '6. Se o vet deu conclusão de risco moderado-alto, formula uma regra global de threshold conservador'
     ].join('\n');
 
-    fetch('/api/messages', {
+    fetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': (AUTH && AUTH.token) || ''
+      },
       body: JSON.stringify({
         model: C.MODELS[0] || 'claude-sonnet-4-6',
         max_tokens: 4000,
@@ -5768,63 +5820,78 @@ function importVetReport(input) {
         return;
       }
 
-      // Save to localStorage calibrations
-      var calibrations = {};
-      try { calibrations = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
-
-      var added = 0;
+      // ── QUARENTENA: guardar como pendentes, não activas ───────────────────
       var horse = parsed.horse || 'desconhecido';
       var date = new Date().toLocaleDateString('pt-PT');
+      var pending = [];
 
-      // Add each calibration as a CALIB entry
+      // Calibrações patológicas → quarentena
       (parsed.calibrations || []).forEach(function(c, i) {
-        var key = 'IMPORT-' + horse.replace(/\s+/g,'_').slice(0,12).toUpperCase() + '-' + String(i+1).padStart(3,'0');
-        calibrations[key] = {
+        var key = 'IMPORT-' + horse.replace(/[^A-Za-z0-9]/g,'_').slice(0,12).toUpperCase() + '-' + String(i+1).padStart(3,'0');
+        pending.push({
+          key: key,
           value: '[' + (c.estrutura||'?') + ' · ' + (c.severidade||'?') + '] ' + (c.regra||c.achado||''),
           date: date,
           source: 'pdf_import',
           horse: horse,
+          estrutura: c.estrutura || '',
+          achado: c.achado || '',
+          severidade: c.severidade || '',
           confirmado_por: c.confirmado_por || '',
           sinais_clinicos: c.sinais_clinicos || '',
-          prioridade: c.prioridade || 'média'
-        };
-        added++;
+          regra: c.regra || '',
+          prioridade: c.prioridade || 'média',
+          tipo: 'patologico'
+        });
       });
 
-      // Add normal findings as anti-false-positive rules
+      // Regiões normais → quarentena
       (parsed.achados_normais || []).forEach(function(regiao, i) {
-        var key = 'IMPORT-' + horse.replace(/\s+/g,'_').slice(0,12).toUpperCase() + '-N' + String(i+1).padStart(2,'0');
-        calibrations[key] = {
-          value: '[NORMAL confirmado] ' + regiao + ' — se o modelo detectar achados nesta região em casos similares, verificar se não é falso positivo. Vet confirmou normal em ' + horse + ' (' + (parsed.breed||'?') + ', ' + (parsed.age||'?') + 'a).',
+        var key = 'IMPORT-' + horse.replace(/[^A-Za-z0-9]/g,'_').slice(0,12).toUpperCase() + '-N' + String(i+1).padStart(2,'0');
+        pending.push({
+          key: key,
+          value: '[NORMAL confirmado] ' + regiao + ' — vet confirmou normal em ' + horse + ' (' + (parsed.breed||'?') + ', ' + (parsed.age||'?') + 'a). Verificar se achados similares em casos futuros são falsos positivos.',
           date: date,
           source: 'pdf_import_normal',
           horse: horse,
-          prioridade: 'média'
-        };
-        added++;
+          estrutura: regiao,
+          achado: 'Normal',
+          severidade: 'Normal',
+          regra: 'Região confirmada normal — calibrar threshold de falsos positivos',
+          prioridade: 'média',
+          tipo: 'normal'
+        });
       });
 
-      localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
+      // Guardar em fila de quarentena (não activas ainda)
+      var existingPending = [];
+      try { existingPending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+      // Evitar duplicados do mesmo cavalo
+      existingPending = existingPending.filter(function(p){ return p.horse !== horse; });
+      existingPending = existingPending.concat(pending);
+      localStorage.setItem('eq_calibrations_pending', JSON.stringify(existingPending));
 
-      // Also save to Supabase vet_feedback for permanent record
+      // Guardar parsed para o modal
+      window._lastVetImport = parsed;
+
+      // Supabase log (registo permanente, independente da aprovação)
       sbInsert('vet_feedback', {
         horse: horse,
         date: date,
         app_grade: '',
         vet_grade: parsed.risk_level || '',
-        vet_notes: '[PDF Import] ' + (parsed.vet_conclusion || '') + ' | Calibrações: ' + added,
+        vet_notes: '[PDF Import - PENDENTE] ' + (parsed.vet_conclusion || '') + ' | ' + pending.length + ' calibrações em quarentena',
         structures: (parsed.calibrations||[]).map(function(c){ return c.estrutura||''; }),
         user_name: (AUTH && AUTH.user) || 'unknown'
       }).catch(function(){});
 
-      // Show modal with imported calibrations
-      status.style.color = 'var(--green)';
-      status.innerHTML = '✅ <strong>' + added + ' calibrações</strong> importadas de <em>' + horse + '</em>.<br>' +
-        '<span style="color:var(--t3)">Activas em todas as análises futuras.</span> ' +
-        '<button onclick="openVetImportModal(' + JSON.stringify(JSON.stringify(parsed)).replace(/</g,'&lt;') + ')" style="font-size:9px;padding:1px 6px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:3px;color:var(--gold);cursor:pointer;margin-left:4px">Ver detalhes</button>';
+      // Mostrar modal de aprovação imediatamente
+      status.style.color = 'var(--amber)';
+      status.innerHTML = '&#9888; <strong>' + pending.length + ' calibrações em quarentena</strong> — aguardam aprovação.<br>' +
+        '<button onclick="openPendingCalibsModal()" style="font-size:9px;padding:2px 8px;background:rgba(212,147,58,.15);border:1px solid rgba(212,147,58,.4);border-radius:3px;color:var(--amber);cursor:pointer;margin-top:4px;display:inline-block">&#10003; Rever e Aprovar</button>';
 
-      // Store last import for modal
-      window._lastVetImport = parsed;
+      // Abrir modal de aprovação automaticamente
+      setTimeout(openPendingCalibsModal, 400);
     })
     .catch(function(err) {
       status.style.color = 'var(--red)';
@@ -5837,6 +5904,209 @@ function importVetReport(input) {
   };
   reader.readAsDataURL(file);
 }
+
+// ═══════════════════════════════════════════════════════
+// MODAL DE QUARENTENA — Rever e Aprovar CALIBs pendentes
+// ═══════════════════════════════════════════════════════
+function openPendingCalibsModal() {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+
+  if (!pending.length) {
+    alert('Não há calibrações pendentes de aprovação.');
+    return;
+  }
+
+  var mono = 'JetBrains Mono,monospace';
+
+  // Build modal
+  var html = '<div id="pendingCalibsOverlay" style="position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px">';
+  html += '<div style="background:var(--ink1);border:1px solid rgba(212,147,58,.4);border-radius:10px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">';
+
+  // Header
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire);background:rgba(212,147,58,.06)">';
+  html += '<div>';
+  html += '<div style="font-size:13px;font-weight:600;color:var(--amber)">&#9888; Calibrações em Quarentena</div>';
+  html += '<div style="font-family:' + mono + ';font-size:9px;color:var(--t3);margin-top:2px">' + pending.length + ' calibrações aguardam aprovação do veterinário</div>';
+  html += '</div>';
+  html += '<button onclick="document.getElementById(\'pendingCalibsOverlay\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">&#x2715;</button>';
+  html += '</div>';
+
+  // Info banner
+  html += '<div style="padding:10px 18px;background:rgba(212,147,58,.05);border-bottom:1px solid var(--wire);font-size:11px;color:var(--t2);line-height:1.6">';
+  html += 'Revê cada calibração extraída do relatório. Podes editar a regra antes de aprovar. Só as calibrações aprovadas ficam activas nas análises futuras.';
+  html += '</div>';
+
+  // Calibrations list
+  html += '<div id="pendingCalibsList" style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent">';
+
+  pending.forEach(function(c, i) {
+    var sevCol = c.severidade==='Severo'?'var(--red)':c.severidade==='Moderado'?'var(--amber)':c.severidade==='Normal'?'var(--green)':'var(--blue)';
+    var tipoIcon = c.tipo==='normal' ? '&#10003;' : '&#9888;';
+
+    html += '<div id="pending-item-' + i + '" style="border:1px solid var(--wire);border-radius:6px;padding:12px 14px;margin-bottom:10px;background:var(--ink2)">';
+
+    // Header row
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    html += '<span style="font-family:' + mono + ';font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 7px;border-radius:2px">' + tipoIcon + ' ' + (c.severidade||'?') + '</span>';
+    html += '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||'') + '</span>';
+    if (c.membro) html += '<span style="font-size:10px;color:var(--t3)">' + c.membro + '</span>';
+    html += '<span style="font-size:10px;color:var(--t3);margin-left:auto">' + (c.confirmado_por||'') + '</span>';
+    html += '</div>';
+
+    // Achado
+    if (c.achado && c.achado !== 'Normal') {
+      html += '<div style="font-size:11px;color:var(--t2);margin-bottom:6px">' + c.achado + '</div>';
+    }
+    if (c.sinais_clinicos) {
+      html += '<div style="font-size:10px;color:var(--amber);margin-bottom:6px">&#9888; Clínica: ' + c.sinais_clinicos + '</div>';
+    }
+
+    // Regra editável
+    html += '<div style="font-size:9px;color:var(--t3);font-family:' + mono + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Regra a guardar (editável):</div>';
+    html += '<textarea id="pending-rule-' + i + '" style="width:100%;box-sizing:border-box;background:rgba(74,201,201,.04);border:1px solid rgba(74,201,201,.2);border-radius:4px;color:var(--ice);font-size:10px;font-family:' + mono + ';padding:6px 8px;resize:vertical;min-height:52px;line-height:1.5">' + (c.regra||c.value||'') + '</textarea>';
+
+    // Fonte
+    html += '<div style="font-size:9px;color:var(--t3);margin-top:4px">Extraído de: <em>' + (c.horse||'?') + '</em> · ' + (c.date||'') + '</div>';
+
+    // Botões
+    html += '<div style="display:flex;gap:8px;margin-top:10px">';
+    html += '<button onclick="approvePendingCalib(' + i + ')" style="flex:1;font-family:' + mono + ';font-size:10px;padding:7px;background:rgba(74,170,122,.15);border:1px solid rgba(74,170,122,.4);border-radius:4px;color:var(--green);cursor:pointer;font-weight:600;letter-spacing:.04em">&#10003; Aprovar</button>';
+    html += '<button onclick="rejectPendingCalib(' + i + ')" style="font-family:' + mono + ';font-size:10px;padding:7px 14px;background:transparent;border:1px solid rgba(224,85,85,.3);border-radius:4px;color:var(--red);cursor:pointer;letter-spacing:.04em">&#10005; Rejeitar</button>';
+    html += '</div>';
+    html += '</div>'; // end item
+  });
+
+  html += '</div>'; // end list
+
+  // Footer — aprovar todos / rejeitar todos
+  html += '<div style="padding:12px 18px;border-top:1px solid var(--wire);display:flex;gap:8px;background:var(--ink1)">';
+  html += '<button onclick="approveAllPendingCalibs()" style="flex:1;font-family:' + mono + ';font-size:10px;padding:8px;background:rgba(74,170,122,.12);border:1px solid rgba(74,170,122,.35);border-radius:4px;color:var(--green);cursor:pointer;font-weight:600;letter-spacing:.04em">&#10003; Aprovar Todas</button>';
+  html += '<button onclick="rejectAllPendingCalibs()" style="font-family:' + mono + ';font-size:10px;padding:8px 16px;background:transparent;border:1px solid rgba(224,85,85,.25);border-radius:4px;color:var(--red);cursor:pointer;letter-spacing:.04em">&#10005; Rejeitar Todas</button>';
+  html += '<button onclick="document.getElementById(\'pendingCalibsOverlay\').remove()" style="font-family:' + mono + ';font-size:10px;padding:8px 16px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;letter-spacing:.04em">Decidir depois</button>';
+  html += '</div>';
+
+  html += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function approvePendingCalib(idx) {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+  var c = pending[idx];
+  if (!c) return;
+
+  // Get edited rule from textarea
+  var textarea = document.getElementById('pending-rule-' + idx);
+  var editedRule = textarea ? textarea.value.trim() : (c.regra || c.value);
+
+  // Move to active calibrations
+  var calibrations = {};
+  try { calibrations = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+  calibrations[c.key] = {
+    value: editedRule,
+    date: c.date,
+    source: c.source,
+    horse: c.horse,
+    confirmado_por: c.confirmado_por || '',
+    sinais_clinicos: c.sinais_clinicos || '',
+    prioridade: c.prioridade || 'média',
+    approved: true,
+    approved_date: new Date().toLocaleDateString('pt-PT')
+  };
+  localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
+
+  // Remove from pending
+  pending.splice(idx, 1);
+  localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+
+  // Visual feedback
+  var item = document.getElementById('pending-item-' + idx);
+  if (item) {
+    item.style.opacity = '.4';
+    item.style.borderColor = 'rgba(74,170,122,.5)';
+    item.innerHTML = '<div style="text-align:center;padding:12px;color:var(--green);font-size:12px">&#10003; Aprovada e activa</div>';
+  }
+
+  // Update status badge
+  updatePendingBadge();
+}
+
+function rejectPendingCalib(idx) {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+  pending.splice(idx, 1);
+  localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+
+  var item = document.getElementById('pending-item-' + idx);
+  if (item) {
+    item.style.opacity = '.3';
+    item.style.borderColor = 'rgba(224,85,85,.3)';
+    item.innerHTML = '<div style="text-align:center;padding:12px;color:var(--red);font-size:12px">&#10005; Rejeitada</div>';
+  }
+  updatePendingBadge();
+}
+
+function approveAllPendingCalibs() {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+  var calibrations = {};
+  try { calibrations = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+  var date = new Date().toLocaleDateString('pt-PT');
+
+  pending.forEach(function(c, i) {
+    var textarea = document.getElementById('pending-rule-' + i);
+    var editedRule = textarea ? textarea.value.trim() : (c.regra || c.value);
+    calibrations[c.key] = {
+      value: editedRule,
+      date: c.date,
+      source: c.source,
+      horse: c.horse,
+      confirmado_por: c.confirmado_por || '',
+      prioridade: c.prioridade || 'média',
+      approved: true,
+      approved_date: date
+    };
+  });
+
+  localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
+  localStorage.removeItem('eq_calibrations_pending');
+
+  var overlay = document.getElementById('pendingCalibsOverlay');
+  if (overlay) {
+    overlay.innerHTML = '<div style="background:var(--ink1);border:1px solid rgba(74,170,122,.4);border-radius:10px;padding:32px 40px;text-align:center;max-width:400px">' +
+      '<div style="font-size:32px;margin-bottom:12px">&#10003;</div>' +
+      '<div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:8px">' + Object.keys(calibrations).length + ' CALIBs activas</div>' +
+      '<div style="font-size:12px;color:var(--t2);margin-bottom:18px">Todas as calibrações aprovadas. Activas em análises futuras.</div>' +
+      '<button onclick="document.getElementById(\'pendingCalibsOverlay\').remove()" style="font-size:11px;padding:8px 20px;background:rgba(74,170,122,.15);border:1px solid rgba(74,170,122,.4);border-radius:4px;color:var(--green);cursor:pointer">Fechar</button>' +
+      '</div>';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+  }
+  updatePendingBadge();
+}
+
+function rejectAllPendingCalibs() {
+  localStorage.removeItem('eq_calibrations_pending');
+  var overlay = document.getElementById('pendingCalibsOverlay');
+  if (overlay) overlay.remove();
+  updatePendingBadge();
+}
+
+function updatePendingBadge() {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
+  var statusEl = document.getElementById('vetImportStatus');
+  if (pending.length > 0 && statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = 'var(--amber)';
+    statusEl.innerHTML = '&#9888; <strong>' + pending.length + ' pendentes</strong> — ' +
+      '<button onclick="openPendingCalibsModal()" style="font-size:9px;padding:1px 6px;background:rgba(212,147,58,.15);border:1px solid rgba(212,147,58,.3);border-radius:3px;color:var(--amber);cursor:pointer">Rever</button>';
+  } else if (statusEl && pending.length === 0) {
+    // Keep green message if already shown
+  }
+}
+
 
 // Modal para mostrar detalhes do import
 function openVetImportModal(jsonStr) {
@@ -6532,6 +6802,7 @@ async function runSecondOpinion() {
 // Inicializar atlas no boot
 window.addEventListener('DOMContentLoaded', function(){
   renderAtlas();
+  updatePendingBadge();
 });
 </script>
 

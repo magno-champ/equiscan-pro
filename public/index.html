@@ -1658,6 +1658,37 @@ Se o campo "história clínica" ou "sinais clínicos" menciona estruturas anató
 (e) "Sinais de osteoartrite da coffin" pelo vet = IFD OA Leve a Moderado — reportar obrigatoriamente
 RACIOCÍNIO: o veterinário que submete o exame conhece o cavalo clinicamente. A sua descrição clínica é contexto de alto valor — a IA não pode produzir relatório que contradiga directamente o que o clínico observou sem justificação radiográfica explícita.
 
+
+[CALIB-008] OLIMPICO DA MONDARIA — CALIBRAÇÃO RADIOGRÁFICA DIRECTA (3ª ANÁLISE CONSECUTIVA COM ERRO)
+Fonte: veterinário ECVDI, Olimpico da Mondaria bay 219, Dordaz Antonio, 21/05/2024. App errou 3x neste caso.
+Vet: "Muito arriscado. Alterações avançadas nos corvalhões. MAE com sinais de osteoartrite da Coffin."
+
+ACHADOS CONFIRMADOS NESTE EXAME ESPECÍFICO:
+(A) TARSUS BILATERAL — Hock DMPLO+LM esquerdo E direito presentes:
+    → Osteófitos dorsal TMT 2-3mm + esclerose subcondral IT distal bilateral
+    → Classificação OBRIGATÓRIA: MODERADO (não "A Monitorizar", não "Leve")
+    → OA McIlwraith grau 2 = ESCLEROSE + REDUÇÃO ESPAÇO + OSTEÓFITOS combinados — NÃO apenas tamanho osteófito
+    → Osteófito 2-3mm COM ESCLEROSE = grau 2. Sem esclerose = grau 1. A esclerose é o factor determinante.
+    → Score máximo com este achado: 55/100
+
+(B) FOOT LM LEFT FRONT (imagem rotulada "foot LM left front") — COFFIN OA OBRIGATÓRIO:
+    → Esta imagem contém P2 + P3 + navicular + IFD = avaliar COFFIN JOINT obrigatoriamente
+    → Vet confirmou "sinais de osteoartrite da Coffin MAE" = achado real presente nesta imagem
+    → Qualquer irregularidade margem dorsal P3 ou IFD = Coffin OA Leve MÍNIMO — reportar
+    → Coffin OA ausente do relatório com esta imagem presente = ERRO CRÍTICO
+
+(C) PADRÃO COMBINADO — score máximo 38/100:
+    → Tarsus bilateral Moderado + Coffin OA MAE qualquer grau = SCORE ≤ 38/100
+    → Classe OBRIGATÓRIA: "Alterações Moderadas a Avançadas"
+    → Relatório com score 52 e classe "Ligeiras a Moderadas" = ERRADO para este padrão
+
+ERRO HISTÓRICO A NÃO REPETIR:
+- App classificou osteófitos TMT 2-3mm como "A Monitorizar" por os considerar "pequenos"
+- CORRECÇÃO: tamanho isolado NÃO determina grau — BILATERAL + ESCLEROSE = Moderado sempre
+- App omitiu Coffin OA por não avaliar IFD na imagem foot LM left front
+- CORRECÇÃO: foot LM left front = avaliar IFD obrigatoriamente mesmo sem texto "coffin" no nome
+═══════════════════════════════════════════════════
+
 16. PROTOCOLO DE PROJECÇÕES STANDARD (Costa da Silva et al. 2022, HKJC 48-view protocol):
 BOLETO ANT (5 standard): LM + DP + DLPMO 45° + DMPLO 45° + FLEXED LM. Avaliação completa ≥3 projecções. Com 2 = A Confirmar.
 BOLETO POST (4 standard): LM + DP + DLPMO 45° + DMPLO 45°.

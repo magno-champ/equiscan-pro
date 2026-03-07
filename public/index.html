@@ -6471,8 +6471,13 @@ async function importVetReportAsCaseStudy(input, file) {
     var caseCode = ((parsed.breed||'?').replace(/\s+/g,'').slice(0,6)+'-'+(parsed.age||'?')+'a-'+(parsed.discipline||'CSO')).toUpperCase().replace(/[^A-Z0-9\-]/g,'');
     var caseId = 'CS-' + caseCode + '-' + Date.now().toString(36).toUpperCase();
 
-    // PASSE 2: renderizar e guardar imagens RX
-    status.textContent = '⏳ Passe 2/2 — A guardar imagens RX para teste…';
+    // PASSE 2: renderizar e guardar imagens RX (com timeout + progress)
+    status.innerHTML = '⏳ Passe 2/2 — A guardar imagens RX… ' +
+      '<button id="csImportCancel" style="font-size:9px;padding:1px 6px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;margin-left:6px">Saltar imagens</button>';
+    var _csImportCancelled = false;
+    var _cancelBtn = document.getElementById('csImportCancel');
+    if (_cancelBtn) _cancelBtn.onclick = function() { _csImportCancelled = true; status.textContent = '⏳ A saltar imagens RX…'; };
+
     var pdfLib = await loadPdfJs();
     var arrayBuf = await new Promise(function(res, rej) {
       var r2 = new FileReader();
@@ -6486,19 +6491,57 @@ async function importVetReportAsCaseStudy(input, file) {
       ? parsed.paginas_rx.filter(function(n){return n>=1&&n<=numPages;}).slice(0,6)
       : [];
 
-    var rxImages = []; // base64 das imagens para teste (máx 6, reduzidas)
-    var rxPagesCapped = rxPages.slice(0, 6); // máx 6 para não exceder localStorage
-    for (var pi=0; pi<rxPagesCapped.length; pi++) {
+    var rxImages = [];
+    var rxPagesCapped = rxPages.slice(0, 6);
+
+    // Timeout helper para render de página
+    function renderPageWithTimeout(pdfDoc, pageNum, timeoutMs) {
+      return new Promise(function(resolve) {
+        var done = false;
+        var timer = setTimeout(function() {
+          if (!done) { done = true; resolve(null); } // null = timeout
+        }, timeoutMs);
+        pdfDoc.getPage(pageNum).then(function(page) {
+          var vp = page.getViewport({scale:1.0});
+          var cv = document.createElement('canvas');
+          cv.width = Math.min(vp.width, 1200); // cap width
+          cv.height = Math.min(vp.height, 1600); // cap height
+          var scale = Math.min(cv.width/vp.width, cv.height/vp.height);
+          vp = page.getViewport({scale: scale});
+          cv.width = Math.round(vp.width);
+          cv.height = Math.round(vp.height);
+          var ctx2 = cv.getContext('2d');
+          ctx2.fillStyle = '#000';
+          ctx2.fillRect(0, 0, cv.width, cv.height);
+          return page.render({canvasContext: ctx2, viewport: vp}).promise.then(function() {
+            if (!done) {
+              done = true;
+              clearTimeout(timer);
+              resolve(cv.toDataURL('image/jpeg', 0.5));
+            }
+          });
+        }).catch(function() { if (!done) { done = true; clearTimeout(timer); resolve(null); } });
+      });
+    }
+
+    for (var pi = 0; pi < rxPagesCapped.length; pi++) {
+      if (_csImportCancelled) break;
+      var pageNum = rxPagesCapped[pi];
+      status.innerHTML = '⏳ Passe 2/2 — Imagem ' + (pi+1) + '/' + rxPagesCapped.length + ' (pág. ' + pageNum + ')… ' +
+        '<button id="csImportCancel" style="font-size:9px;padding:1px 6px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;margin-left:6px">Saltar imagens</button>';
+      var _cb2 = document.getElementById('csImportCancel');
+      if (_cb2) _cb2.onclick = function() { _csImportCancelled = true; };
+
       try {
-        var page = await pdfDoc.getPage(rxPagesCapped[pi]);
-        var vp = page.getViewport({scale:1.0}); // scale 1.0 para poupar espaço
-        var cv = document.createElement('canvas');
-        cv.width=vp.width; cv.height=vp.height;
-        var ctx = cv.getContext('2d');
-        ctx.fillStyle='#000'; ctx.fillRect(0,0,cv.width,cv.height);
-        await page.render({canvasContext:ctx, viewport:vp}).promise;
-        rxImages.push({page:rxPagesCapped[pi], b64:cv.toDataURL('image/jpeg',0.5).split(',')[1]}); // 0.5 quality para localStorage
-      } catch(e){ console.warn('[EQ] CS render p'+rxPages[pi], e); }
+        var b64 = await renderPageWithTimeout(pdfDoc, pageNum, 12000); // 12s timeout
+        if (b64) {
+          rxImages.push({page: pageNum, b64: b64.split(',')[1]});
+        } else {
+          console.warn('[EQ] CS render timeout p' + pageNum + ' — skip');
+        }
+      } catch(e) {
+        console.warn('[EQ] CS render error p' + pageNum, e);
+      }
     }
 
     // Guardar caso de estudo em localStorage

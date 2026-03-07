@@ -5734,8 +5734,7 @@ function importVetReport(input) {
       '4. Inclui história cirúrgica (ex: osteotomia) como calibração própria',
       '5. Flexões positivas = sinal clínico crítico — inclui na regra correspondente',
       '6. Se o vet deu conclusão de risco moderado-alto, formula uma regra global de threshold conservador'
-    ].join('
-');
+    ].join('\n');
 
     fetch('/api/messages', {
       method: 'POST',
@@ -5844,49 +5843,52 @@ function openVetImportModal(jsonStr) {
   var parsed;
   try { parsed = JSON.parse(jsonStr); } catch(e) { parsed = window._lastVetImport || {}; }
 
-  var html = '<div style="position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">' +
-    '<div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;width:100%;max-width:640px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire)">' +
-      '<div>' +
-        '<div style="font-size:13px;font-weight:600;color:var(--t1)">📄 Calibrações Importadas</div>' +
-        '<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:2px">' + (parsed.horse||'?') + ' · ' + (parsed.breed||'?') + ' · ' + (parsed.age||'?') + 'a · ' + (parsed.context||'') + '</div>' +
-      '</div>' +
-      '<button onclick="this.closest('div[style*=fixed]').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">✕</button>' +
-    '</div>' +
-    '<div style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin">';
+  var riskCol = {'alto':'var(--red)','moderado-alto':'var(--red)','moderado':'var(--amber)','baixo':'var(--green)'}[parsed.risk_level] || 'var(--t2)';
+  var mono = 'JetBrains Mono,monospace';
+
+  var html = '<div style="position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">';
+  html += '<div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;width:100%;max-width:640px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire)">';
+  html += '<div><div style="font-size:13px;font-weight:600;color:var(--t1)">&#128196; Calibrações Importadas</div>';
+  html += '<div style="font-family:' + mono + ';font-size:9px;color:var(--t3);margin-top:2px">' + (parsed.horse||'?') + ' &middot; ' + (parsed.breed||'?') + ' &middot; ' + (parsed.age||'?') + 'a &middot; ' + (parsed.context||'') + '</div></div>';
+  html += '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">&#x2715;</button>';
+  html += '</div>';
+  html += '<div style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin">';
 
   // Conclusion banner
-  var riskCol = {'alto':'var(--red)','moderado-alto':'var(--red)','moderado':'var(--amber)','baixo':'var(--green)'}[parsed.risk_level] || 'var(--t2)';
-  html += '<div style="padding:10px 14px;border-radius:6px;border:1px solid;border-color:' + riskCol + '30;background:' + riskCol + '08;margin-bottom:14px">' +
-    '<div style="font-size:11px;font-weight:600;color:' + riskCol + ';margin-bottom:3px">Risco: ' + (parsed.risk_level||'?').toUpperCase() + '</div>' +
-    '<div style="font-size:12px;color:var(--t2)">' + (parsed.vet_conclusion||'') + '</div>' +
-    (parsed.vet_name ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">— Dr. ' + parsed.vet_name + '</div>' : '') +
-    '</div>';
+  html += '<div style="padding:10px 14px;border-radius:6px;border:1px solid ' + riskCol + '30;background:' + riskCol + '0d;margin-bottom:14px">';
+  html += '<div style="font-size:11px;font-weight:600;color:' + riskCol + ';margin-bottom:3px">Risco: ' + (parsed.risk_level||'?').toUpperCase() + '</div>';
+  html += '<div style="font-size:12px;color:var(--t2)">' + (parsed.vet_conclusion||'') + '</div>';
+  if (parsed.vet_name) html += '<div style="font-size:10px;color:var(--t3);margin-top:4px">&mdash; Dr. ' + parsed.vet_name + '</div>';
+  html += '</div>';
 
   // Calibrations list
-  (parsed.calibrations||[]).forEach(function(c, i) {
+  (parsed.calibrations||[]).forEach(function(c) {
     var sevCol = c.severidade==='Severo'?'var(--red)':c.severidade==='Moderado'?'var(--amber)':'var(--blue)';
-    html += '<div style="border:1px solid var(--wire);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:var(--ink2)">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
-        '<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 6px;border-radius:2px">' + (c.severidade||'?') + '</span>' +
-        '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||'') + '</span>' +
-        '<span style="font-size:10px;color:var(--t3);margin-left:auto">' + (c.confirmado_por||'') + '</span>' +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--t2);margin-bottom:4px">' + (c.achado||'') + '</div>' +
-      (c.sinais_clinicos ? '<div style="font-size:10px;color:var(--amber);margin-bottom:4px">⚠ Clínica: ' + c.sinais_clinicos + '</div>' : '') +
-      '<div style="font-size:10px;color:var(--ice);padding:6px 8px;background:rgba(74,201,201,.06);border-radius:3px;border-left:2px solid var(--ice)">📌 ' + (c.regra||'') + '</div>' +
-    '</div>';
+    html += '<div style="border:1px solid var(--wire);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:var(--ink2)">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+    html += '<span style="font-family:' + mono + ';font-size:9px;color:' + sevCol + ';border:1px solid ' + sevCol + '40;padding:1px 6px;border-radius:2px">' + (c.severidade||'?') + '</span>';
+    html += '<span style="font-size:12px;font-weight:600;color:var(--t1)">' + (c.estrutura||'') + '</span>';
+    html += '<span style="font-size:10px;color:var(--t3);margin-left:auto">' + (c.confirmado_por||'') + '</span>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--t2);margin-bottom:4px">' + (c.achado||'') + '</div>';
+    if (c.sinais_clinicos) html += '<div style="font-size:10px;color:var(--amber);margin-bottom:4px">&#9888; Clínica: ' + c.sinais_clinicos + '</div>';
+    html += '<div style="font-size:10px;color:var(--ice);padding:6px 8px;background:rgba(74,201,201,.06);border-radius:3px;border-left:2px solid var(--ice)">&#128204; ' + (c.regra||'') + '</div>';
+    html += '</div>';
   });
 
+  // Normal findings
   if (parsed.achados_normais && parsed.achados_normais.length) {
-    html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--wire)">' +
-      '<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Regiões Normais (anti-falsos-positivos)</div>' +
-      parsed.achados_normais.map(function(r){ return '<span style="font-size:11px;color:var(--green);border:1px solid rgba(74,170,122,.2);padding:2px 8px;border-radius:3px;margin:2px;display:inline-block">✓ ' + r + '</span>'; }).join('') +
-    '</div>';
+    html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--wire)">';
+    html += '<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:' + mono + '">Regiões Normais (anti-falsos-positivos)</div>';
+    parsed.achados_normais.forEach(function(r) {
+      html += '<span style="font-size:11px;color:var(--green);border:1px solid rgba(74,170,122,.2);padding:2px 8px;border-radius:3px;margin:2px;display:inline-block">&#10003; ' + r + '</span>';
+    });
+    html += '</div>';
   }
 
   if (parsed.notas_especiais) {
-    html += '<div style="margin-top:10px;font-size:11px;color:var(--t3);padding:8px;background:var(--ink3);border-radius:4px">📝 ' + parsed.notas_especiais + '</div>';
+    html += '<div style="margin-top:10px;font-size:11px;color:var(--t3);padding:8px;background:var(--ink3);border-radius:4px">&#128221; ' + parsed.notas_especiais + '</div>';
   }
 
   html += '</div></div></div>';

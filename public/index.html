@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v54</title>
+<title>EquiScan Pro v55</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -132,15 +132,15 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .error-help a{color:var(--gold)}
 
 /* REPORT */
-.report{max-width:800px;margin:0 auto;padding:32px 36px 56px;animation:fadeup .4s ease;width:100%}
-.rpt-head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:2px solid var(--gold);margin-bottom:20px}
+.report{max-width:860px;margin:0 auto;padding:36px 44px 64px;animation:fadeup .4s ease;width:100%}
+.rpt-head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:1px solid var(--wire2);margin-bottom:28px;position:relative}.rpt-head::after{content:'';position:absolute;bottom:-1px;left:0;width:60px;height:2px;background:var(--gold);border-radius:1px}
 .rpt-brand{font-family:'Lora',serif;font-size:19px;font-style:italic}
 .rpt-brand-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-top:3px}
 .rpt-meta{text-align:right}
 .rpt-badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);padding:2px 8px;border-radius:2px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
 .rpt-ref{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2)}
 .rpt-date{font-size:11px;color:var(--t3);margin-top:2px}
-.pt-card{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:13px 15px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pt-card{background:var(--ink2);border:1px solid var(--wire);border-radius:8px;padding:16px 18px;margin-bottom:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .pt-name{font-size:15px;font-weight:600;margin-top:2px}
 .pt-sub{font-size:12px;color:var(--t2);margin-top:3px}
 .pt-r{border-left:1px solid var(--wire);padding-left:13px;display:flex;flex-direction:column;gap:7px}
@@ -148,7 +148,7 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .mf-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em}
 .mf-v{font-size:12px;color:var(--t2);margin-top:1px}
 .lbl9{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:2px}
-.verdict{border-radius:var(--r);margin-bottom:20px;overflow:hidden;border:1px solid}
+.verdict{border-radius:8px;margin-bottom:24px;overflow:hidden;border:1px solid}
 .verdict.ok{border-color:rgba(74,170,122,.2)}
 .verdict.warning{border-color:rgba(212,147,58,.25)}
 .verdict.critical{border-color:rgba(224,85,85,.25)}
@@ -169,18 +169,18 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .verdict.ok .verdict-body{border-color:rgba(74,170,122,.1)}
 .verdict.warning .verdict-body{border-color:rgba(212,147,58,.12)}
 .verdict.critical .verdict-body{border-color:rgba(224,85,85,.12)}
-.sec{margin-bottom:24px}
-.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:11px;padding-bottom:7px;border-bottom:1px solid var(--wire)}
-.sec-bar{width:3px;height:16px;border-radius:2px;flex-shrink:0}
-.sec-n{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:.05em}
-.sec-title{font-family:'Lora',serif;font-size:15px;color:var(--t1);font-weight:400}
-.tbl{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--wire);border-radius:var(--r);overflow:hidden}
-.tbl thead{background:var(--ink3)}
-.tbl th{padding:8px 11px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:.07em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--wire)}
-.tbl td{padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.025);color:var(--t2);vertical-align:top;line-height:1.4}
+.sec{margin-bottom:28px}
+.sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--wire2)}
+.sec-bar{width:2px;height:18px;border-radius:2px;flex-shrink:0}
+.sec-n{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:.12em;text-transform:uppercase}
+.sec-title{font-family:'Syne',sans-serif;font-size:13px;color:var(--t1);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--wire);border-radius:var(--r);overflow:hidden}
+.tbl thead{background:rgba(255,255,255,.025)}
+.tbl th{padding:9px 13px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--wire2)}
+.tbl td{padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--t2);vertical-align:top;line-height:1.5}
 .tbl td:first-child{color:var(--t1);font-weight:500}
 .tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:rgba(255,255,255,.01)}
+.tbl tr:hover td{background:rgba(255,255,255,.015)}
 .sev{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:2px 6px;border-radius:3px;text-transform:uppercase}
 .sN{background:rgba(74,170,122,.1);color:var(--green)}
 .sL{background:rgba(90,159,212,.1);color:var(--blue)}
@@ -197,7 +197,7 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .tab-body{border:1px solid var(--wire);border-top:none;border-radius:0 0 var(--r) var(--r);padding:12px;background:var(--ink2);display:none}
 .tab-body.active{display:block}
 .tab-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.recs{border:1px solid var(--wire);border-radius:var(--r);overflow:hidden}
+.recs{border:1px solid var(--wire);border-radius:8px;overflow:hidden}
 .rec{display:flex;border-bottom:1px solid rgba(255,255,255,.025)}
 .rec:last-child{border-bottom:none}
 .rec-acc{width:3px;flex-shrink:0}
@@ -1784,7 +1784,7 @@ ACHADOS CONFIRMADOS POR ≥1 VET QUE A APP OMITIU:
 (E) PESCOÇO — CONFIRMAÇÃO MULTI-VET (Vets 1 e 3):
     → Vet 1: "Dúvida cervical C5/C6 + discreta esclerose C6/C7"
     → Vet 3: "Something on the neck"
-    → A app v54 reportou a dúvida C5/C6 correctamente (CALIB-009 funcionou) ✓
+    → A app v55 reportou a dúvida C5/C6 correctamente (CALIB-009 funcionou) ✓
     → CONFIRMAR: a CALIB-009 está a produzir o comportamento correcto para cervical parcialmente avaliável
 
 REGRA ADICIONAL — CURVILHÃO EM LM SEM DMPLO:
@@ -2364,7 +2364,7 @@ function buildPrompt(batch,info,bNum,bTotal){
 
   return [
     '════════════════════════════════════════════════════',
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v54'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v55'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -4225,7 +4225,11 @@ function renderReport(r,info){
     });
   })();
   var hasColapso=/colapso articular|oa.*grau [34]/i.test(allAchText);
-  var hasSevKS=/kissing|espinhoso.*contact|contact.*espinhoso/i.test(allAchText);
+  var hasSevKS=(achados||[]).some(function(a){
+    var t=(a.lesao||'')+(a.grading||'')+(a.estrutura||'');
+    var sev=(a.sev||'').toLowerCase();
+    return /kissing|espinhoso.*contact|contact.*espinhoso/i.test(t)&&sev!=='normal'&&sev!=='';
+  });
   var maxGrau=(function(){var m=0;(achados||[]).forEach(function(a){var g=/grau\s*(\d)/i.exec(a.grading||'');if(g)m=Math.max(m,parseInt(g[1]));});return m;})();
 
   // Build progFav from code
@@ -4410,7 +4414,7 @@ function renderReport(r,info){
 
   '<div class="sec">'+secH('02','Qualidade Radiográfica','var(--t3)')+qHTML+'</div>'+
 
-  (r.inventario&&r.inventario.total_recebidas?(function(){
+  (false&&r.inventario&&r.inventario.total_recebidas?(function(){
     var inv = r.inventario;
     var naoId = (inv.nao_identificadas||[]).length;
     var idList = (inv.identificadas||[]);
@@ -4535,7 +4539,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v54 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v55 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

@@ -4432,6 +4432,19 @@ function saveFeedback(ref){
   if(idx>=0) log[idx]=entry; else log.push(entry);
   localStorage.setItem('eq_feedback_log', JSON.stringify(log));
 
+  // Save to Supabase (persistência permanente)
+  sbInsert('vet_feedback', {
+    horse:      (document.getElementById('fHorse')||{}).value || ref,
+    date:       new Date().toLocaleDateString('pt-PT'),
+    app_grade:  entry.veredicto_sistema || '',
+    vet_grade:  entry.classificacao_correcta || '',
+    vet_notes:  entry.notas || '',
+    structures: entry.achados_corrigidos.map(function(a){return a.achado_idx||'';}),
+    user_name:  (AUTH && AUTH.user) || 'unknown'
+  }).then(function(res){
+    if(res && res[0]) console.log('[EQ Supabase] Feedback guardado:', res[0].id);
+  });
+
   var msg = document.getElementById('fbSaveMsg');
   if(msg){msg.style.display='inline';setTimeout(function(){msg.style.display='none';},2500);}
 }

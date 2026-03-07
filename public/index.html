@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v55</title>
+<title>EquiScan Pro v56</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -529,6 +529,20 @@ window.addEventListener('DOMContentLoaded', function() {
     <input type="hidden" id="fKey" value="server-managed">
   </div>
 
+  <!-- DESTILAÇÃO CONTÍNUA -->
+  <div class="sb">
+    <div class="sb-lbl">Memória Institucional</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <button onclick="openDistillModal()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--ice);border:1px solid rgba(74,201,201,.25);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s" onmouseover="this.style.background='rgba(74,201,201,.08)'" onmouseout="this.style.background='var(--ink3)'">
+        ⟳ Destilar Feedbacks
+      </button>
+      <button onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s" title="Ver CALIBs activas" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--t3)'">
+        ☰ CALIBs
+      </button>
+    </div>
+    <div style="font-size:10px;color:var(--t3);line-height:1.6">Analisa os erros acumulados e propõe novas regras permanentes. As regras aprovadas ficam activas em todas as análises futuras.</div>
+  </div>
+
   <!-- RUN -->
   <div class="sb" style="border:none">
     <button class="btn-run" id="runBtn" onclick="run()" disabled>
@@ -548,6 +562,46 @@ window.addEventListener('DOMContentLoaded', function() {
   </div>
 
 </aside>
+
+<!-- MODAL DESTILAÇÃO -->
+<div id="distillModal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;width:100%;max-width:620px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire)">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--t1)">Destilação Contínua</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.1em">Feedbacks → Regras CALIB permanentes</div>
+      </div>
+      <button onclick="closeDistillModal()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px 8px;line-height:1">✕</button>
+    </div>
+    <div style="padding:14px 18px;border-bottom:1px solid var(--wire);background:rgba(74,201,201,.03)">
+      <div style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:10px">
+        O Claude vai analisar todos os feedbacks veterinários acumulados, identificar padrões de erro recorrentes e propor novas regras de calibração. Cada regra proposta pode ser aprovada (fica activa permanentemente) ou rejeitada.
+      </div>
+      <button onclick="runDistillation()" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(74,201,201,.12);color:var(--ice);border:1px solid rgba(74,201,201,.3);padding:8px 18px;border-radius:5px;cursor:pointer;font-weight:600;letter-spacing:.05em">
+        ⟳ Iniciar Destilação
+      </button>
+    </div>
+    <div id="distillPanel" style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent">
+      <div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Prima "Iniciar Destilação" para começar.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CALIBs ACTIVAS -->
+<div id="calibsModal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;width:100%;max-width:620px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire)">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--t1)">Regras CALIB Activas</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.1em">Memória institucional destilada</div>
+      </div>
+      <button onclick="closeCalibsModal()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px 8px;line-height:1">✕</button>
+    </div>
+    <div id="activeCalibsPanel" style="flex:1;overflow-y:auto;padding:14px 18px;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent">
+      <div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">A carregar...</div>
+    </div>
+  </div>
+</div>
 
 <main class="main" id="main">
   <div class="placeholder" id="ph">
@@ -2364,7 +2418,7 @@ function buildPrompt(batch,info,bNum,bTotal){
 
   return [
     '════════════════════════════════════════════════════',
-    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v55'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
+    'EXAME RADIOLÓGICO EQUINO — EquiScan Pro v56'+(bTotal>1?' [PARTE '+bNum+'/'+bTotal+']':''),
     '════════════════════════════════════════════════════',
     isSingle ?
       '⚠ MODO CONTEXTO CONTÍNUO: recebes TODAS as '+n+' imagens do exame numa só chamada.\n'+
@@ -2651,6 +2705,284 @@ function loadFeedbacksFromSupabase() {
 }
 
 
+// ═══════════════════════════════════════════════════════
+// DESTILAÇÃO CONTÍNUA — Feedbacks → CALIBs permanentes no Supabase
+// ═══════════════════════════════════════════════════════
+var _calibCache = null;
+var _calibCacheTime = 0;
+var CALIB_CACHE_TTL = 10 * 60 * 1000; // 10 min
+
+// Carrega CALIBs activas do Supabase e injeta no system prompt
+function loadCalibRules() {
+  var now = Date.now();
+  if (_calibCache && (now - _calibCacheTime) < CALIB_CACHE_TTL) {
+    return Promise.resolve(_calibCache);
+  }
+  return fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
+    if (!Array.isArray(rows) || rows.length === 0) return '';
+    var block = '\n\n═══ REGRAS APRENDIDAS — DESTILAÇÃO CONTÍNUA ═══\n';
+    block += 'Estas regras foram destiladas automaticamente de casos reais validados por veterinários:\n\n';
+    rows.forEach(function(r, i){
+      block += '[CALIB-AUTO-' + String(i+1).padStart(3,'0') + '] ' + (r.rule_text||'') + '\n';
+      if(r.source_cases) block += '  → Baseado em: ' + r.source_cases + '\n';
+      block += '\n';
+    });
+    block += '═══════════════════════════════════════════════════════\n';
+    _calibCache = block;
+    _calibCacheTime = now;
+    console.log('[EQ] ' + rows.length + ' CALIBs destiladas carregadas do Supabase');
+    return block;
+  })
+  .catch(function(e){
+    console.warn('[EQ] Erro ao carregar calib_rules:', e);
+    return '';
+  });
+}
+
+// Invalida cache quando nova CALIB é aprovada
+function invalidateCalibCache() {
+  _calibCache = null;
+  _calibCacheTime = 0;
+}
+
+// Processo de destilação: chama Claude para analisar feedbacks e propor CALIBs
+function runDistillation(apiKey) {
+  var panel = document.getElementById('distillPanel');
+  if(panel) panel.innerHTML = '<div style="color:var(--amber);font-family:JetBrains Mono,monospace;font-size:11px">⟳ A destilação está em curso...</div>';
+
+  // 1. Carregar todos os feedbacks com erros
+  return fetch(SB_URL + '/rest/v1/vet_feedback?order=created_at.desc&limit=200', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
+    if(!Array.isArray(rows)||rows.length===0) throw new Error('Sem feedbacks para destilar');
+    var wrongOnly = rows.filter(function(r){ return r.app_grade !== r.vet_grade || r.vet_notes; });
+    if(wrongOnly.length===0) throw new Error('Sem erros para analisar');
+
+    // 2. Carregar CALIBs actuais para contexto
+    return fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(existingCalibs){
+      var calibsText = Array.isArray(existingCalibs) && existingCalibs.length > 0
+        ? existingCalibs.map(function(c){ return c.rule_text; }).join('\n')
+        : '(nenhuma CALIB destilada ainda)';
+
+      var casesText = wrongOnly.map(function(r,i){
+        var t = 'CASO '+(i+1)+':\n';
+        if(r.horse)     t += '  Cavalo: '+r.horse+'\n';
+        if(r.app_grade) t += '  App classificou: '+r.app_grade+'\n';
+        if(r.vet_grade) t += '  Vet corrigiu: '+r.vet_grade+'\n';
+        if(r.vet_notes) t += '  Observação: '+r.vet_notes+'\n';
+        if(r.created_at)t += '  Data: '+r.created_at.slice(0,10)+'\n';
+        return t;
+      }).join('\n');
+
+      var distillPrompt = 'És um especialista em radiologia equina e em calibração de sistemas de IA clínica.\n\n'+
+        'Tens acesso a '+wrongOnly.length+' casos onde a app de análise radiográfica cometeu erros que veterinários corrigiram.\n\n'+
+        'CALIBs já existentes (não repetir):\n'+calibsText+'\n\n'+
+        'CASOS COM ERROS:\n'+casesText+'\n\n'+
+        'TAREFA: Analisa os padrões de erro e propõe NOVAS regras de calibração que não estejam já cobertas pelas CALIBs existentes.\n\n'+
+        'Responde APENAS em JSON válido, sem texto adicional:\n'+
+        '{\n'+
+        '  "analysis": "resumo dos padrões de erro identificados (2-3 frases)",\n'+
+        '  "proposed_calibs": [\n'+
+        '    {\n'+
+        '      "rule_text": "texto completo da regra CALIB — deve ser específico, accionável e baseado nos casos reais",\n'+
+        '      "source_cases": "lista dos casos que originaram esta regra",\n'+
+        '      "confidence": "alta|média|baixa",\n'+
+        '      "rationale": "justificação clínica da regra (1-2 frases)"\n'+
+        '    }\n'+
+        '  ]\n'+
+        '}';
+
+      // 3. Chamar Claude para destilação
+      return fetch('/api/claude', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-token': (AUTH && AUTH.token) || ''
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2000,
+          system: [{type:'text', text:'Especialista em calibração de IA clínica veterinária. Responde SEMPRE em JSON válido puro, sem markdown, sem texto antes ou depois.'}],
+          messages: [{role:'user', content: distillPrompt}]
+        })
+      });
+    });
+  })
+  .then(function(resp){ return resp.json(); })
+  .then(function(data){
+    var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
+    var clean = text.replace(/```json|```/g,'').trim();
+    var result = JSON.parse(clean);
+    renderDistillResult(result);
+    return result;
+  })
+  .catch(function(e){
+    if(panel) panel.innerHTML = '<div style="color:var(--red);font-family:JetBrains Mono,monospace;font-size:11px">✗ Erro: '+e.message+'</div>';
+    console.error('[EQ Distill]', e);
+  });
+}
+
+// Renderiza resultado da destilação com opções de aprovar/rejeitar cada CALIB proposta
+function renderDistillResult(result) {
+  var panel = document.getElementById('distillPanel');
+  if(!panel) return;
+
+  var html = '<div style="margin-bottom:12px;padding:10px 12px;background:var(--ink3);border-radius:6px;border-left:3px solid var(--ice)">';
+  html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Análise de Padrões</div>';
+  html += '<div style="font-size:12px;color:var(--t2);line-height:1.6">'+escH(result.analysis||'')+'</div>';
+  html += '</div>';
+
+  var props = result.proposed_calibs || [];
+  if(props.length === 0){
+    html += '<div style="font-size:12px;color:var(--t3);text-align:center;padding:16px">Sem novas regras propostas — os padrões actuais já cobrem os casos.</div>';
+  } else {
+    html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">'+props.length+' Regra(s) Proposta(s)</div>';
+    props.forEach(function(p, i){
+      var confColor = p.confidence==='alta'?'var(--green)':p.confidence==='média'?'var(--amber)':'var(--t3)';
+      html += '<div id="distill-item-'+i+'" style="margin-bottom:10px;padding:12px;background:var(--ink2);border:1px solid var(--wire);border-radius:6px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      html += '<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--gold);font-weight:600">CALIB-PROPOSTA-'+(i+1)+'</span>';
+      html += '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:'+confColor+';background:rgba(255,255,255,.04);padding:2px 7px;border-radius:3px">Confiança: '+(p.confidence||'?')+'</span>';
+      html += '</div>';
+      html += '<div style="font-size:12px;color:var(--t1);line-height:1.6;margin-bottom:6px">'+escH(p.rule_text||'')+'</div>';
+      if(p.rationale) html += '<div style="font-size:11px;color:var(--t3);font-style:italic;margin-bottom:6px">'+escH(p.rationale)+'</div>';
+      if(p.source_cases) html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-bottom:10px">→ Baseado em: '+escH(p.source_cases)+'</div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button onclick="approveCalib('+i+','+JSON.stringify(JSON.stringify(p))+')" style="flex:1;padding:6px;background:rgba(74,170,122,.15);border:1px solid var(--green);border-radius:4px;color:var(--green);font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer;font-weight:700">✓ Aprovar e Activar</button>';
+      html += '<button onclick="rejectCalib('+i+')" style="padding:6px 12px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer">✗ Rejeitar</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+  }
+
+  panel.innerHTML = html;
+}
+
+function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Aprova e salva CALIB no Supabase
+function approveCalib(idx, pJson) {
+  var p = JSON.parse(pJson);
+  var btn = document.querySelector('#distill-item-'+idx+' button');
+  if(btn){ btn.textContent='A guardar...'; btn.disabled=true; }
+
+  sbInsert('calib_rules', {
+    rule_text: p.rule_text,
+    source_cases: p.source_cases || '',
+    rationale: p.rationale || '',
+    confidence: p.confidence || 'média',
+    status: 'active',
+    approved_at: new Date().toISOString()
+  }).then(function(res){
+    var item = document.getElementById('distill-item-'+idx);
+    if(item){
+      item.style.borderColor = 'rgba(74,170,122,.4)';
+      item.style.background = 'rgba(74,170,122,.04)';
+      item.innerHTML += '<div style="margin-top:8px;font-family:JetBrains Mono,monospace;font-size:10px;color:var(--green)">✓ CALIB activada — será carregada na próxima análise</div>';
+      var btns = item.querySelectorAll('button'); btns.forEach(function(b){b.style.display='none';});
+    }
+    invalidateCalibCache();
+    console.log('[EQ] CALIB aprovada e guardada:', p.rule_text.slice(0,60));
+  }).catch(function(e){
+    alert('Erro ao guardar CALIB: '+e.message);
+  });
+}
+
+// Rejeita CALIB proposta (só UI, não guarda nada)
+function rejectCalib(idx) {
+  var item = document.getElementById('distill-item-'+idx);
+  if(item){
+    item.style.opacity = '0.35';
+    item.style.pointerEvents = 'none';
+    var btns = item.querySelectorAll('button'); btns.forEach(function(b){b.style.display='none';});
+    item.innerHTML += '<div style="margin-top:6px;font-family:JetBrains Mono,monospace;font-size:10px;color:var(--t3)">✗ Rejeitada</div>';
+  }
+}
+
+// Carrega e mostra CALIBs activas no painel de gestão
+function loadActiveCalibsUI() {
+  var panel = document.getElementById('activeCalibsPanel');
+  if(!panel) return;
+  panel.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--t3)">A carregar...</div>';
+
+  fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
+    if(!Array.isArray(rows)||rows.length===0){
+      panel.innerHTML = '<div style="font-size:11px;color:var(--t3);text-align:center;padding:12px">Nenhuma CALIB destilada activa ainda.</div>';
+      return;
+    }
+    var html = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">'+rows.length+' CALIB(s) activa(s)</div>';
+    rows.forEach(function(r){
+      html += '<div style="margin-bottom:8px;padding:10px 12px;background:var(--ink2);border:1px solid rgba(74,170,122,.15);border-radius:5px;display:flex;gap:10px;align-items:flex-start">';
+      html += '<div style="flex:1"><div style="font-size:11px;color:var(--t1);line-height:1.55">'+escH(r.rule_text||'')+'</div>';
+      if(r.source_cases) html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:4px">→ '+escH(r.source_cases)+'</div>';
+      html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:2px">Activada: '+(r.approved_at||r.created_at||'').slice(0,10)+'</div>';
+      html += '</div>';
+      html += '<button onclick="deactivateCalib(\''+r.id+'\')" title="Desactivar" style="padding:4px 8px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0">✕</button>';
+      html += '</div>';
+    });
+    panel.innerHTML = html;
+  })
+  .catch(function(e){
+    panel.innerHTML = '<div style="color:var(--red);font-size:11px">Erro: '+e.message+'</div>';
+  });
+}
+
+// Desactiva uma CALIB
+function deactivateCalib(id) {
+  if(!confirm('Desactivar esta CALIB? Deixará de ser usada nas análises.')) return;
+  fetch(SB_URL + '/rest/v1/calib_rules?id=eq.'+id, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify({status: 'rejected'})
+  }).then(function(){
+    invalidateCalibCache();
+    loadActiveCalibsUI();
+  });
+}
+
+function openDistillModal() {
+  var m = document.getElementById('distillModal');
+  if(m){ m.style.display='flex'; }
+}
+function closeDistillModal() {
+  var m = document.getElementById('distillModal');
+  if(m){ m.style.display='none'; }
+}
+function openCalibsModal() {
+  var m = document.getElementById('calibsModal');
+  if(m){ m.style.display='flex'; loadActiveCalibsUI(); }
+}
+function closeCalibsModal() {
+  var m = document.getElementById('calibsModal');
+  if(m){ m.style.display='none'; }
+}
+// Close modals on backdrop click
+document.addEventListener('click', function(e){
+  var dm = document.getElementById('distillModal');
+  var cm = document.getElementById('calibsModal');
+  if(e.target === dm) closeDistillModal();
+  if(e.target === cm) closeCalibsModal();
+});
+
 function toggleWebSearch() {
   C.WEB_SEARCH = !C.WEB_SEARCH;
   var btn = document.getElementById('btnWebSearch');
@@ -2669,7 +3001,9 @@ function toggleWebSearch() {
 
 
 function callApi(key,batch,info,bNum,bTotal){
-  return loadFeedbacksFromSupabase().then(function(fbBlock){
+  return Promise.all([loadFeedbacksFromSupabase(), loadCalibRules()]).then(function(results){
+  var fbBlock = results[0] || '';
+  var calibBlock = results[1] || '';
   return new Promise(function(resolve,reject){
     var mIdx=0;
     function attempt(){
@@ -2680,7 +3014,7 @@ function callApi(key,batch,info,bNum,bTotal){
         content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
       });
       content.push({type:'text',text:buildPrompt(batch,info,bNum,bTotal)});
-      var sysText = SYS + (fbBlock || '');
+      var sysText = SYS + (calibBlock || '') + (fbBlock || '');
       var sysVal = [{type:'text', text:sysText, cache_control:{type:'ephemeral'}}];
       var msgContent=content;
       var hasRealRefs = window.ANA_REF_IMGS && ANA_REF_IMGS.some(function(r){return r.b64 && r.b64.length >= 10;});
@@ -2845,7 +3179,7 @@ function callApi(key,batch,info,bNum,bTotal){
     }
     attempt();
   });
-  }); // end loadFeedbacksFromSupabase
+  }); // end Promise.all callApi
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4539,7 +4873,7 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v55 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v56 · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 

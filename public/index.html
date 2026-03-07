@@ -607,6 +607,9 @@ window.addEventListener('DOMContentLoaded', function() {
     <div class="field"><label>Sinais Clínicos</label>
       <textarea id="fSymp" rows="3" placeholder="ex: Flexões P/P positivas bilateral, claudicação grau 2/5 MAD, testador de cascos positivo...&#10;(deixar vazio = sem sinais clínicos descritos)"></textarea>
     </div>
+    <div class="field"><label style="display:flex;align-items:center;justify-content:space-between">Flexões Positivas <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);font-weight:400">membro + grau</span></label>
+      <input id="fFlexoes" type="text" placeholder="ex: distal MAE ++, jarrete MPD +" style="font-size:10px;font-family:'JetBrains Mono',monospace">
+    </div>
     <div class="field"><label>História</label>
       <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nerviação, medicação intra-articular..."></textarea>
     </div>
@@ -674,6 +677,9 @@ window.addEventListener('DOMContentLoaded', function() {
       </button>
       <span style="font-size:10px;color:var(--t3)">+20-40s de análise quando ON</span>
     </div>
+    <button onclick="seedLiteraturaCalibs()" id="btnSeedLit" style="font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(34,197,94,.07);color:#4ade80;border:1px solid rgba(34,197,94,.25);padding:5px 12px;border-radius:4px;cursor:pointer;letter-spacing:.05em;width:100%;margin-bottom:4px">
+      📚 Carregar Literatura Base (Butler/Dyson)
+    </button>
     <button class="btn-test" onclick="testApi()">🔍 Testar Ligação</button>
     <p class="run-hint" id="hint">Carregue imagens radiográficas.</p>
     <!-- DICOM Window/Level controls — shown only when DICOM loaded -->
@@ -2338,6 +2344,7 @@ async function run(){
     disc:  document.getElementById('fDisc').value||'Não especificada',
     reg:   document.getElementById('fRegion').value||'Corpo completo (todas as regiões)',
     symp:  document.getElementById('fSymp').value.trim()||'Não descritos',
+    flexoes: (document.getElementById('fFlexoes')&&document.getElementById('fFlexoes').value.trim())||'',
     hist:  document.getElementById('fHist').value.trim()||'Sem história'
   };
 
@@ -2801,11 +2808,19 @@ async function run(){
             horseContext += '  * '+(ex.date||'').slice(0,10)+': score='+(ex.score||'?')+' | '+(ex.classe||'?')+(ex.achados>0?' | '+ex.achados+' achados':'')+'\n';
           });
           horseContext += '  -> ULTIMO EXAME: '+(hLast.date||'').slice(0,10)+' score='+(hLast.score||'?')+' | '+(hLast.classe||'?')+'\n';
+          // Passar achados do último exame para comparação estrutura-a-estrutura
+          if (hLast.achados_detalhe && hLast.achados_detalhe.length > 0) {
+            horseContext += '  Achados no exame anterior:\n';
+            hLast.achados_detalhe.forEach(function(a) {
+              horseContext += '    - '+a.estrutura+' '+a.membro+': '+a.sev+(a.lesao?' ('+a.lesao+')':'')+'\n';
+            });
+          }
           horseContext += '\nINSTRUCAO CRITICA — EXAME DE SEGUIMENTO:\n';
           horseContext += '1. Compara directamente com o exame anterior ('+(hLast.date||'').slice(0,10)+', score '+(hLast.score||'?')+')\n';
           horseContext += '2. Para cada achado indica: NOVO | ESTAVEL | PROGRESSIVO | RESOLVIDO vs exame anterior\n';
-          horseContext += '3. Na conclusao inclui paragrafo de EVOLUCAO CLINICA\n';
-          horseContext += '4. Se score piorou >10 pts vs anterior: ALERTAR progressao significativa\n';
+          horseContext += '3. Se achado anterior agravou (ex: Leve→Moderado) — ALERTAR PROGRESSAO com intervalo de tempo\n';
+          horseContext += '4. Na conclusao inclui paragrafo de EVOLUCAO CLINICA com achados especificos comparados\n';
+          horseContext += '5. Se score piorou >10 pts vs anterior: ALERTAR progressao significativa\n';
         } else {
           horseContext += '  (primeiro exame registado — sem historico anterior)\n';
           horseContext += 'INSTRUCAO: marca achados como primeiro_exame\n';
@@ -3126,6 +3141,7 @@ function buildPrompt(batch,info,bNum,bTotal){
     })(info.perfil||'')+
     (/pré-compra|pre-compra|purchase|PPE|venda|compra/i.test(info.hist||'')?'\n⚠ CONTEXTO PRÉ-COMPRA DETECTADO — APLICAR REGRA 17 OBRIGATORIAMENTE. Threshold conservador activo: bone spavin com esclerose = Moderado; achados navicular = Moderado; score máximo 55 com ≥2 Moderados.':''),
     'Sinais clínicos: '+(info.symp&&info.symp!=='Não descritos'?'⚠ PRESENTES: '+info.symp:'Não descritos'),
+    (info.flexoes?'Flexões positivas: ⚠ '+info.flexoes+' — CORRELACIONAR com achados radiográficos nas regiões afectadas':''),
     'História clínica: '+(info.hist&&info.hist!=='Sem história'?'⚠ HISTÓRIA RELEVANTE: '+info.hist:'Sem história'),
     'Imagens neste lote ('+n+'): '+imgList,
     '',
@@ -3453,6 +3469,238 @@ function runAutoDistill() {
 // Merge com localStorage: Supabase tem prioridade (memória partilhada)
 // localStorage serve de fallback offline
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// SEED LITERATURA BASE — Butler/Dyson/Ross/McIlwraith
+// ═══════════════════════════════════════════════════════════════════════
+function seedLiteraturaCalibs() {
+  var existing = [];
+  try { existing = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]'); } catch(e){}
+  var active = {};
+  try { active = JSON.parse(localStorage.getItem('eq_calibrations_v1')||'{}'); } catch(e){}
+
+  var jaFeito = Object.values(active).some(function(c){return c.source==='literatura';}) ||
+                existing.some(function(c){return c.source==='literatura';});
+  if (jaFeito) {
+    if (!confirm('Literatura base já carregada. Recarregar na mesma?\n(Duplicados serão ignorados)')) return;
+  }
+
+  var date = new Date().toLocaleDateString('pt-PT');
+
+  var REGRAS = [
+    // ── NAVICULAR ──────────────────────────────────────────────────────
+    { key:'LIT-NAV-001', estrutura:'Navicular',
+      regra:'ESCALA OXSPRING NAVICULAR (DP 60°) — USAR SEMPRE: Grau 0=normal (invaginacoes conicas regulares ≤6, bordo distal liso); Grau 1=leve (7-9 invaginacoes ou irregulares, sem mineralizacao); Grau 2=moderado (>9 invaginacoes ou alargadas, esclerose medular incipiente); Grau 3=avancado (esclerose medular difusa, irregularidade cortex flexor, mineralizacao ligamentos); Grau 4=grave (fragmentacao, colapso cortex flexor). Reportar sempre com grau numerico.',
+      fonte:'Butler et al. Equine Radiography 5th ed.' },
+
+    { key:'LIT-NAV-002', estrutura:'Navicular',
+      regra:'Projecao DP 60° (Oxspring) e OBRIGATORIA para avaliar navicular. LM e complementar mas insuficiente isolada. Se DP 60° ausente — indicar sempre em projecoes_em_falta. Sem DP nao graduar navicular com certeza.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-NAV-003', estrutura:'Navicular',
+      regra:'Invaginacoes sinoviais conicas regulares em numero inferior a 7 sao NORMAIS em qualquer idade. Nao diagnosticar sindrome navicular apenas por invaginacoes regulares mesmo que numerosas. Exigir irregularidade ou alargamento para Grau 1+.',
+      fonte:'Ross & Dyson, Lameness in the Horse' },
+
+    { key:'LIT-NAV-004', estrutura:'Navicular',
+      regra:'Mineralizacao dos ligamentos colaterais do navicular (DSIL) = doenca Grau 3-4. Aparece como opacidade linear nas extremidades laterais do navicular. Prognostico reservado para desempenho desportivo de alta exigencia.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-NAV-005', estrutura:'Navicular',
+      regra:'Erosoes do cortex flexor (bordo palmar navicular) em LM = sinal de doenca avancada. Aparece como irregularidade ou "ratting" do bordo palmar. Correlacionar sempre com achados DP. Severidade: focal leve vs difusa grave.',
+      fonte:'Butler 5th ed.' },
+
+    // ── IFD / ARTICULACAO DISTAL ───────────────────────────────────────
+    { key:'LIT-IFD-001', estrutura:'IFD',
+      regra:'Artrose IFD (coffin joint): Leve = osteofito dorsal <3mm, espaco articular preservado; Moderado = osteofito 3-8mm ou estreitamento focal do espaco; Severo = osteofito >8mm, esclerose subcondral difusa, colapso articular ou anquilose incipiente. Medir e reportar dimensao dos osteofitos.',
+      fonte:'Ross & Dyson' },
+
+    { key:'LIT-IFD-002', estrutura:'IFD',
+      regra:'Remodelacao do processo extensor P3 (pyramidal disease): proliferacao ossea no bordo dorsal proximal de P3. Leve=irregularidade; Moderado=osteofito definido; Grave=ponte ossea com P2. Associada a artrose IFD e tendinite extensora.',
+      fonte:'Butler 5th ed.' },
+
+    // ── BOLETO / MCP / MTP ────────────────────────────────────────────
+    { key:'LIT-BOL-001', estrutura:'Boleto',
+      regra:'GRADING OA BOLETO McIlwraith (0-3): Grau 0=sem alteracoes; Grau 1=osteofito pequeno <5mm bordo dorsal MC3/MT3 distal, espaco preservado; Grau 2=osteofito 5-10mm ou multiplos, estreitamento focal; Grau 3=osteofito >10mm, esclerose subcondral, estreitamento difuso ou subluxacao. Usar sempre esta escala.',
+      fonte:'McIlwraith, Joint Disease in the Horse' },
+
+    { key:'LIT-BOL-002', estrutura:'Boleto',
+      regra:'Sesamoidite: grading radiologico por canais vasculares. Normal = canais finos regulares. Grau 1 = canais alargados irregulares <25% area. Grau 2 = canais alargados >25% area ou lise focal. Grau 3 = lise difusa, fragmentacao ou mineralizacao ligamentos. Avaliar em projecao DP.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-BOL-003', estrutura:'Boleto',
+      regra:'OCD boleto (osteocondrose dissecante): fragmento osteocondroso no bordo dorsal da troclea MC3/MT3. Mais frequente em jovens <3 anos. Bordo dorsal proximal P1 tambem pode ser afectado. Confirmar com obliqua se duvida. Raridade = raro.',
+      fonte:'McIlwraith' },
+
+    { key:'LIT-BOL-004', estrutura:'Boleto',
+      regra:'Fratura de sesamoide: classificacao Honnas — Tipo I=apical; Tipo II=abaxial; Tipo III=midsagital; Tipo IV=basilar; Tipo V=cominutiva. Tipo I e IV mais comuns. Sempre classificar o tipo e avaliar deslocamento. Severidade=Severo.',
+      fonte:'Butler 5th ed.' },
+
+    // ── JARRETE / TARSUS ──────────────────────────────────────────────
+    { key:'LIT-JAR-001', estrutura:'Jarrete',
+      regra:'Esparavao osseo (bone spavin): artrose das articulacoes tarsometatarsicas (TMT) e intertarsica distal (DIT). Grau leve = osteofito medial <5mm; Moderado = osteofito 5-10mm ou multiplas articulacoes; Severo = anquilose parcial ou total TMT/DIT (pode ser favoravel — anquilose completa = sem dor). Projecao obliqua dorsomedial-plantarolateral (DMPLO) e essencial.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-JAR-002', estrutura:'Jarrete',
+      regra:'Anquilose completa das articulacoes distais do tarso (TMT + DIT) = prognostico FAVORAVEL — elimina a dor. Distinguir de anquilose parcial (prognostico reservado). Em LM: perda total do espaco articular + pontes osseas continuas = anquilose completa.',
+      fonte:'Ross & Dyson' },
+
+    { key:'LIT-JAR-003', estrutura:'Jarrete',
+      regra:'OCD jarrete: lesao osteocondrosa tipica no bordo distal da troclea tibial (crista intermédia). Mais frequente MPE/MPD em jovens. Aparece como aplanamento ou defeito subcondral na crista intermédia em projecao LM. Grau por dimensao: <10mm leve, 10-20mm moderado, >20mm grave.',
+      fonte:'McIlwraith' },
+
+    { key:'LIT-JAR-004', estrutura:'Jarrete',
+      regra:'Projecoes obrigatorias para jarrete completo: LM + DP + DMPLO (obliqua 45°). Sem DMPLO nao e possivel avaliar esparvao osseo de forma fiavel. Indicar em projecoes_em_falta se ausente em exame com suspeita de claudicacao posterior.',
+      fonte:'Butler 5th ed.' },
+
+    // ── CARPO ─────────────────────────────────────────────────────────
+    { key:'LIT-CAR-001', estrutura:'Carpo',
+      regra:'Artrose carpo: afecta principalmente articulacao mediocarpal (MC) e radiocárpica (RC). Osteofitos tipicos no bordo dorsal. Grau leve = osteofito <4mm; Moderado = 4-8mm ou multiplos ossos cárpicos; Severo = >8mm, esclerose difusa, ou fragmentos intra-articulares.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-CAR-002', estrutura:'Carpo',
+      regra:'Fratura por stress osso carpal acessorio (pisiforme) ou osso carpal terceiro (C3): linha radiolucente subtil em DP ou obliqua. Comum em cavalos de corrida. Pode nao ser visivel em radiografia inicial — repetir em 10-14 dias se suspeita clinica forte.',
+      fonte:'Ross & Dyson' },
+
+    { key:'LIT-CAR-003', estrutura:'Carpo',
+      regra:'OCD carpo: menos comum que jarrete/boleto. Afecta bordo distal radio ou bordos dos ossos carpicos. Fragmentos osteocondrosos intra-articulares na articulacao radiocarpal. Jovens <2 anos. Confirmar com obliqua.',
+      fonte:'McIlwraith' },
+
+    // ── METACARPO / METATARSO ─────────────────────────────────────────
+    { key:'LIT-MTC-001', estrutura:'Metacarpo',
+      regra:'Periostite metacarpal (splints): reacao periostal no MTC II ou IV (metacarpos rudimentares). Leve = espessamento periostal suave <5mm; Moderado = callus osseo 5-15mm; Severo = callus >15mm ou interferencia com ligamento suspensor. Localizacao distal perto do ligamento suspensor = mais grave.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-MTC-002', estrutura:'Metacarpo',
+      regra:'Fratura por stress MTC III (caninha): linha de fratura sagital ou condiliana. Fratura condiliana lateral mais comum em PSI de corrida. Em projecao DP aparece como linha radiolucente vertical no condilo lateral. Severidade=Severo. Requer confirmacao por cintilografia ou RM se radiografia negativa com suspeita forte.',
+      fonte:'Ross & Dyson' },
+
+    // ── ESTIFLE ───────────────────────────────────────────────────────
+    { key:'LIT-EST-001', estrutura:'Estifle',
+      regra:'OCD estifle: localizacao tipica na troclea femoral lateral (bordo lateral mais frequente que medial). Aparece como aplanamento, irregularidade ou fragmento osteocondroso. Grau por area de lesao: <15mm leve, 15-30mm moderado, >30mm grave. Projecao LM e CaCr obrigatorias.',
+      fonte:'McIlwraith' },
+
+    { key:'LIT-EST-002', estrutura:'Estifle',
+      regra:'Artrose femoro-patelar vs femoro-tibial: distinguir em radiografia. Femoro-patelar = osteofitos na patela e troclea; Femoro-tibial = estreitamento espaco medial/lateral e osteofitos condilares. Projecao CaCr essencial para avaliar compartimento tibial. Reportar qual o compartimento afectado.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-EST-003', estrutura:'Estifle',
+      regra:'Fragmento da crista tibial (tibial crest fragment): achado comum em jovens, pode ser normal ou OCD. Distinguir por: bordos lisos=provavel normal/variante anatomica; bordos irregulares com esclerose=OCD. Correlacionar com sinais clinicos antes de classificar como patologico.',
+      fonte:'McIlwraith' },
+
+    // ── COLUNA ────────────────────────────────────────────────────────
+    { key:'LIT-COL-001', estrutura:'Coluna',
+      regra:'Sindrome dos processos espinhosos (kissing spines): contacto ou sobreposicao dos processos espinhosos toracicos T10-T18 mais frequentemente. Grau leve = espaco reduzido <5mm; Moderado = contacto com esclerose focal; Severo = sobreposicao, lise ou remodelacao significativa. Correlacao clinica com dor lombar e resistencia ao trabalho.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-COL-002', estrutura:'Coluna',
+      regra:'Artrose das articulacoes intervertebrais (facetas): osteofitos e estreitamento do espaco articular. Leve = osteofito <5mm; Moderado = 5-10mm; Severo = >10mm ou anquilose. Mais comum em T15-L3. Distinguir de espondilite anquilosante (pontes osseas ventrales = pior prognostico).',
+      fonte:'Ross & Dyson' },
+
+    // ── GERAL / PRINCIPIOS ────────────────────────────────────────────
+    { key:'LIT-GER-001', estrutura:'Geral',
+      regra:'PRINCIPIO FUNDAMENTAL: achado radiologico deve ser correlacionado com sinais clinicos antes de atribuir significado. Alteracoes radiologicas podem existir sem claudicacao (cavalos velhos com artrose incipiente). Evitar sobrediagnosticar. Reportar "achado incidental" quando relevante.',
+      fonte:'Ross & Dyson' },
+
+    { key:'LIT-GER-002', estrutura:'Geral',
+      regra:'Esclerose subcondral difusa = resposta a carga mecanica aumentada ou inflamacao cronica. Sempre mais grave que esclerose focal. Em qualquer articulacao: esclerose subcondral difusa = Moderado minimo, mesmo sem osteofitos evidentes.',
+      fonte:'Butler 5th ed.' },
+
+    { key:'LIT-GER-003', estrutura:'Geral',
+      regra:'Efusao articular em radiografia: apagamento das margens da articulacao e aumento da opacidade dos tecidos moles periarticulares. Sinal indirecto de inflamacao activa. Reportar quando presente — sugere processo agudo ou subagudo sobreposto a doenca cronica.',
+      fonte:'Ross & Dyson' },
+
+    { key:'LIT-GER-004', estrutura:'Geral',
+      regra:'Mineralizacao de tecidos moles periarticulares: calcificacao de ligamentos, tendoes ou capsulas articulares. Sempre reportar localizacao exacta e dimensao. Pode indicar trauma cronico, doenca metabolica (ex: CPPD) ou sequela de injeccao corticosteroide.',
+      fonte:'Butler 5th ed.' }
+  ];
+
+  // Inserir na fila de pendentes (nao duplicar)
+  var existingKeys = existing.map(function(c){return c.key;});
+  var activeKeys = Object.keys(active);
+  var added = 0;
+
+  REGRAS.forEach(function(r) {
+    if (existingKeys.indexOf(r.key) >= 0) return; // ja pendente
+    if (activeKeys.indexOf(r.key) >= 0) return;   // ja activa
+    existing.push({
+      key:          r.key,
+      value:        '[LIT] '+r.regra.slice(0,120)+'...',
+      regra:        r.regra,
+      date:         date,
+      source:       'literatura',
+      horse:        r.fonte,
+      estrutura:    r.estrutura,
+      membro:       '',
+      achado:       '',
+      severidade:   '',
+      confirmado_por: 'literatura',
+      raridade:     'comum',
+      prioridade:   'baixa',
+      tipo:         'literatura',
+      nivel_evidencia: 'alto'
+    });
+    added++;
+  });
+
+  // Aprovar directamente — sem passar pelos pendentes
+  var calibrations = {};
+  try { calibrations = JSON.parse(localStorage.getItem('eq_calibrations_v1')||'{}'); } catch(e){}
+  var approvedNow = 0;
+  var approvedDate = new Date().toLocaleDateString('pt-PT');
+
+  REGRAS.forEach(function(r) {
+    if (activeKeys.indexOf(r.key) >= 0) return; // ja activa
+    calibrations[r.key] = {
+      value:          r.regra,
+      date:           date,
+      source:         'literatura',
+      horse:          r.fonte,
+      confirmado_por: 'literatura',
+      sinais_clinicos:'',
+      prioridade:     'baixa',
+      approved:       true,
+      approved_date:  approvedDate,
+      nivel_evidencia:'alto'
+    };
+    // Sync Supabase (nao bloqueante)
+    sbInsert('calib_rules', {
+      rule_text:    r.regra,
+      source_cases: r.fonte,
+      rationale:    r.estrutura,
+      confidence:   'baixa',
+      status:       'active',
+      approved_at:  new Date().toISOString()
+    }).catch(function(){});
+    approvedNow++;
+  });
+
+  localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibrations));
+  updateSidebarBadges();
+
+  var btn = document.getElementById('btnSeedLit');
+  if (btn) {
+    btn.style.background = 'rgba(34,197,94,.15)';
+    btn.style.borderColor = 'rgba(34,197,94,.5)';
+    btn.style.color = '#4ade80';
+    btn.textContent = '✓ '+approvedNow+' regras de literatura activas';
+    btn.disabled = true;
+    btn.style.opacity = '.7';
+    btn.style.cursor = 'default';
+  }
+  if (approvedNow > 0) {
+    // Mostrar confirmacao visual breve
+    var hint = document.getElementById('hint');
+    if (hint) {
+      var prev = hint.textContent;
+      hint.style.color = '#4ade80';
+      hint.textContent = '✓ '+approvedNow+' regras Butler/Dyson/McIlwraith activas em todas as análises.';
+      setTimeout(function(){ hint.style.color=''; hint.textContent=prev; }, 4000);
+    }
+  } else {
+    alert('Todas as regras de literatura já estavam activas.');
+  }
+}
+
+
 function syncCalibsFromSupabase() {
   return fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
@@ -5622,6 +5870,26 @@ function renderReport(r,info){
   }
 
   // ── EXAMES ──
+  // Projecções em falta (Feature 6)
+  var projFaltam = (r.qualidade&&Array.isArray(r.qualidade.projeccoes_faltam)&&r.qualidade.projeccoes_faltam.length)
+    ? r.qualidade.projeccoes_faltam.filter(function(p){return p&&p.length>2;})
+    : [];
+  var projFaltamHTML = projFaltam.length ? (
+    '<div style="margin-top:12px;background:rgba(212,147,58,.06);border:1px solid rgba(212,147,58,.2);border-left:3px solid var(--amber);border-radius:0 6px 6px 0;padding:10px 14px">' +
+    '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--amber);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">⚠ Projecções em Falta</div>' +
+    projFaltam.map(function(p){
+      var estrutura = typeof p === 'object' ? (p.estrutura||'')+(p.membro?' '+p.membro:'') : '';
+      var projecao  = typeof p === 'object' ? (p.projecao||p) : p;
+      var motivo    = typeof p === 'object' ? (p.motivo||'') : '';
+      return '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(212,147,58,.1);align-items:baseline">' +
+        (estrutura?'<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);flex-shrink:0">'+X(estrutura)+'</span>':'') +
+        '<span style="font-size:10px;color:var(--t1)">'+X(projecao)+'</span>' +
+        (motivo?'<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-left:auto">'+X(motivo)+'</span>':'') +
+        '</div>';
+    }).join('') +
+    '</div>'
+  ) : '';
+
   var exHTML=exames.filter(function(e){return e.tipo||e.exame;}).map(function(e){
     return '<div style="display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.025);align-items:flex-start">'+
       '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);padding:2px 7px;border-radius:2px;flex-shrink:0;margin-top:2px">'+X(e.prioridade||'REC')+'</div>'+
@@ -5940,7 +6208,8 @@ function renderReport(r,info){
   '<div class="sec">'+secH('05','Prognóstico','var(--green)')+progHTML+'</div>'+
 
   '<div class="sec">'+secH('06','Plano de Acção','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
-    (exHTML?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Exames Complementares</div><div style="border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;background:var(--ink2)">'+exHTML+'</div></div>':'')+'</div>'+
+    (exHTML?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Exames Complementares</div><div style="border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;background:var(--ink2)">'+exHTML+'</div></div>':'')+
+  projFaltamHTML+'</div>'+
 
   (imgList.length?'<div class="sec">'+secH('07','Análise por Imagem','var(--blue)')+imgCardsH+'</div>':'')+
 
@@ -6135,6 +6404,10 @@ function openImportModeModal(input) {
           '<div style="font-size:12px;font-weight:600;color:#b06aff;margin-bottom:4px">🧪 Caso de Estudo + Teste</div>' +
           '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);line-height:1.6">Regista como ground truth anónimo E permite testar depois se o modelo<br>reconhece os achados só pelas imagens. Mede aprendizagem. ~30-60s.</div>' +
         '</button>' +
+        '<button id="importModeLiteratura" style="padding:14px 16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:6px;color:var(--t1);text-align:left;cursor:pointer">' +
+          '<div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:4px">📚 Literatura / Referência</div>' +
+          '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);line-height:1.6">Extrai escalas de grading e regras clínicas de livros ou artigos.<br>Gera CALIBs de conhecimento base (prioridade baixa). ~15s.</div>' +
+        '</button>' +
       '</div>' +
       '<div style="padding:10px 20px;border-top:1px solid var(--wire);display:flex;align-items:center;justify-content:space-between">' +
         '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'+mono+';font-size:9px;color:var(--t3)">' +
@@ -6159,6 +6432,10 @@ function openImportModeModal(input) {
   document.getElementById('importModeCaseStudy').onclick = function() {
     ov.remove();
     importVetReportAsCaseStudy(input, file);
+  };
+  document.getElementById('importModeLiteratura').onclick = function() {
+    ov.remove();
+    importLiteraturaPdf(input, file);
   };
 }
 
@@ -6407,14 +6684,129 @@ async function importVetReportWithImages(input, file, anonimizar) {
 // Regista como ground truth anónimo, guarda imagens RX
 // para teste posterior do modelo sem contexto
 // ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
+// IMPORT LITERATURA — extrai escalas de grading e regras
+// de livros/artigos como CALIBs source=literatura
+// Prioridade mais baixa que casos reais
+// ─────────────────────────────────────────────────────
+async function importLiteraturaPdf(input, file) {
+  var status = document.getElementById('vetImportStatus');
+  var importBtn = document.getElementById('btnImportPdf');
+  if (importBtn) { importBtn.disabled=true; importBtn.style.opacity='.5'; }
+  status.style.display='block'; status.style.color='#4ade80';
+  status.textContent = '⏳ A extrair conhecimento da literatura…';
+
+  try {
+    var base64Pdf = await new Promise(function(res, rej) {
+      var r = new FileReader();
+      r.onload = function(e) { res(e.target.result.split(',')[1]); };
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    var sysLit = [
+      'Es um especialista em radiologia equina a extrair conhecimento estruturado de literatura científica.',
+      'Recebes um PDF de livro, capitulo ou artigo sobre radiologia equina.',
+      'Extrai APENAS regras clínicas concretas e escalas de grading — não opiniões gerais.',
+      'RESPONDE APENAS COM JSON VALIDO. Sem texto antes ou depois.',
+      '',
+      '{"fonte":"titulo do livro ou artigo","autores":"apelidos dos autores","ano":"ano publicacao",',
+      '"calibracoes":[{',
+      '  "estrutura":"regiao anatomica (IFD/Navicular/Boleto/Jarrete/Carpo/Estifle/Metacarpo/Coluna)",',
+      '  "regra":"instrucao directa ao modelo de IA — o que observar e como classificar",',
+      '  "grading":"escala de grading se existir (ex: Oxspring 0-4, McIlwraith 0-3)",',
+      '  "referencia":"pagina ou secção do livro",',
+      '  "nivel_evidencia":"alto|medio|baixo"',
+      '}]}'
+    ].join('\n');
+
+    var resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-session-token':(AUTH&&AUTH.token)||''},
+      body: JSON.stringify({
+        model: C.MODELS[0]||'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: sysLit,
+        messages: [{role:'user', content:[
+          {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64Pdf}},
+          {type:'text', text:'Extrai todas as regras de grading e calibrações clínicas deste documento. Responde APENAS com JSON.'}
+        ]}]
+      })
+    });
+    var data = await resp.json();
+    var txt = (data.content||[]).map(function(b){return b.text||'';}).join('').replace(/```json|```/g,'').trim();
+    var parsed;
+    try { parsed = JSON.parse(txt); } catch(e) {
+      status.style.color='var(--red)';
+      status.textContent = '❌ Erro ao processar literatura: resposta inválida.';
+      if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+      return;
+    }
+
+    var calibs = parsed.calibracoes || [];
+    if (!calibs.length) {
+      status.style.color='var(--amber)';
+      status.textContent = '⚠ Nenhuma regra de grading encontrada neste documento.';
+      if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+      return;
+    }
+
+    // Guardar como CALIBs pendentes com source=literatura e prioridade baixa
+    var date = new Date().toLocaleDateString('pt-PT');
+    var fonte = (parsed.fonte||file.name).slice(0,40);
+    var pending = [];
+    try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]'); } catch(e){}
+
+    calibs.forEach(function(c, i) {
+      if (!c.regra || c.regra.length < 10) return;
+      var key = 'LIT-'+(parsed.ano||'?')+'-'+(c.estrutura||'X').slice(0,6).toUpperCase()+'-'+String(i+1).padStart(3,'0');
+      // Não duplicar se já existe
+      if (pending.find(function(p){return p.key===key;})) return;
+      pending.push({
+        key:          key,
+        value:        '[LIT] '+c.regra+(c.grading?' | Grading: '+c.grading:''),
+        regra:        c.regra+(c.grading?' ('+c.grading+')':''),
+        date:         date,
+        source:       'literatura',
+        horse:        fonte,
+        estrutura:    c.estrutura||'',
+        membro:       '',
+        achado:       c.grading||'',
+        severidade:   '',
+        confirmado_por: 'literatura',
+        raridade:     'comum',
+        prioridade:   'baixa', // prioridade MENOR que casos reais
+        tipo:         'literatura',
+        referencia:   c.referencia||'',
+        nivel_evidencia: c.nivel_evidencia||'medio'
+      });
+    });
+
+    localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+    updateSidebarBadges();
+
+    if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+    status.style.color='#4ade80';
+    status.innerHTML = '📚 <strong>'+X(fonte)+'</strong> — '+calibs.length+' regras extraídas como CALIBs de literatura' +
+      '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<button onclick="openPendingCalibsModal()" style="font-size:9px;padding:2px 8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:3px;color:#4ade80;cursor:pointer">✓ Rever CALIBs</button>' +
+      '</div>';
+
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ Erro: '+(e.message||e);
+    if(importBtn){importBtn.disabled=false;importBtn.style.opacity='1';}
+    console.error('[EQ] importLiteraturaPdf:', e);
+  }
+}
+
+
 async function importVetReportAsCaseStudy(input, file) {
   var status = document.getElementById('vetImportStatus');
   var importBtn = document.getElementById('btnImportPdf');
   if (importBtn) { importBtn.disabled=true; importBtn.style.opacity='.5'; }
   status.style.display='block'; status.style.color='#b06aff';
   status.textContent = '⏳ A processar caso de estudo…';
-
-  var apiKey = getApiKey ? getApiKey() : '';
 
   try {
     // PASSE 1: extrair diagnóstico e metadados
@@ -6441,6 +6833,7 @@ async function importVetReportAsCaseStudy(input, file) {
       '}],',
       '"sinais_clinicos":"resumo dos sinais clinicos observados",',
       '"achados_normais":["regioes confirmadas normais"],',
+      '"projecoes_em_falta":["ex: DP pé MAE para confirmar navicular","skyline boleto MAD"],',
       '"paginas_rx":[1,2,3]}'
     ].join('\n');
 
@@ -6471,80 +6864,14 @@ async function importVetReportAsCaseStudy(input, file) {
     var caseCode = ((parsed.breed||'?').replace(/\s+/g,'').slice(0,6)+'-'+(parsed.age||'?')+'a-'+(parsed.discipline||'CSO')).toUpperCase().replace(/[^A-Z0-9\-]/g,'');
     var caseId = 'CS-' + caseCode + '-' + Date.now().toString(36).toUpperCase();
 
-    // PASSE 2: renderizar e guardar imagens RX (com timeout + progress)
-    status.innerHTML = '⏳ Passe 2/2 — A guardar imagens RX… ' +
-      '<button id="csImportCancel" style="font-size:9px;padding:1px 6px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;margin-left:6px">Saltar imagens</button>';
-    var _csImportCancelled = false;
-    var _cancelBtn = document.getElementById('csImportCancel');
-    if (_cancelBtn) _cancelBtn.onclick = function() { _csImportCancelled = true; status.textContent = '⏳ A saltar imagens RX…'; };
-
-    var pdfLib = await loadPdfJs();
-    var arrayBuf = await new Promise(function(res, rej) {
-      var r2 = new FileReader();
-      r2.onload = function(e){res(e.target.result);};
-      r2.onerror = rej;
-      r2.readAsArrayBuffer(file);
-    });
-    var pdfDoc = await pdfLib.getDocument({data: new Uint8Array(arrayBuf), verbosity:0}).promise;
-    var numPages = pdfDoc.numPages;
-    var rxPages = Array.isArray(parsed.paginas_rx) && parsed.paginas_rx.length > 0
-      ? parsed.paginas_rx.filter(function(n){return n>=1&&n<=numPages;}).slice(0,6)
-      : [];
-
+    // PASSE 2: renderizar imagens RX — em background, não bloqueia
+    // O caso de estudo fica registado imediatamente após passe 1
     var rxImages = [];
-    var rxPagesCapped = rxPages.slice(0, 6);
+    var rxPagesList = Array.isArray(parsed.paginas_rx) && parsed.paginas_rx.length > 0
+      ? parsed.paginas_rx.slice(0,6) : [];
+    status.textContent = '⏳ Passe 2/2 — A preparar imagens RX…';
 
-    // Timeout helper para render de página
-    function renderPageWithTimeout(pdfDoc, pageNum, timeoutMs) {
-      return new Promise(function(resolve) {
-        var done = false;
-        var timer = setTimeout(function() {
-          if (!done) { done = true; resolve(null); } // null = timeout
-        }, timeoutMs);
-        pdfDoc.getPage(pageNum).then(function(page) {
-          var vp = page.getViewport({scale:1.0});
-          var cv = document.createElement('canvas');
-          cv.width = Math.min(vp.width, 1200); // cap width
-          cv.height = Math.min(vp.height, 1600); // cap height
-          var scale = Math.min(cv.width/vp.width, cv.height/vp.height);
-          vp = page.getViewport({scale: scale});
-          cv.width = Math.round(vp.width);
-          cv.height = Math.round(vp.height);
-          var ctx2 = cv.getContext('2d');
-          ctx2.fillStyle = '#000';
-          ctx2.fillRect(0, 0, cv.width, cv.height);
-          return page.render({canvasContext: ctx2, viewport: vp}).promise.then(function() {
-            if (!done) {
-              done = true;
-              clearTimeout(timer);
-              resolve(cv.toDataURL('image/jpeg', 0.5));
-            }
-          });
-        }).catch(function() { if (!done) { done = true; clearTimeout(timer); resolve(null); } });
-      });
-    }
-
-    for (var pi = 0; pi < rxPagesCapped.length; pi++) {
-      if (_csImportCancelled) break;
-      var pageNum = rxPagesCapped[pi];
-      status.innerHTML = '⏳ Passe 2/2 — Imagem ' + (pi+1) + '/' + rxPagesCapped.length + ' (pág. ' + pageNum + ')… ' +
-        '<button id="csImportCancel" style="font-size:9px;padding:1px 6px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;margin-left:6px">Saltar imagens</button>';
-      var _cb2 = document.getElementById('csImportCancel');
-      if (_cb2) _cb2.onclick = function() { _csImportCancelled = true; };
-
-      try {
-        var b64 = await renderPageWithTimeout(pdfDoc, pageNum, 12000); // 12s timeout
-        if (b64) {
-          rxImages.push({page: pageNum, b64: b64.split(',')[1]});
-        } else {
-          console.warn('[EQ] CS render timeout p' + pageNum + ' — skip');
-        }
-      } catch(e) {
-        console.warn('[EQ] CS render error p' + pageNum, e);
-      }
-    }
-
-    // Guardar caso de estudo em localStorage
+    // Guardar caso de estudo em localStorage — imediatamente, sem esperar imagens
     var date = new Date().toLocaleDateString('pt-PT');
     var caseStudy = {
       id:           caseId,
@@ -6558,7 +6885,8 @@ async function importVetReportAsCaseStudy(input, file) {
       sinais_clinicos: parsed.sinais_clinicos||'',
       achados:      parsed.achados||[],
       achados_normais: parsed.achados_normais||[],
-      rx_pages:     rxImages.length,
+      rx_pages:     0, // actualizado quando imagens ficarem prontas
+      rx_pending:   rxPagesList.length > 0, // a processar em background
       tested:       false,
       test_results: []
     };
@@ -6568,26 +6896,73 @@ async function importVetReportAsCaseStudy(input, file) {
     studies.push(caseStudy);
     localStorage.setItem('eq_case_studies_v1', JSON.stringify(studies));
 
-    // Guardar imagens separado — com detecção de quota excedida
-    var imgsSaved = false;
-    try {
-      localStorage.setItem('eq_cs_images_'+caseId, JSON.stringify(rxImages));
-      imgsSaved = true;
-    } catch(e) {
-      if (e.name === 'QuotaExceededError' || e.code === 22) {
-        console.warn('[EQ] localStorage quota excedida — a tentar com menos imagens');
-        try {
-          // Tentar com metade das imagens
-          localStorage.setItem('eq_cs_images_'+caseId, JSON.stringify(rxImages.slice(0,3)));
-          rxImages = rxImages.slice(0,3);
-          imgsSaved = true;
-        } catch(e2) {
-          console.warn('[EQ] Impossivel guardar imagens RX (quota esgotada). Modo de teste sem imagens.');
-          caseStudy.rx_pages = 0; // marcar como sem imagens
-        }
-      } else {
-        console.warn('[EQ] Erro ao guardar imagens RX:', e);
-      }
+    // Render imagens em background — não bloqueia o fluxo
+    if (rxPagesList.length > 0) {
+      (function renderImgsBackground(cId, pagesList, pdfFile) {
+        setTimeout(async function() {
+          try {
+            var lib = await Promise.race([
+              loadPdfJs(),
+              new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('PDF.js timeout')); }, 15000); })
+            ]);
+            var buf = await new Promise(function(res, rej) {
+              var fr = new FileReader();
+              fr.onload = function(e){ res(e.target.result); };
+              fr.onerror = rej;
+              fr.readAsArrayBuffer(pdfFile);
+            });
+            var doc = await Promise.race([
+              lib.getDocument({data: new Uint8Array(buf), verbosity:0}).promise,
+              new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('getDocument timeout')); }, 20000); })
+            ]);
+            var imgs = [];
+            for (var i = 0; i < pagesList.length; i++) {
+              try {
+                var pg = await Promise.race([
+                  doc.getPage(pagesList[i]),
+                  new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('getPage timeout')); }, 10000); })
+                ]);
+                var vp = pg.getViewport({scale:0.8});
+                var cv2 = document.createElement('canvas');
+                cv2.width = Math.min(Math.round(vp.width), 900);
+                cv2.height = Math.min(Math.round(vp.height), 1200);
+                var s2 = Math.min(cv2.width/vp.width, cv2.height/vp.height);
+                var vp2 = pg.getViewport({scale: s2});
+                cv2.width = Math.round(vp2.width); cv2.height = Math.round(vp2.height);
+                var ctx3 = cv2.getContext('2d');
+                ctx3.fillStyle='#000'; ctx3.fillRect(0,0,cv2.width,cv2.height);
+                await Promise.race([
+                  pg.render({canvasContext:ctx3, viewport:vp2}).promise,
+                  new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('render timeout')); }, 8000); })
+                ]);
+                imgs.push({page: pagesList[i], b64: cv2.toDataURL('image/jpeg',0.45).split(',')[1]});
+              } catch(ep) { console.warn('[EQ] BG render skip p'+pagesList[i], ep); }
+            }
+            // Guardar imagens e actualizar caseStudy
+            if (imgs.length > 0) {
+              try { localStorage.setItem('eq_cs_images_'+cId, JSON.stringify(imgs)); } catch(eq) {
+                try { localStorage.setItem('eq_cs_images_'+cId, JSON.stringify(imgs.slice(0,3))); imgs=imgs.slice(0,3); } catch(eq2){}
+              }
+              // Actualizar rx_pages no caseStudy
+              try {
+                var ss = JSON.parse(localStorage.getItem('eq_case_studies_v1')||'[]');
+                var si = ss.findIndex(function(x){ return x.id===cId; });
+                if (si>=0) { ss[si].rx_pages=imgs.length; ss[si].rx_pending=false; localStorage.setItem('eq_case_studies_v1', JSON.stringify(ss)); }
+              } catch(eu){}
+              console.log('[EQ] BG render concluído: '+imgs.length+' imagens para '+cId);
+              updateCaseStudyBadge();
+            }
+          } catch(eBg) {
+            console.warn('[EQ] BG render falhou:', eBg);
+            // Marcar como sem imagens
+            try {
+              var ss2 = JSON.parse(localStorage.getItem('eq_case_studies_v1')||'[]');
+              var si2 = ss2.findIndex(function(x){ return x.id===cId; });
+              if (si2>=0) { ss2[si2].rx_pending=false; localStorage.setItem('eq_case_studies_v1', JSON.stringify(ss2)); }
+            } catch(eu2){}
+          }
+        }, 500); // pequeno delay para não competir com o UI update
+      })(caseId, rxPagesList, file);
     }
 
     // Também gerar CALIBs normais (aproveita o ground truth)
@@ -8250,7 +8625,10 @@ function saveExamForHorse(horseId, reportResult, score, classe) {
     score:    score || 0,
     classe:   classe || '',
     achados:  (reportResult && reportResult.achados) ? reportResult.achados.length : 0,
-    ref:      (reportResult && reportResult.ref) || ''
+    ref:      (reportResult && reportResult.ref) || '',
+    achados_detalhe: (reportResult && reportResult.achados) ? reportResult.achados.map(function(a){
+      return {estrutura:(a.estrutura||'').slice(0,30), membro:a.membro||'', sev:a.sev||'', lesao:(a.lesao||'').slice(0,60)};
+    }) : []
   };
   var exams = loadExams();
   exams.push(exam);

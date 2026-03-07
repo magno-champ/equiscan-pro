@@ -1,5 +1,5 @@
 /**
- * EquiScan Pro — Railway Backend
+ * EquiScan Pro — Railway Backend v53
  */
 
 const express = require('express');
@@ -86,9 +86,10 @@ app.get('/api/me', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: 'v52', hasKey: !!ANTHROPIC_API_KEY });
+  res.json({ status: 'ok', version: 'v53', hasKey: !!ANTHROPIC_API_KEY });
 });
 
+// ── PROXY ANTHROPIC ────────────────────────────────────────────────────────────
 app.post('/api/claude', requireAuth, async (req, res) => {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key não configurada' });
   const { model, max_tokens, system, messages, stream } = req.body;
@@ -115,11 +116,55 @@ app.post('/api/claude', requireAuth, async (req, res) => {
   }
 });
 
+// ── FEEDBACK DO VETERINÁRIO — NOVO v53 ────────────────────────────────────────
+function ensureDataDir() {
+  const dir = path.join(__dirname, '../data');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+app.post('/api/feedback', requireAuth, (req, res) => {
+  try {
+    ensureDataDir();
+    const fbFile = path.join(__dirname, '../data/vet_feedback.json');
+    let data = [];
+    if (fs.existsSync(fbFile)) data = JSON.parse(fs.readFileSync(fbFile, 'utf8'));
+    const entry = {
+      id:         crypto.randomBytes(8).toString('hex'),
+      horse:      req.body.horse      || 'Desconhecido',
+      date:       req.body.date       || new Date().toLocaleDateString('pt-PT'),
+      appGrade:   req.body.appGrade   || '',
+      vetGrade:   req.body.vetGrade   || '',
+      vetNotes:   req.body.vetNotes   || '',
+      structures: req.body.structures || [],
+      user:       req.user            || 'unknown',
+      ts:         Date.now()
+    };
+    data.unshift(entry);
+    if (data.length > 500) data = data.slice(0, 500);
+    fs.writeFileSync(fbFile, JSON.stringify(data, null, 2));
+    console.log(`[EQ] Feedback: ${entry.horse} — app="${entry.appGrade}" -> vet="${entry.vetGrade}"`);
+    res.json({ ok: true, id: entry.id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/feedback', requireAuth, (req, res) => {
+  try {
+    const fbFile = path.join(__dirname, '../data/vet_feedback.json');
+    if (!fs.existsSync(fbFile)) return res.json([]);
+    res.json(JSON.parse(fs.readFileSync(fbFile, 'utf8')));
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+// ── SERVE SPA ─────────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`[EQ] EquiScan Pro v52 a correr na porta ${PORT}`);
+  console.log(`[EQ] EquiScan Pro v53 a correr na porta ${PORT}`);
   console.log(`[EQ] API Key: ${ANTHROPIC_API_KEY ? '✓ configurada' : '✗ FALTA'}`);
 });

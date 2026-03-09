@@ -2798,9 +2798,17 @@ async function run(){
   // Reset state from any previous analysis
   S._compareMode = false;
   var key=document.getElementById('fKey').value.trim();
-  if(!key || key.length < 20){
-    showAlert({title:'API Key em falta', msg:'Preenche a API Key da Anthropic antes de gerar o relatório.\n\nPodes obter a tua key em console.anthropic.com', type:'error'});
-    return;
+  var isServerManaged = (key === 'server-managed' || key === '' || key.length < 20);
+  // Só bloqueia se não há servidor E não há key directa
+  if(isServerManaged){
+    // Verificar se o servidor Railway está disponível
+    var hasServer = window.location.hostname !== 'localhost' && window.location.protocol !== 'file:';
+    if(!hasServer){
+      showAlert({title:'API Key em falta', msg:'Preenche a API Key da Anthropic antes de gerar o relatório.\n\nPodes obter a tua key em console.anthropic.com', type:'error'});
+      return;
+    }
+    // Usa servidor — não precisa de key
+    key = 'server-managed';
   }
   var info={
     name:  document.getElementById('fName').value.trim()||'Não identificado',
@@ -10406,15 +10414,18 @@ async function checkCalibContradictions(newRule) {
   if (activeRules.length === 0) return null;
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':    'application/json',
+        'x-session-token': (AUTH && AUTH.token) || ''
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model:      'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: 'És um sistema de controlo de qualidade de calibrações radiológicas equinas. Responde APENAS em JSON válido, sem texto adicional.',
-        messages: [{
-          role: 'user',
+        system:     'És um sistema de controlo de qualidade de calibrações radiológicas equinas. Responde APENAS em JSON válido, sem texto adicional.',
+        messages:   [{
+          role:    'user',
           content: 'Nova calibração a aprovar:\n"""\n' + newRule + '\n"""\n\nCalibrações activas existentes:\n"""\n' + activeRules.join('\n---\n') + '\n"""\n\nAnalisa se a nova calibração contradiz, sobrepõe, ou conflitua com alguma existente.\n\nResponde com JSON:\n{\n  "tem_conflito": true/false,\n  "conflitos": [\n    {\n      "regra_existente": "texto da regra que conflitua",\n      "tipo": "contradicao_directa|sobreposicao_parcial|direcao_oposta",\n      "explicacao": "explica o conflito em 1 frase",\n      "recomendacao": "arquivar_existente|arquivar_nova|manter_ambas|rever_manualmente"\n    }\n  ],\n  "resumo": "frase curta descrevendo a situação"\n}'
         }]
       })
@@ -12152,8 +12163,8 @@ function getHistory() {
 // SEGUNDA OPINIÃO
 // ═══════════════════════════════════════════════════════
 async function runSecondOpinion() {
-  var key = (document.getElementById('fKey')||{}).value;
-  if (!key || !S.lastResult || !S._lastBatch) { showToast('Faz primeiro uma análise'); return; }
+  var key = (document.getElementById('fKey')||{}).value || 'server-managed';
+  if (!S.lastResult || !S._lastBatch) { showToast('Faz primeiro uma análise'); return; }
   showToast('⏳ Segunda opinião em curso…');
   try {
     var result2 = await callApi(key, S._lastBatch, S._lastInfo || {}, 1, 1);
@@ -13711,28 +13722,20 @@ async function sendChat() {
 
   var sysPrompt = 'És o Assistente Clínico do EquiScan Pro, especialista em radiologia equina. Tens acesso ao relatório radiológico completo abaixo e respondes exclusivamente com base nesse contexto. Responde sempre em português de Portugal. Sê preciso, clínico e conciso. Quando adequado, usa bullet points.\n\n' + infoCtx + '\n\n' + rptCtx;
 
-  var apiKey = (document.getElementById('fKey') && document.getElementById('fKey').value) || '';
-  if (!apiKey || apiKey.length < 20) {
-    if(loadBubble) loadBubble.innerHTML = '<span style="color:var(--red)">❌ API Key não configurada. Preenche o campo API Key na barra lateral.</span>';
-    if(btn) btn.disabled = false;
-    return;
-  }
   var messages = _chatHistory.slice(-10); // keep last 10 turns
 
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/claude', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Content-Type':    'application/json',
+        'x-session-token': (AUTH && AUTH.token) || ''
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model:      'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: sysPrompt,
-        messages: messages
+        system:     sysPrompt,
+        messages:   messages
       })
     });
     var data = await res.json();
@@ -13742,7 +13745,7 @@ async function sendChat() {
       loadBubble.innerHTML = reply.replace(/\n/g, '<br>');
     }
   } catch(e) {
-    if(loadBubble) loadBubble.innerHTML = '<em style="color:var(--red)">Erro de ligação. Verifica a chave API.</em>';
+    if(loadBubble) loadBubble.innerHTML = '<em style="color:var(--red)">Erro de ligação ao servidor.</em>';
   }
 
   if(btn) btn.disabled = false;
@@ -14235,30 +14238,18 @@ async function generatePPE() {
         'Máximo 600 palavras. Sê directo. Não acrescentes achados não listados acima.',
       ].join('\n');
 
-  var apiKey = (document.getElementById('fKey') && document.getElementById('fKey').value) || '';
-  if (!apiKey || apiKey.length < 20) {
-    var sp3 = document.getElementById('ppeSpinner');
-    if(sp3) sp3.remove();
-    if(form) form.style.display = '';
-    if(genBtn) { genBtn.textContent = '🏇 GERAR PARECER PPE'; genBtn.disabled = false; }
-    showToast('❌ API Key não configurada. Preenche o campo API Key na barra lateral.', 'error');
-    return;
-  }
-
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/claude', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Content-Type':    'application/json',
+        'x-session-token': (AUTH && AUTH.token) || ''
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model:      'claude-sonnet-4-6',
         max_tokens: 1200,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        system:     systemPrompt,
+        messages:   [{ role: 'user', content: userPrompt }]
       })
     });
 

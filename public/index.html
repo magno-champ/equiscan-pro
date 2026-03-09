@@ -1515,6 +1515,35 @@ window.addEventListener('DOMContentLoaded', function() {
 
   <!-- ══ FOOTER FIXO — SEMPRE VISÍVEL ══════════════════════ -->
   <div class="sb-footer">
+
+    <!-- Opinião clínica do vet — contexto crítico para a IA -->
+    <div id="vetOpinionWrap" style="margin-bottom:10px;display:none">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <span>⚕</span> Opinião Clínica
+        <span style="color:var(--t3);font-size:8px;text-transform:none;letter-spacing:0">(guia o diagnóstico)</span>
+      </div>
+      <!-- Impressão geral — botões rápidos -->
+      <div style="display:flex;gap:5px;margin-bottom:7px">
+        <button class="vet-imp-btn" data-val="normal" onclick="setVetImpressao(this,'normal')"
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(74,170,122,.3);background:rgba(74,170,122,.07);color:#4aaa7a;cursor:pointer;transition:all .15s">
+          ✓ Normal
+        </button>
+        <button class="vet-imp-btn" data-val="suspeito" onclick="setVetImpressao(this,'suspeito')"
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(212,147,58,.3);background:rgba(212,147,58,.07);color:var(--amber);cursor:pointer;transition:all .15s">
+          ⚠ Suspeito
+        </button>
+        <button class="vet-imp-btn" data-val="problematico" onclick="setVetImpressao(this,'problematico')"
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(224,85,85,.3);background:rgba(224,85,85,.07);color:var(--red);cursor:pointer;transition:all .15s">
+          ✕ Problemático
+        </button>
+      </div>
+      <!-- Comentário livre -->
+      <textarea id="fVetOpinion" placeholder="Ex: Animal jovem para uso intensivo. Flexões P/P positivas bilaterais. Suspeita navicular..."
+        rows="2" style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid rgba(201,168,76,.2);border-radius:5px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .2s"
+        onfocus="this.style.borderColor='rgba(201,168,76,.5)'"
+        onblur="this.style.borderColor='rgba(201,168,76,.2)'"></textarea>
+    </div>
+
     <button class="btn-run" id="runBtn" onclick="run()" disabled>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
       Gerar Relatório
@@ -1782,19 +1811,36 @@ function saveClinic(){
 
 function buildImgPage(){
   // Build a page of all radiograph thumbnails for PDF export
+  // Uses annotated canvas images when available
   if(!S.imgs||!S.imgs.length) return '';
   var cols = S.imgs.length<=6?2:3;
   var html = '<div style="page-break-before:always;padding:16px 0">';
   html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#8B6914;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;text-align:center">Radiografias · '+S.imgs.length+' imagem'+(S.imgs.length>1?'ns':'')+'</div>';
-  html += '<div style="font-size:10px;color:#555;text-align:center;margin-bottom:12px;font-style:italic">Imagens incluídas para referência — qualidade pode variar consoante o formato original</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:10px">';
+  html += '<div style="font-size:10px;color:#555;text-align:center;margin-bottom:12px;font-style:italic">Imagens com anotações do veterinário</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:12px">';
   S.imgs.forEach(function(im, i){
     var badge = im.isDICOM?'<span style="font-family:JetBrains Mono,monospace;font-size:7px;background:#1a7a7a;color:#fff;padding:1px 4px;border-radius:2px;margin-left:4px">DCM</span>':'';
     var scaleBadge = im.pxPerMm?'<span style="font-family:JetBrains Mono,monospace;font-size:7px;background:#1a6a1a;color:#fff;padding:1px 4px;border-radius:2px;margin-left:2px">mm✓</span>':'';
-    html += '<div style="break-inside:avoid;text-align:center">';
-    html += '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:#555;margin-bottom:3px">IMG'+String(i+1).padStart(2,'0')+'</div>';
-    html += '<img src="'+im.url+'" style="width:100%;max-height:220px;object-fit:contain;border:1px solid #ddd;border-radius:3px;background:#000">';
-    html += '<div style="font-size:9px;color:#333;margin-top:3px;word-break:break-all">'+im.name+badge+scaleBadge+'</div>';
+    var imgName = im.name || ('IMG'+(i+1));
+
+    // Use merged annotated version if available (set during run())
+    var imgSrc = (window._annotatedImageCache && window._annotatedImageCache[imgName]) || im.url;
+
+    // Check for vet note on this image
+    var vetNote = (_reviewNotes && _reviewNotes[imgName] && _reviewNotes[imgName].text) || '';
+
+    html += '<div style="break-inside:avoid;text-align:center;border:1px solid #ddd;border-radius:5px;overflow:hidden;background:#fafafa">';
+    html += '<div style="background:#1a1a1a;padding:3px 6px;display:flex;align-items:center;justify-content:space-between">';
+    html += '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:#aaa">IMG'+String(i+1).padStart(2,'0')+'</span>';
+    html += '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:#666">'+im.name+badge+scaleBadge+'</span>';
+    html += '</div>';
+    html += '<img src="'+imgSrc+'" style="width:100%;max-height:220px;object-fit:contain;background:#000;display:block">';
+    if(vetNote){
+      html += '<div style="padding:5px 8px;background:#fffbe6;border-top:1px solid #f0d060;text-align:left">';
+      html += '<span style="font-family:JetBrains Mono,monospace;font-size:7px;color:#8B6914;text-transform:uppercase;letter-spacing:.05em">⚕ Vet: </span>';
+      html += '<span style="font-size:9px;color:#333">'+escH(vetNote)+'</span>';
+      html += '</div>';
+    }
     html += '</div>';
   });
   html += '</div></div>';
@@ -2250,6 +2296,9 @@ function toggleKey(){var i=document.getElementById('fKey');i.type=i.type==='pass
 function ui(){
   var ok=S.imgs.length>0;
   document.getElementById('runBtn').disabled=!ok;
+  // Show vet opinion panel when images are loaded
+  var opWrap = document.getElementById('vetOpinionWrap');
+  if (opWrap) opWrap.style.display = ok ? 'block' : 'none';
   var h=document.getElementById('hint');
   if(!S.imgs.length){
     h.textContent='Carregue imagens radiográficas.';
@@ -2259,6 +2308,18 @@ function ui(){
     var estStr = estSecs < 60 ? '~' + estSecs + 's' : '~' + Math.round(estSecs/60) + 'min';
     h.textContent = n + ' imagem' + (n>1?'ns':'') + ' pronta' + (n>1?'s':'') + ' · análise em ' + estStr;
   }
+}
+
+// ── Vet impression buttons ──────────────────────────────
+var _vetImpressao = '';
+function setVetImpressao(btn, val) {
+  _vetImpressao = (_vetImpressao === val) ? '' : val; // toggle
+  document.querySelectorAll('.vet-imp-btn').forEach(function(b) {
+    var isActive = b.dataset.val === _vetImpressao;
+    b.style.opacity = isActive ? '1' : '0.45';
+    b.style.transform = isActive ? 'scale(1.03)' : 'scale(1)';
+    b.style.fontWeight = isActive ? '700' : '400';
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3318,7 +3379,9 @@ async function run(){
     flexoes: (document.getElementById('fFlexoes')&&document.getElementById('fFlexoes').value.trim())||'',
     hist:  document.getElementById('fHist').value.trim()||'Sem história',
     horse_id: window._selectedHorseId || '',
-    horse_historico: buildHorseHistoricoBlock(window._selectedHorseId)
+    horse_historico: buildHorseHistoricoBlock(window._selectedHorseId),
+    vet_impressao: _vetImpressao || '',
+    vet_opinion: (document.getElementById('fVetOpinion') && document.getElementById('fVetOpinion').value.trim()) || ''
   };
   // Aliases for consumers that expect different key names
   info.horse = info.name;
@@ -3339,9 +3402,78 @@ async function run(){
   showLoading(1, S.imgs.length);
   document.getElementById('lmsg').textContent = 'A preparar imagens…';
 
+  // ── Merge anotações do canvas nas imagens antes de enviar à API ──────────
+  // O vet pode ter desenhado círculos/traços livres em cada imagem.
+  // Renderizamos o canvas sobre a imagem original → a IA vê exactamente o que o vet marcou.
+  function mergeAnnotationsIntoImage(imgUrl, imgName) {
+    return new Promise(function(resolve) {
+      var ann  = (_annotations || {})[imgName] || [];
+      var pm   = (_reviewPermanentMarks || {})[imgName] || [];
+      var fp   = (window._freeDrawPaths || {})[imgName] || [];
+      // Se não há nenhuma anotação, devolve a imagem original
+      if (!ann.length && !pm.length && !fp.length) { resolve(imgUrl); return; }
+
+      var img = new Image();
+      img.onload = function() {
+        var cv = document.createElement('canvas');
+        cv.width  = img.naturalWidth  || img.width;
+        cv.height = img.naturalHeight || img.height;
+        var ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        var W = cv.width, H = cv.height;
+        ctx.lineWidth = Math.max(2, W * 0.006);
+
+        // Desenhar círculos permanentes
+        pm.forEach(function(m) {
+          ctx.beginPath();
+          ctx.arc(m.x * W, m.y * H, m.r * Math.min(W, H), 0, Math.PI * 2);
+          ctx.strokeStyle = m.color || 'rgba(201,168,76,0.9)';
+          ctx.lineWidth = Math.max(2, W * 0.005);
+          ctx.stroke();
+        });
+
+        // Desenhar traços livres
+        if (fp.length) {
+          fp.forEach(function(path) {
+            if (!path || path.length < 2) return;
+            ctx.beginPath();
+            ctx.moveTo(path[0].x * W, path[0].y * H);
+            for (var i = 1; i < path.length; i++) {
+              ctx.lineTo(path[i].x * W, path[i].y * H);
+            }
+            ctx.strokeStyle = window._reviewColor || '#C9A84C';
+            ctx.lineWidth = Math.max(2, W * 0.004);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+          });
+        }
+
+        resolve(cv.toDataURL('image/jpeg', 0.88));
+      };
+      img.onerror = function() { resolve(imgUrl); };
+      img.src = imgUrl;
+    });
+  }
+
+  // Merge anotações em todas as imagens
+  document.getElementById('lmsg').textContent = 'A integrar anotações do veterinário…';
+  var allUrlsRaw = S.imgs.map(function(i){return i.url;});
+  var allUrlsMerged = await Promise.all(S.imgs.map(function(im) {
+    return mergeAnnotationsIntoImage(im.url, im.name || ('IMG' + (S.imgs.indexOf(im) + 1)));
+  }));
+
+  // Cache annotated images for PDF export (buildImgPage uses this)
+  window._annotatedImageCache = {};
+  S.imgs.forEach(function(im, i) {
+    var nm = im.name || ('IMG' + (i + 1));
+    window._annotatedImageCache[nm] = allUrlsMerged[i];
+  });
+
   // Resize first batch immediately, rest lazily in background
   document.getElementById('lmsg').textContent='A optimizar imagens…';
-  var allUrls=S.imgs.map(function(i){return i.url;});
+  var allUrls = allUrlsMerged; // usa imagens com anotações
   var names = S.imgs.map(function(i){return i.name;});
   // Resize all but pipeline: first batch is priority
   var firstBatchUrls=allUrls.slice(0,C.BATCH);
@@ -5277,18 +5409,19 @@ function loadActiveCalibsUI() {
 
     // ── Agrupar por região anatómica ─────────────────────────────
     var REGIONS = [
-      { key: 'casco',    label: '🦶 Casco / P3 / Navicular',  terms: ['casco','p3','navicular','cofim','ungular'] },
-      { key: 'boleto',   label: '🦴 Boleto / MCF / MTP',       terms: ['boleto','mcf','mtp','metacarpo','metatarso','fetlock'] },
-      { key: 'carpo',    label: '💪 Carpo / Joelho',           terms: ['carpo','joelho','carpiano'] },
-      { key: 'tarso',    label: '🦵 Tarso / Jarrete',          terms: ['tarso','jarrete','hock','tibiotarsal','bone spavin','espavin'] },
-      { key: 'estifle',  label: '🦿 Estifle / Rótula',        terms: ['estifle','rotula','rótula','stifle','femoral','trocl'] },
-      { key: 'coluna',   label: '🦴 Coluna / Dorso',           terms: ['coluna','dorso','vertebr','sacro','ilíaco','sacroilíaco'] },
-      { key: 'geral',    label: '📋 Geral / Outro',            terms: [] },
+      { key: 'todas',    label: 'Todas',                        terms: null },
+      { key: 'casco',    label: '🦶 Casco',                     terms: ['casco','p3','navicular','cofim','ungular','hoof','coffin'] },
+      { key: 'boleto',   label: '🦴 Boleto',                    terms: ['boleto','mcf','mtp','metacarpo','metatarso','fetlock'] },
+      { key: 'carpo',    label: '💪 Carpo',                     terms: ['carpo','joelho','carpiano','carpal','knee'] },
+      { key: 'tarso',    label: '🦵 Tarso',                     terms: ['tarso','jarrete','hock','tibiotarsal','bone spavin','espavin'] },
+      { key: 'estifle',  label: '🦿 Estifle',                   terms: ['estifle','rotula','rótula','stifle','femoral','trocl'] },
+      { key: 'coluna',   label: '🦴 Coluna',                    terms: ['coluna','dorso','vertebr','sacro','sacroilíaco','kissing'] },
+      { key: 'geral',    label: '📋 Geral',                     terms: [] },
     ];
 
     function getRegion(ruleText) {
       var txt = (ruleText || '').toLowerCase();
-      for (var i = 0; i < REGIONS.length - 1; i++) {
+      for (var i = 1; i < REGIONS.length - 1; i++) { // start at 1 (skip 'todas')
         for (var j = 0; j < REGIONS[i].terms.length; j++) {
           if (txt.indexOf(REGIONS[i].terms[j]) !== -1) return REGIONS[i].key;
         }
@@ -5299,48 +5432,90 @@ function loadActiveCalibsUI() {
     // Group rows
     var groups = {};
     REGIONS.forEach(function(r){ groups[r.key] = []; });
-    rows.forEach(function(r){ groups[getRegion(r.rule_text)].push(r); });
+    rows.forEach(function(r){ groups[getRegion(r.rule_text)].push(r); groups['todas'].push(r); });
 
-    var html = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);padding:8px 12px 4px;letter-spacing:.06em">' + rows.length + ' CALIB(s) activa(s)</div>';
+    // Build tab bar — only show tabs with data
+    var activeTabs = REGIONS.filter(function(r){ return r.key === 'todas' || groups[r.key].length > 0; });
+    var activeTab = 'todas';
 
-    REGIONS.forEach(function(region) {
-      var grp = groups[region.key];
-      if (!grp || grp.length === 0) return;
-
-      html += '<div style="margin:0">';
-      // Section header
-      html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;' +
-        'padding:8px 12px 5px;background:rgba(201,168,76,.05);border-top:1px solid rgba(201,168,76,.15);border-bottom:1px solid rgba(201,168,76,.1);' +
-        'display:flex;align-items:center;justify-content:space-between">' +
-        '<span>' + region.label + '</span>' +
-        '<span style="color:var(--t3);font-size:8px">' + grp.length + '</span>' +
+    function buildTabBar(currentTab) {
+      return '<div style="display:flex;gap:3px;padding:8px 10px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0">' +
+        activeTabs.map(function(r) {
+          var isActive = r.key === currentTab;
+          var cnt = r.key === 'todas' ? rows.length : groups[r.key].length;
+          return '<button onclick="calibSwitchTab(\''+r.key+'\')" data-calib-tab="'+r.key+'" ' +
+            'style="font-family:JetBrains Mono,monospace;font-size:9px;white-space:nowrap;padding:5px 9px;border-radius:5px 5px 0 0;border:1px solid '+(isActive?'rgba(201,168,76,.4)':'var(--wire)')+';border-bottom:'+(isActive?'1px solid var(--ink2)':'1px solid var(--wire)')+';background:'+(isActive?'var(--ink2)':'transparent')+';color:'+(isActive?'var(--gold)':'var(--t3)')+';cursor:pointer;transition:all .12s">' +
+            r.label + (cnt > 0 ? ' <span style="opacity:.6">('+cnt+')</span>' : '') +
+            '</button>';
+        }).join('') +
         '</div>';
+    }
 
-      grp.forEach(function(r) {
-        html += '<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:10px;align-items:flex-start;transition:background .1s" ' +
-          'onmouseover="this.style.background=\'rgba(255,255,255,.03)\'" onmouseout="this.style.background=\'\'">'+
-          '<div style="flex:1">' +
-            '<div style="font-size:11px;color:var(--t1);line-height:1.6">' + escH(r.rule_text || '') + '</div>';
-        if (r.source_cases) {
-          html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:3px">↳ ' + escH(r.source_cases) + '</div>';
-        }
-        html += '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3);margin-top:2px;opacity:.6">' +
-          (r.approved_at || r.created_at || '').slice(0, 10) + '</div>' +
-          '</div>' +
-          '<button onclick="deactivateApprovedCalib(\'' + r.id + '\')" title="Desactivar" ' +
-          'style="padding:4px 8px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:3px;color:rgba(255,100,100,.5);' +
-          'font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0;transition:all .15s" ' +
-          'onmouseover="this.style.borderColor=\'rgba(255,80,80,.5)\';this.style.color=\'var(--red)\'" ' +
-          'onmouseout="this.style.borderColor=\'rgba(255,80,80,.2)\';this.style.color=\'rgba(255,100,100,.5)\'">✕</button>' +
-          '</div>';
-      });
-      html += '</div>';
-    });
+    function buildCalibList(tabKey) {
+      var listRows = groups[tabKey] || [];
+      if (!listRows.length) return '<div style="font-size:11px;color:var(--t3);padding:18px;text-align:center">Nenhuma CALIB nesta região.</div>';
+      var h = '';
+      if (tabKey === 'todas') {
+        // Grouped by region in "todas" tab
+        REGIONS.slice(1).forEach(function(region) {
+          var grp = groups[region.key];
+          if (!grp || !grp.length) return;
+          h += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;padding:8px 12px 5px;background:rgba(201,168,76,.04);border-top:1px solid rgba(201,168,76,.1);border-bottom:1px solid rgba(201,168,76,.07);display:flex;justify-content:space-between">' +
+            '<span>' + region.label + '</span><span style="color:var(--t3)">' + grp.length + '</span></div>';
+          h += grp.map(function(r){ return buildCalibRow(r); }).join('');
+        });
+      } else {
+        h = listRows.map(function(r){ return buildCalibRow(r); }).join('');
+      }
+      return h;
+    }
 
-    panel.innerHTML = html;
+    function buildCalibRow(r) {
+      return '<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:10px;align-items:flex-start;transition:background .1s" ' +
+        'onmouseover="this.style.background=\'rgba(255,255,255,.03)\'" onmouseout="this.style.background=\'\'">'+
+        '<div style="flex:1">' +
+          '<div style="font-size:11px;color:var(--t1);line-height:1.6">' + escH(r.rule_text || '') + '</div>' +
+          (r.source_cases ? '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:3px">↳ ' + escH(r.source_cases) + '</div>' : '') +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3);margin-top:2px;opacity:.6">' + (r.approved_at || r.created_at || '').slice(0, 10) + '</div>' +
+        '</div>' +
+        '<button onclick="deactivateApprovedCalib(\'' + r.id + '\')" title="Desactivar" ' +
+        'style="padding:4px 8px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:3px;color:rgba(255,100,100,.5);font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0;transition:all .15s" ' +
+        'onmouseover="this.style.borderColor=\'rgba(255,80,80,.5)\';this.style.color=\'var(--red)\'" ' +
+        'onmouseout="this.style.borderColor=\'rgba(255,80,80,.2)\';this.style.color=\'rgba(255,100,100,.5)\'">✕</button>' +
+        '</div>';
+    }
+
+    // Store for tab switching
+    window._calibTabData = { groups: groups, buildTabBar: buildTabBar, buildCalibList: buildCalibList };
+
+    panel.innerHTML =
+      '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);padding:6px 12px;border-bottom:1px solid var(--wire)">' + rows.length + ' CALIB(s) activa(s)</div>' +
+      buildTabBar('todas') +
+      '<div id="calibTabContent" style="overflow-y:auto;flex:1">' + buildCalibList('todas') + '</div>';
   })
   .catch(function(e){
     panel.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px">Erro: '+e.message+'</div>';
+  });
+}
+
+function calibSwitchTab(tabKey) {
+  if (!window._calibTabData) return;
+  var d = window._calibTabData;
+  var panel = document.getElementById('activeCalibsPanel');
+  if (!panel) return;
+  // Rebuild tab bar
+  var tabBar = panel.querySelector('div[style*="overflow-x:auto"]');
+  if (tabBar) tabBar.outerHTML = d.buildTabBar(tabKey);
+  // Update content
+  var content = document.getElementById('calibTabContent');
+  if (content) content.innerHTML = d.buildCalibList(tabKey);
+  // Re-query and update tab bar (outerHTML replacement lost the reference)
+  var newTabBar = panel.querySelector('div[style*="overflow-x:auto"]');
+  if(newTabBar) newTabBar.querySelectorAll('button').forEach(function(btn){
+    var isActive = btn.dataset.calibTab === tabKey;
+    btn.style.color = isActive ? 'var(--gold)' : 'var(--t3)';
+    btn.style.background = isActive ? 'var(--ink2)' : 'transparent';
+    btn.style.borderColor = isActive ? 'rgba(201,168,76,.4)' : 'var(--wire)';
   });
 }
 
@@ -5586,6 +5761,14 @@ function buildPhase2Prompt(phase1Text, allNames, info, calibBlock, fbBlock) {
     (info.symp&&info.symp!=='Não descritos'?'\nSinais clínicos: ⚠ '+info.symp:''),
     (info.flexoes?'\nFlexões positivas: ⚠ '+info.flexoes:''),
     (info.hist&&info.hist!=='Sem história'?'\nHistória: ⚠ '+info.hist:''),
+    // ── OPINIÃO CLÍNICA DO VETERINÁRIO — contexto de alta prioridade ──
+    (info.vet_impressao ? '\n╔══════════════════════════════════════════════╗\n║  IMPRESSÃO CLÍNICA DO VETERINÁRIO             ║\n╚══════════════════════════════════════════════╝\n' +
+      'Impressão geral: ' + (info.vet_impressao==='normal'?'✓ NORMAL — veterinário não observa sinais preocupantes':
+                             info.vet_impressao==='suspeito'?'⚠ SUSPEITO — veterinário tem suspeitas clínicas relevantes':
+                             '✕ PROBLEMÁTICO — veterinário identifica problemas significativos') +
+      (info.vet_opinion ? '\nComentário clínico: "' + info.vet_opinion + '"' : '') +
+      '\n⚠ Esta opinião reflecte o exame clínico directo do animal. Tem PRIORIDADE na interpretação dos achados radiológicos. O relatório DEVE correlacionar os achados imagiológicos com esta impressão clínica.\n' : 
+      (info.vet_opinion ? '\n⚠ COMENTÁRIO DO VETERINÁRIO: "' + info.vet_opinion + '"\nCorrelaciona os achados radiológicos com este contexto clínico.\n' : '')),
     (info.horse_historico?'\n═══ HISTÓRICO RADIOGRÁFICO ANTERIOR ═══\n'+info.horse_historico+'\n═══ FIM HISTÓRICO ═══\n⚠ COMPARAR EVOLUÇÃO. Identificar progressão de achados.':''),
     '',
     (S._webSearchContext || ''),
@@ -5595,6 +5778,8 @@ function buildPhase2Prompt(phase1Text, allNames, info, calibBlock, fbBlock) {
     (localStorage.getItem('eq_intel_active') !== 'false' ? (intelBuildContextBlock(info) || '') : ''),
     (calibBlock || ''),
     (fbBlock || ''),
+    // ── Notas de revisão do veterinário por imagem ──
+    (getReviewNotesContext() ? '\n╔══════════════════════════════════════════════╗\n║  NOTAS DE REVISÃO DO VETERINÁRIO (por imagem) ║\n╚══════════════════════════════════════════════╝\n' + getReviewNotesContext() + '\n⚠ Estas notas são observações directas do veterinário por imagem. Têm PRIORIDADE sobre a análise puramente visual.\n' : ''),
     '',
     '════════════════════════════════════════════════════',
     'INVENTÁRIO VISUAL (FASE 1 — A TUA MEMÓRIA):',
@@ -5635,7 +5820,7 @@ function buildPhase2Prompt(phase1Text, allNames, info, calibBlock, fbBlock) {
     '"narrativa":"",',
     '"dds":[{"nome":"","prob":"Alta","just":"","suporte_visual":""}],',
     '"recs":[{"pri":"Urgente","cat":"","acao":"","prazo":""},{"pri":"Alta","cat":"","acao":"","prazo":""},{"pri":"Média","cat":"","acao":"","prazo":""}],',
-    '"prog":{"desp":"","trabalho":"","rec":"","fav":[],"desfav":[]},',
+    '"prog":{"desp":"","trabalho":"","rec":"","fav":[],"desfav":[],"uso_desportivo":"Apto|Com Reservas|Inapto","longo_prazo":"Apto|Arriscado|Inapto","reproducao":"Apto|Com Reservas|Inapto","valor_comercial":"Normal|Reduzido|Comprometido"},',
     '"exames":[{"tipo":"","motivo":"","pri":"Alta"}],',
     '"inventario":{"total_recebidas":'+n+',"identificadas":[],"nao_identificadas":[]}',
     '}'
@@ -7857,7 +8042,7 @@ function clearAllReviewMarks() {
 }
 
 // Alias para compatibilidade
-function clearPointerMarks() { clearAllReviewMarks(); }
+// clearPointerMarks defined above at line ~7817
 
 
 function acceptIaSuggestion(achIdx) {
@@ -8301,21 +8486,38 @@ function renderReport(r,info){
     imgCardsH=batchHTML;
   }
 
-  // ── ACHADOS ──
-  var achRows=achados.map(function(a){
+  // ── ACHADOS — tabela editável ──
+  // Cada achado tem: confirmar (✓), editar (✏), rejeitar (✕)
+  // Rejeições → guardadas para calibração futura
+  var achRows=achados.map(function(a, idx){
     var sev=a.sev||a.severidade||'Normal';
     var rowCls=sev==='Severo'?'ach-row-sS':sev==='Moderado'?'ach-row-sM':'';
     var membro=a.membro||'';
     var justAch=a.just||a.justificacao||'';
-    return '<tr class="'+rowCls+'">'+
+    var aId = 'ach-'+idx;
+    return '<tr class="'+rowCls+'" id="'+aId+'" data-ach-idx="'+idx+'" data-ach-status="pending">'+
       '<td><div class="estrutura-cell"><span class="estrutura-name">'+X(a.estrutura)+'</span>'+(membro?'<span class="membro-tag">'+X(membro)+'</span>':'')+'</div></td>'+
-      '<td><div style="font-size:13px;color:var(--t2);line-height:1.5">'+X(a.lesao||a.achado)+'</div>'+(justAch?'<div style="font-size:11px;color:var(--t3);margin-top:2px;font-style:italic">'+X(justAch)+'</div>':'')+'</td>'+
+      '<td id="'+aId+'-lesao"><div style="font-size:13px;color:var(--t2);line-height:1.5">'+X(a.lesao||a.achado)+'</div>'+(justAch?'<div style="font-size:11px;color:var(--t3);margin-top:2px;font-style:italic">'+X(justAch)+'</div>':'')+'</td>'+
       '<td>'+(a.grading||a.classificacao?'<span class="grading-pill">'+X(a.grading||a.classificacao)+'</span>':'<span style="color:var(--t3)">—</span>')+'</td>'+
       '<td>'+sevBadge(sev)+'</td>'+
       '<td class="impacto-cell">'+X(a.impacto||a.impacto_desportivo||a.relevancia_desportiva)+'</td>'+
+      // Coluna de acções de revisão
+      '<td style="white-space:nowrap;padding:4px 8px">'+
+        '<div style="display:flex;gap:4px;align-items:center">'+
+          '<button title="Confirmar achado" onclick="achConfirm(\''+aId+'\')" '+
+            'style="padding:3px 7px;background:rgba(74,170,122,.1);border:1px solid rgba(74,170,122,.25);border-radius:3px;color:#4aaa7a;font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer;transition:all .15s" '+
+            'onmouseover="this.style.background=\'rgba(74,170,122,.25)\'" onmouseout="this.style.background=\'rgba(74,170,122,.1)\'">✓</button>'+
+          '<button title="Editar achado" onclick="achEdit(\''+aId+'\','+idx+')" '+
+            'style="padding:3px 7px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:3px;color:var(--gold);font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer;transition:all .15s" '+
+            'onmouseover="this.style.background=\'rgba(201,168,76,.2)\'" onmouseout="this.style.background=\'rgba(201,168,76,.08)\'">✏</button>'+
+          '<button title="Rejeitar achado (enviado para calibração)" onclick="achReject(\''+aId+'\','+idx+')" '+
+            'style="padding:3px 7px;background:rgba(224,85,85,.07);border:1px solid rgba(224,85,85,.2);border-radius:3px;color:var(--red);font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer;transition:all .15s" '+
+            'onmouseover="this.style.background=\'rgba(224,85,85,.2)\'" onmouseout="this.style.background=\'rgba(224,85,85,.07)\'">✕</button>'+
+        '</div>'+
+      '</td>'+
       '</tr>';
   }).join('');
-  if(!achRows) achRows='<tr><td colspan="5" style="color:var(--green);text-align:center;padding:18px;font-style:italic">✓ Sem achados patológicos significativos identificados</td></tr>';
+  if(!achRows) achRows='<tr><td colspan="6" style="color:var(--green);text-align:center;padding:18px;font-style:italic">✓ Sem achados patológicos significativos identificados</td></tr>';
 
   // ── MEDIDAS CRÍTICAS ──
   var mcDef=[
@@ -8562,6 +8764,60 @@ function renderReport(r,info){
   });
 
   var progHTML='';
+  // ── 4 EIXOS DE PROGNÓSTICO ─────────────────────────────────────────────
+  // Inferência automática a partir do score e achados mais severos
+  var sevAchs = achados.filter(function(a){ return a.sev === 'Severo'; });
+  var modAchs = achados.filter(function(a){ return a.sev === 'Moderado'; });
+  var hasSevBilat = sevAchs.some(function(a){ return /bilateral/i.test(a.membro||''); });
+  var hasMod = modAchs.length > 0;
+  var hasSev = sevAchs.length > 0;
+
+  // Eixo 1: Uso desportivo
+  var eixoDesp = (prog.uso_desportivo) || (
+    hasSev ? 'Inapto' : hasMod ? 'Com Reservas' : 'Apto'
+  );
+  // Eixo 2: Longo prazo
+  var eixoLongoPrazo = (prog.longo_prazo) || (
+    hasSevBilat ? 'Inapto' : hasSev ? 'Arriscado' : hasMod ? 'Arriscado' : 'Apto'
+  );
+  // Eixo 3: Reprodução
+  var eixoRep = (prog.reproducao || prog.reprodução) || (
+    hasSev ? 'Com Reservas' : 'Apto'
+  );
+  // Eixo 4: Valor comercial
+  var eixoComercial = (prog.valor_comercial) || (
+    hasSev ? 'Comprometido' : hasMod ? 'Reduzido' : 'Normal'
+  );
+
+  // Color helpers
+  function progColor(val){
+    var v = (val||'').toLowerCase();
+    if(/inapto|comprometido/.test(v)) return {bg:'rgba(224,85,85,.12)',border:'rgba(224,85,85,.35)',text:'var(--red)',dot:'#e05555'};
+    if(/reservas|arriscado|reduzido/.test(v)) return {bg:'rgba(212,147,58,.1)',border:'rgba(212,147,58,.3)',text:'var(--amber)',dot:'#d4933a'};
+    return {bg:'rgba(74,170,122,.09)',border:'rgba(74,170,122,.28)',text:'#4aaa7a',dot:'#4aaa7a'};
+  }
+
+  var axes = [
+    {label:'Uso Desportivo', val: eixoDesp,       icon:'🏇'},
+    {label:'Longo Prazo',    val: eixoLongoPrazo, icon:'📅'},
+    {label:'Reprodução',     val: eixoRep,        icon:'🐴'},
+    {label:'Valor Comercial',val: eixoComercial,  icon:'💶'}
+  ];
+
+  progHTML += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">';
+  axes.forEach(function(ax){
+    var c = progColor(ax.val);
+    progHTML +=
+      '<div style="background:'+c.bg+';border:1px solid '+c.border+';border-radius:8px;padding:12px 14px">'+
+        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">'+ax.icon+' '+ax.label+'</div>'+
+        '<div style="display:flex;align-items:center;gap:7px">'+
+          '<div style="width:7px;height:7px;border-radius:50%;background:'+c.dot+';flex-shrink:0"></div>'+
+          '<div style="font-size:15px;font-weight:700;color:'+c.text+'">'+X(ax.val)+'</div>'+
+        '</div>'+
+      '</div>';
+  });
+  progHTML += '</div>';
+
   // Top grid: desportivo + trabalho + recuperação
   if(progDesp||progTrab||progRec){
     progHTML+='<div class="prog-grid">';
@@ -8920,7 +9176,7 @@ function renderReport(r,info){
   })():'')+
 
   '<div class="sec">'+secH('03','Achados Radiológicos','var(--gold)')+
-    '<table class="tbl"><thead><tr><th>Estrutura</th><th>Lesão</th><th>Grading</th><th>Severidade</th><th>Impacto Desportivo</th></tr></thead><tbody>'+achRows+'</tbody></table>'+
+    '<table class="tbl"><thead><tr><th>Estrutura</th><th>Lesão</th><th>Grading</th><th>Severidade</th><th>Impacto Desportivo</th><th style="color:var(--gold);font-size:8px">REVISÃO</th></tr></thead><tbody>'+achRows+'</tbody></table>'+
     (mcHTML&&mcHTML.length>10?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Medições Críticas</div>'+mcHTML+'</div>':'')+
   '</div>'+
 
@@ -11509,6 +11765,119 @@ function exportJSON(){
 function swTab(i,btn){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});document.querySelectorAll('.tab-body').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');var el=document.getElementById('tb'+i);if(el)el.classList.add('active');}
 function x(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function resetBtn(){var b=document.getElementById('runBtn');b.disabled=false;b.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg> Gerar Relatório';ui();}
+
+// ══ REVISÃO DE ACHADOS — Confirmar / Editar / Rejeitar ══════════════════
+// Cada acção é registada e usada para calibração futura
+
+function achConfirm(aId) {
+  var row = document.getElementById(aId);
+  if (!row) return;
+  row.dataset.achStatus = 'confirmed';
+  row.style.opacity = '0.6';
+  row.style.background = 'rgba(74,170,122,.06)';
+  var btns = row.querySelectorAll('td:last-child button');
+  btns.forEach(function(b){ b.style.display='none'; });
+  var td = row.querySelector('td:last-child');
+  if (td) td.innerHTML = '<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#4aaa7a">✓ OK</span>';
+  showToast('Achado confirmado');
+}
+
+function achEdit(aId, idx) {
+  var row = document.getElementById(aId);
+  if (!row) return;
+  var lesaoCell = document.getElementById(aId + '-lesao');
+  if (!lesaoCell) return;
+
+  // Extract current text
+  var currentText = lesaoCell.querySelector('div') ? lesaoCell.querySelector('div').textContent : '';
+
+  // Replace with textarea inline
+  lesaoCell.innerHTML =
+    '<textarea id="'+aId+'-edit" rows="2" style="width:100%;box-sizing:border-box;background:var(--ink2);border:1px solid rgba(201,168,76,.4);border-radius:4px;padding:6px 8px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--t1);resize:none;outline:none">'+currentText+'</textarea>'+
+    '<div style="display:flex;gap:5px;margin-top:4px">'+
+      '<button onclick="achSaveEdit(\''+aId+'\','+idx+')" style="padding:3px 10px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:3px;color:var(--gold);font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer">Guardar</button>'+
+      '<button onclick="achCancelEdit(\''+aId+'\')" style="padding:3px 8px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer">Cancelar</button>'+
+    '</div>';
+
+  var ta = document.getElementById(aId+'-edit');
+  if (ta) { ta.focus(); ta.select(); }
+}
+
+function achSaveEdit(aId, idx) {
+  var ta = document.getElementById(aId+'-edit');
+  if (!ta) return;
+  var newText = ta.value.trim();
+  var lesaoCell = document.getElementById(aId+'-lesao');
+  if (!lesaoCell) return;
+  lesaoCell.innerHTML = '<div style="font-size:13px;color:var(--t2);line-height:1.5">'+escH(newText)+'</div>'+
+    '<div style="font-size:9px;color:var(--amber);margin-top:2px;font-family:JetBrains Mono,monospace">✏ Editado pelo veterinário</div>';
+
+  var row = document.getElementById(aId);
+  if (row) { row.dataset.achStatus = 'edited'; row.style.background = 'rgba(201,168,76,.04)'; }
+
+  // Update S.lastResult.achados in memory
+  if (S.lastResult && S.lastResult.achados && S.lastResult.achados[idx]) {
+    S.lastResult.achados[idx]._vetEdit = newText;
+    S.lastResult.achados[idx]._vetEdited = true;
+  }
+  showToast('Achado corrigido');
+}
+
+function achCancelEdit(aId) {
+  // Re-render original — find from S.lastResult
+  var idx = parseInt((document.getElementById(aId)||{}).dataset.achIdx||'0');
+  if (S.lastResult && S.lastResult.achados) {
+    var a = S.lastResult.achados[idx];
+    var lesaoCell = document.getElementById(aId+'-lesao');
+    if (lesaoCell && a) {
+      var justAch = a.just||a.justificacao||'';
+      lesaoCell.innerHTML = '<div style="font-size:13px;color:var(--t2);line-height:1.5">'+(escH(a.lesao||a.achado||''))+'</div>'+(justAch?'<div style="font-size:11px;color:var(--t3);margin-top:2px;font-style:italic">'+escH(justAch)+'</div>':'');
+    }
+  }
+}
+
+function achReject(aId, idx) {
+  var row = document.getElementById(aId);
+  if (!row) return;
+
+  showConfirm({
+    title: 'Rejeitar achado',
+    msg: 'Este achado será marcado como incorrecção da IA e enviado para calibração. A IA aprende com esta correcção.',
+    confirmLabel: 'Rejeitar e Calibrar',
+    cancelLabel: 'Cancelar',
+    danger: true
+  }).then(function(ok) {
+    if (!ok) return;
+
+    row.dataset.achStatus = 'rejected';
+    row.style.opacity = '0.35';
+    row.style.background = 'rgba(224,85,85,.05)';
+    row.style.textDecoration = 'line-through';
+    var td = row.querySelector('td:last-child');
+    if (td) td.innerHTML = '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--red)">✕ Rejeitado</span>';
+
+    // Save to calib queue
+    if (S.lastResult && S.lastResult.achados) {
+      var a = S.lastResult.achados[idx];
+      if (a) {
+        a._vetRejected = true;
+        // Queue as calibration feedback
+        try {
+          var pending = JSON.parse(localStorage.getItem('eq_calibrations_pending')||'[]');
+          pending.push({
+            rule_text: 'ACHADO REJEITADO: "' + (a.estrutura||'') + ' — ' + (a.lesao||a.achado||'') + '" classificado como '+  (a.sev||'Normal') + '. O veterinário rejeitou este achado.',
+            source_cases: 'Rejeição manual por veterinário',
+            rationale: 'O modelo identificou incorrectamente este achado. Reduzir confiança nesta combinação estrutura+lesão.',
+            confidence: 'alta',
+            region: (a.estrutura||'geral').toLowerCase()
+          });
+          localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+          showToast('Achado rejeitado → calibração pendente');
+        } catch(e) { showToast('Achado rejeitado'); }
+      }
+    }
+  });
+}
 
 // ═══════════════════════════════════════════════════════
 // INVENTÁRIO — VALIDAÇÃO INTERACTIVA

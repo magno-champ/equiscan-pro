@@ -676,61 +676,40 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
     max-height: none !important;
     display: block !important;
   }
-  /* Esconder header do accordion (substituído pela lógica abaixo) */
+  /* Esconder header do accordion */
   #sbPaciente .sb-acc-header,
   #sbClinical .sb-acc-header {
     display: none !important;
   }
 
-  /* Esconder campos de baixo valor no mobile */
-  #sbPaciente .row2,           /* Raça + Idade — vêm do cavalo */
-  #sbPaciente .field:first-child, /* Nome — vem do cavalo */
-  #fWeight, #fWeight + *, /* Peso */
-  #fSex, #fSex + *,       /* Sexo */
-  label[for="fWeight"],
-  label[for="fSex"],
-  #fPerfil,                /* Perfil de uso */
-  #fClinic,                /* Clínica — guardada em localStorage */
-  #fVet,                   /* Veterinário — guardado em localStorage */
-  /* Esconder labels dos campos acima */
+  /* ── Esconder APENAS campos sem valor clínico no campo ── */
+  /* Paciente: nome/raça/idade/sexo/peso vêm do cavalo seleccionado */
+  #sbPaciente { display: none !important; }  /* secção inteira — duplica o cavalo */
+
+  /* Clínico: esconder só perfil, clínica, vet (guardados em localStorage) */
   #sbClinical .field:has(#fPerfil),
   #sbClinical .field:has(#fClinic),
   #sbClinical .field:has(#fVet) {
     display: none !important;
   }
 
-  /* Esconder accordion Memória completamente no mobile */
-  #sbMemoria { display: none !important; }
+  /* Manter visíveis: Disciplina, Região, Sinais Clínicos, Flexões, História */
+  #fDisc    { font-size: 15px !important; min-height: 44px !important; }
+  #fRegion  { font-size: 15px !important; min-height: 44px !important; }
+  #fSymp    { font-size: 15px !important; min-height: 72px !important; border-color: rgba(201,168,76,.25) !important; }
+  #fSymp:focus { border-color: rgba(201,168,76,.5) !important; }
+  #fFlexoes { font-size: 14px !important; min-height: 44px !important; }
+  #fHist    { font-size: 14px !important; min-height: 44px !important; }
 
-  /* Esconder dataset consent no mobile (está no footer) */
+  /* Label de secção clínica — mostrar compacto */
+  #sbClinical { padding-top: 6px; padding-bottom: 6px; }
+
+  /* Esconder secções sem valor no campo */
+  #sbMemoria { display: none !important; }
   #datasetConsent { display: none !important; }
 
-  /* Secção Paciente: label mais curto e sem padding extra */
-  #sbPaciente { padding-top: 10px; padding-bottom: 10px; }
-  #sbClinical { padding-top: 10px; }
-
-  /* Sintomas — campo principal, destaque visual */
-  #fSymp {
-    font-size: 15px !important;
-    min-height: 72px !important;
-    border-color: rgba(201,168,76,.25) !important;
-  }
-  #fSymp:focus { border-color: rgba(201,168,76,.5) !important; }
-
-  /* Flexões — inline com sintomas, tamanho ok */
-  #fFlexoes { font-size: 14px !important; min-height: 42px !important; }
-
-  /* Histórico — menos destaque */
-  #fHist { font-size: 14px !important; min-height: 42px !important; }
-
-  /* Região anatómica — select grande */
-  #fRegion { font-size: 15px !important; min-height: 42px !important; }
-  #fDisc    { font-size: 15px !important; min-height: 42px !important; }
-
-  /* Horse card no mobile — mais compacto, só info essencial */
-  .horse-card {
-    padding: 8px 10px !important;
-  }
+  /* Horse card compacto */
+  .horse-card { padding: 8px 10px !important; }
   .horse-stat { padding: 3px 0 !important; }
 
   /* Botões do horse card — maior para toque */
@@ -754,6 +733,15 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   .btn-test, #testOut { display: none !important; }
   .run-hint { font-size: 10px !important; }
 
+  /* ── Review mode mobile ── */
+  #reviewFindingsPanel { display: none !important; }   /* painel achados — escondido no mobile */
+  #reviewFilmStrip { width: 52px !important; }          /* filmstrip mais estreito */
+  #reviewBottomPanel { padding: 8px 10px 12px !important; }
+  #reviewNote { font-size: 14px !important; }
+  /* Scrollable toolbar row */
+  #reviewTopBar div:last-child { scrollbar-width: none; }
+  #reviewTopBar div:last-child::-webkit-scrollbar { display: none; }
+
 }
 
 
@@ -767,7 +755,101 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
     #btnMobShare { bottom: calc(72px + env(safe-area-inset-bottom)); }
   }
 }
-</style>
+
+/* ══ LANDSCAPE MOBILE — iPad/iPhone deitado ══════════════════
+   Activa quando: largura > altura E largura ≤ 1024px
+   Layout: sidebar estreita (260px) + main ocupa o resto
+   Sem bottom nav — não é necessário no landscape
+════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) and (orientation: landscape) {
+  /* Desactivar bottom nav e hamburger */
+  #mobNav, #btnMobMenu, #btnMobShare { display: none !important; }
+
+  /* Shell: row como desktop */
+  .shell { flex-direction: row !important; }
+
+  /* Sidebar: estreita e scrollável */
+  .sidebar {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border-right: 1px solid var(--wire) !important;
+  }
+
+  /* Main: sempre visível no landscape */
+  .main {
+    display: flex !important;
+    flex: 1 !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  /* Shell height: ecrã completo menos topbar */
+  .shell { height: calc(100vh - 52px) !important; }
+
+  /* Sidebar scroll area */
+  .sb-scroll { flex: 1; overflow-y: auto; }
+
+  /* Compactar campos no landscape */
+  .sb { padding: 8px 10px !important; }
+  .sb-lbl { margin-bottom: 5px !important; font-size: 8px !important; }
+  .field { margin-bottom: 6px !important; }
+  .field input, .field select, .field textarea {
+    padding: 6px 8px !important;
+    font-size: 13px !important;
+  }
+  .field textarea { min-height: 40px !important; }
+  #fSymp { min-height: 50px !important; }
+
+  /* Disc + Região: side by side */
+  #sbClinical .sb-acc-body > .field:has(#fDisc),
+  #sbClinical .sb-acc-body > .field:has(#fRegion) {
+    display: inline-flex !important;
+    width: 48% !important;
+    margin-right: 2% !important;
+    flex-direction: column !important;
+  }
+
+  /* Horse row compacto */
+  #horseSelect { font-size: 12px !important; padding: 7px 8px !important; min-height: 36px !important; }
+
+  /* Viewer no sidebar — mais pequeno */
+  .viewer { max-height: 120px !important; }
+  .viewer #viewImg { max-height: 120px !important; object-fit: contain !important; }
+
+  /* Footer compacto */
+  .sb-footer { padding: 8px 10px !important; }
+  .btn-run { padding: 9px !important; font-size: 12px !important; }
+
+  /* Thumbnails: strip horizontal no main, em baixo */
+  .thumb-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    padding: 5px 8px !important;
+    height: 58px !important;
+    border-top: 1px solid var(--wire) !important;
+    background: var(--ink1) !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+  .thumb-grid .thumb-item {
+    width: 46px !important; height: 46px !important;
+    flex-shrink: 0 !important;
+    flex-direction: column !important;
+  }
+
+  /* Placeholder: centrar no main */
+  .placeholder { flex: 1 !important; }
+
+  /* Relatório: ocupa main sem limite */
+  .report { max-width: 100% !important; }
+}</style>
 <style>
 /* ═══ CHAT PÓS-RELATÓRIO ════════════════════════════════════════════ */
 .chat-panel{background:var(--ink1);border-top:2px solid rgba(201,168,76,.2);padding:0;max-width:860px;margin:0 auto;width:100%}
@@ -7183,41 +7265,45 @@ function openReviewMode(startFromIdx) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:950;background:#000;display:flex;flex-direction:column;overflow:hidden';
 
   overlay.innerHTML =
-    // Top bar — sticky, sempre visível
-    '<div id="reviewTopBar" style="position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(10,12,16,.97);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">' +
-      '<div style="display:flex;align-items:center;gap:10px">' +
-        '<span id="reviewImgTag" style="font-family:'+mono+';font-size:11px;color:var(--gold);letter-spacing:.08em"></span>' +
-        '<span id="reviewProgress" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.4)"></span>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px">' +
-        // W/L sliders — persistent in topbar
-        '<div style="display:flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px">' +
-          '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(255,255,255,.3)">W</span>' +
-          '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:60px;cursor:pointer;outline:none">' +
-          '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(255,255,255,.3)">L</span>' +
-          '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:60px;cursor:pointer;outline:none">' +
-          '<button onclick="if(window._reviewResetWL)window._reviewResetWL()" style="font-family:JetBrains Mono,monospace;font-size:8px;padding:2px 6px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:2px;color:rgba(255,255,255,.3);cursor:pointer" title="Reset W/L">⊡</button>' +
+    // Top bar — 2 rows no mobile
+    '<div id="reviewTopBar" style="position:relative;z-index:10;background:rgba(10,12,16,.98);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">' +
+      // Row 1: filename + close
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px 4px">' +
+        '<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">' +
+          '<span id="reviewImgTag" style="font-family:'+mono+';font-size:10px;color:var(--gold);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px"></span>' +
+          '<span id="reviewProgress" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.35);flex-shrink:0"></span>' +
         '</div>' +
-        '<span id="reviewZoomBadge" style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.3);min-width:34px;text-align:right">100%</span>' +
-        // Tool separator
-        '<div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>' +
-        '<button id="reviewBtnPointer" onclick="setReviewTool(\'pointer\')" title="Caneta temporária (aponta e desaparece)" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer">✏ Caneta</button>' +
-        '<button id="reviewBtnFreeDraw" onclick="setReviewTool(\'freedraw\')" title="Desenho livre permanente" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer">🖊 Livre</button>' +
-        '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Círculo permanente" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer">⊙ Marcar</button>' +
-        '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar marcas — clica numa marca para apagar, ou arrasta para apagar zona" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,80,80,.3);border-radius:4px;color:rgba(255,100,100,.6);cursor:pointer">⌫ Apagar</button>' +
-        // Color picker for drawings
-        '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor das marcas" ' +
-          'style="width:28px;height:28px;border:1px solid rgba(255,255,255,.15);border-radius:4px;background:transparent;cursor:pointer;padding:2px" ' +
+        '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">' +
+          '<span id="reviewZoomBadge" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.3);min-width:34px;text-align:right">100%</span>' +
+          '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:11px;padding:5px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.7);cursor:pointer;min-height:36px">✕</button>' +
+        '</div>' +
+      '</div>' +
+      // Row 2: W/L sliders + tools
+      '<div style="display:flex;align-items:center;gap:5px;padding:4px 10px 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">' +
+        // W/L group
+        '<div style="display:flex;align-items:center;gap:4px;padding:3px 7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;flex-shrink:0">' +
+          '<span style="font-family:'+mono+';font-size:8px;color:rgba(255,255,255,.35)">W</span>' +
+          '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px;width:55px;cursor:pointer;outline:none;min-height:22px">' +
+          '<span style="font-family:'+mono+';font-size:8px;color:rgba(255,255,255,.35)">L</span>' +
+          '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px;width:55px;cursor:pointer;outline:none;min-height:22px">' +
+          '<button onclick="if(window._reviewResetWL)window._reviewResetWL()" style="font-size:12px;padding:2px 5px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.3);cursor:pointer;min-height:26px" title="Reset">⊡</button>' +
+        '</div>' +
+        '<div style="width:1px;height:20px;background:rgba(255,255,255,.1);flex-shrink:0"></div>' +
+        '<button id="reviewBtnPointer" onclick="setReviewTool(\'pointer\')" title="Caneta temporária" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:32px">✏</button>' +
+        '<button id="reviewBtnFreeDraw" onclick="setReviewTool(\'freedraw\')" title="Desenho livre" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;min-height:32px">🖊</button>' +
+        '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Círculo" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;min-height:32px">⊙</button>' +
+        '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,80,80,.3);border-radius:4px;color:rgba(255,100,100,.6);cursor:pointer;flex-shrink:0;min-height:32px">⌫</button>' +
+        '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor" ' +
+          'style="width:32px;height:32px;border:1px solid rgba(255,255,255,.15);border-radius:4px;background:transparent;cursor:pointer;padding:2px;flex-shrink:0" ' +
           'onchange="window._reviewColor=this.value">' +
-        '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar lado a lado" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(74,201,201,.3);border-radius:4px;color:rgba(74,201,201,.7);cursor:pointer">⊞ Comparar</button>' +
-        '<button onclick="clearAllReviewMarks()" title="Limpar todas as marcas desta imagem" '+
-        'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer">🗑 Limpar</button>' +
-        '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:10px;padding:5px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.7);cursor:pointer">✕</button>' +
+        '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(74,201,201,.3);border-radius:4px;color:rgba(74,201,201,.7);cursor:pointer;flex-shrink:0;min-height:32px">⊞</button>' +
+        '<button onclick="clearAllReviewMarks()" title="Limpar marcas" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer;flex-shrink:0;min-height:32px">🗑</button>' +
       '</div>' +
     '</div>' +
 
@@ -7236,7 +7322,7 @@ function openReviewMode(startFromIdx) {
     '</div>' +
     '</div>' + // end reviewMainImgArea
 
-    // Findings panel
+    // Findings panel — hidden on mobile via CSS
     '<div id="reviewFindingsPanel" style="width:200px;flex-shrink:0;background:#11141a;border-left:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden">' +
       '<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.08em">ACHADOS</div>' +
       '<div id="reviewFindingsList" style="flex:1;overflow-y:auto;padding:8px"></div>' +
@@ -14983,19 +15069,52 @@ function isMobile() {
   return window.innerWidth <= 768;
 }
 
+function isLandscapeMobile() {
+  return window.innerWidth <= 1024 && window.innerWidth > window.innerHeight;
+}
+
 function mobInit() {
-  if (!isMobile()) {
-    // Desktop — limpar tudo
-    document.body.classList.remove('is-mobile');
+  var landscape = isLandscapeMobile();
+  var portrait  = isMobile();
+
+  if (!portrait && !landscape) {
+    // Desktop — reset tudo
+    document.body.classList.remove('is-mobile', 'is-landscape-mob');
     var sidebar = document.querySelector('.sidebar');
     var main    = document.querySelector('.main');
     if (sidebar) { sidebar.classList.remove('mob-active'); sidebar.style.cssText = ''; }
     if (main)    { main.classList.remove('mob-active');    main.style.cssText = ''; }
+    var nav = document.getElementById('mobNav');
+    if (nav) nav.style.cssText = '';
+    var hb = document.getElementById('btnMobMenu');
+    if (hb) hb.style.cssText = '';
     return;
   }
 
+  if (landscape) {
+    // Landscape mobile — sidebar + main lado a lado, sem bottom nav
+    document.body.classList.remove('is-mobile');
+    document.body.classList.add('is-landscape-mob');
+    _mobActive = false;
+
+    // Forçar sidebar e main visíveis
+    var sidebar = document.querySelector('.sidebar');
+    var main    = document.querySelector('.main');
+    if (sidebar) { sidebar.style.display = 'flex'; }
+    if (main)    { main.style.display = 'flex'; }
+
+    // Esconder bottom nav e hamburger
+    var nav = document.getElementById('mobNav');
+    if (nav) nav.style.cssText = 'display:none!important';
+    var hb = document.getElementById('btnMobMenu');
+    if (hb) hb.style.cssText = 'display:none!important';
+    return;
+  }
+
+  // Portrait mobile
   _mobActive = true;
   document.body.classList.add('is-mobile');
+  document.body.classList.remove('is-landscape-mob');
 
   // Mostrar bottom nav e hamburger
   var nav = document.getElementById('mobNav');
@@ -15006,7 +15125,7 @@ function mobInit() {
   // Activar tab inicial
   mobSwitchTab('form');
 
-  // Ajustar shell height (teclado virtual iOS) — só em mobile
+  // Ajustar shell height (teclado virtual iOS)
   function adjustHeight() {
     if (!isMobile()) return;
     var shell = document.querySelector('.shell');
@@ -15178,11 +15297,17 @@ if (document.readyState === 'loading') {
 
 // Re-inicializar ao rodar o ecrã
 window.addEventListener('orientationchange', function() {
-  setTimeout(function() {
-    if (isMobile()) {
-      mobInit();
-    }
-  }, 150);
+  setTimeout(mobInit, 200);
+});
+window.addEventListener('resize', function() {
+  // Reavalia landscape vs portrait vs desktop em resize
+  var wasLandscape = document.body.classList.contains('is-landscape-mob');
+  var wasMobile    = document.body.classList.contains('is-mobile');
+  var nowLandscape = isLandscapeMobile();
+  var nowPortrait  = isMobile();
+  if (wasLandscape !== nowLandscape || wasMobile !== nowPortrait) {
+    mobInit();
+  }
 });
 </script>
 

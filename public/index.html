@@ -398,6 +398,272 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   @page{size:A4 portrait;margin:14mm 12mm 16mm 12mm}
   @page:first{margin-top:10mm}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE — ≤ 768px
+   Layout: topbar minimalista + ecrã único + bottom nav com 3 tabs
+   Sidebar e main não coexistem — alternam via .mob-tab-*
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Topbar mobile ── */
+  .topbar {
+    height: 52px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .topbar-sep,
+  .topbar-tag,
+  .topbar-r > button:not(#btnMobMenu),
+  .topbar-r > div:not(#syncIndicator),
+  #reportMenuWrap,
+  #btnPrint,
+  #btnExport,
+  #btnHistory,
+  #btnSecondOp,
+  #btnAdminPanel,
+  #topbarUserInfo {
+    display: none !important;
+  }
+  /* Manter só: pulse+SISTEMA, botão menu hamburger */
+  .topbar-r {
+    gap: 6px;
+  }
+  /* Badge sync indicator — compacto */
+  #syncIndicator {
+    padding: 2px 6px;
+    font-size: 8px;
+  }
+  #syncLabel { display: none; }
+
+  /* ── Shell: coluna única ── */
+  .shell {
+    display: block !important;
+    height: calc(100vh - 52px - 64px); /* topbar + bottom nav */
+    margin-top: 52px;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar: ocupa tudo quando activa ── */
+  .sidebar {
+    height: 100%;
+    width: 100%;
+    border-right: none;
+    display: none; /* controlado por JS */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar.mob-active {
+    display: flex;
+  }
+
+  /* ── Main: ocupa tudo quando activo ── */
+  .main {
+    height: 100%;
+    width: 100%;
+    display: none;
+  }
+  .main.mob-active {
+    display: flex;
+  }
+
+  /* ── Campos maiores para dedos com luvas ── */
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px !important; /* evita zoom no iOS */
+    padding: 11px 12px;
+    min-height: 44px;
+  }
+  .field label {
+    font-size: 10px;
+    margin-bottom: 5px;
+  }
+  .row2 { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ── Drop zone mobile — grande, fácil de tocar ── */
+  .drop {
+    min-height: 110px;
+    padding: 20px 16px;
+  }
+  .drop-title { font-size: 15px; }
+  .drop-sub { font-size: 11px; }
+
+  /* ── Thumb grid: 4 colunas compactas ── */
+  .thumb-grid { grid-template-columns: repeat(4,1fr); gap: 5px; }
+  .thumb-x { opacity: 1 !important; width: 18px; height: 18px; font-size: 11px; }
+
+  /* ── Botão Gerar Relatório — destaque total ── */
+  .sb-footer {
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .btn-run {
+    font-size: 15px;
+    padding: 14px;
+    border-radius: 8px;
+  }
+
+  /* ── Seções sidebar: padding confortável ── */
+  .sb { padding: 14px 14px; }
+
+  /* ── Bottom navigation bar ── */
+  #mobNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--ink1);
+    border-top: 1px solid var(--wire2);
+    display: flex;
+    z-index: 300;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .mob-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--t3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .mob-nav-btn .mob-nav-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+  .mob-nav-btn.active {
+    color: var(--gold);
+  }
+  .mob-nav-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: var(--gold);
+    border-radius: 0 0 2px 2px;
+  }
+  /* Tab resultado: realça quando há relatório */
+  #mobNavResult.has-result {
+    color: var(--amber);
+  }
+  #mobNavResult.has-result .mob-nav-icon::after {
+    content: '●';
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    font-size: 8px;
+    color: var(--amber);
+  }
+
+  /* ── Menu overlay mobile (hamburger) ── */
+  #mobMenuOverlay {
+    position: fixed;
+    inset: 52px 0 0 0;
+    background: rgba(0,0,0,.85);
+    z-index: 250;
+    display: none;
+    flex-direction: column;
+    padding: 16px;
+    gap: 8px;
+    overflow-y: auto;
+  }
+  #mobMenuOverlay.open { display: flex; }
+  .mob-menu-btn {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--ink2);
+    border: 1px solid var(--wire2);
+    border-radius: 8px;
+    color: var(--t1);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mob-menu-btn:active { background: var(--ink3); }
+
+  /* ── Relatório mobile: padding confortável ── */
+  .report {
+    padding: 16px 14px 32px !important;
+  }
+  .rpt-head { padding-bottom: 12px !important; margin-bottom: 14px !important; }
+
+  /* ── Botão Partilhar (Web Share API) — aparece no resultado ── */
+  #btnMobShare {
+    display: flex !important;
+    position: fixed;
+    bottom: 72px;
+    right: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    font-size: 22px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(201,168,76,.4);
+    z-index: 290;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .15s;
+  }
+  #btnMobShare:active { transform: scale(.93); }
+  #btnMobShare.hidden { display: none !important; }
+
+  /* ── Modais: full-screen no mobile ── */
+  .ppe-modal,
+  #distillModal > div,
+  #compareModal > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+  .ppe-overlay,
+  #distillModal,
+  #compareModal {
+    padding: 0 !important;
+    align-items: flex-start !important;
+  }
+
+  /* ── Chat panel mobile ── */
+  .chat-body { max-height: 260px; }
+  .chat-bubble { max-width: 88%; font-size: 13px; }
+  .chat-input { font-size: 16px !important; }
+
+  /* ── Horse select dropdown maior ── */
+  #horseSelect { font-size: 15px; padding: 10px 12px; min-height: 44px; }
+}
+
+/* iOS safe area para notch/home indicator */
+@supports (padding: env(safe-area-inset-bottom)) {
+  @media (max-width: 768px) {
+    #mobNav { height: calc(64px + env(safe-area-inset-bottom)); }
+    #btnMobShare { bottom: calc(72px + env(safe-area-inset-bottom)); }
+  }
+}
 </style>
 <style>
 /* ═══ CHAT PÓS-RELATÓRIO ════════════════════════════════════════════ */
@@ -825,6 +1091,8 @@ window.addEventListener('DOMContentLoaded', function() {
       <button onclick="doLogout()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid var(--wire);padding:4px 8px;border-radius:3px;cursor:pointer;letter-spacing:.05em" title="Sair">⏻</button>
     </div>
     <span class="pulse"></span>SISTEMA ACTIVO
+    <!-- Hamburger mobile — só visível em mobile via JS -->
+    <button id="btnMobMenu" onclick="toggleMobMenu()" style="display:none;background:transparent;border:1px solid var(--wire2);border-radius:5px;color:var(--t2);font-size:16px;width:36px;height:36px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0" title="Menu">☰</button>
   </div>
 </div>
 
@@ -1071,7 +1339,41 @@ window.addEventListener('DOMContentLoaded', function() {
 
 </aside>
 
-<!-- MODAL DESTILAÇÃO -->
+<!-- ══ BOTTOM NAV MOBILE ══════════════════════════════════════════ -->
+<nav id="mobNav" style="display:none">
+  <button class="mob-nav-btn active" id="mobNavForm" onclick="mobSwitchTab('form')">
+    <span class="mob-nav-icon">📂</span>
+    <span>Imagens</span>
+  </button>
+  <button class="mob-nav-btn" id="mobNavResult" onclick="mobSwitchTab('result')">
+    <span class="mob-nav-icon">📋</span>
+    <span>Relatório</span>
+  </button>
+  <button class="mob-nav-btn" id="mobNavHorses" onclick="mobSwitchTab('horses')">
+    <span class="mob-nav-icon">🐴</span>
+    <span>Cavalos</span>
+  </button>
+</nav>
+
+<!-- ══ FAB PARTILHAR ══════════════════════════════════════════════ -->
+<button id="btnMobShare" class="hidden" onclick="mobShare()" title="Partilhar relatório" style="display:none">
+  ↑
+</button>
+
+<!-- ══ MENU OVERLAY MOBILE (hamburger) ═══════════════════════════ -->
+<div id="mobMenuOverlay">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;padding:4px 2px 8px">Menu</div>
+  <button class="mob-menu-btn" onclick="mobMenuAction('calibrations')">⚙ <span>Calibrações</span></button>
+  <button class="mob-menu-btn" onclick="mobMenuAction('intelligence')">🧠 <span>Inteligência</span></button>
+  <button class="mob-menu-btn" id="mobMenuPPE" onclick="mobMenuAction('ppe')" style="color:var(--red)">🏇 <span>Parecer PPE</span></button>
+  <button class="mob-menu-btn" id="mobMenuSecondOp" onclick="mobMenuAction('secondop')">🔄 <span>2ª Opinião</span></button>
+  <button class="mob-menu-btn" id="mobMenuCompare" onclick="mobMenuAction('compare')">⇄ <span>Comparar Exames</span></button>
+  <button class="mob-menu-btn" id="mobMenuPDF" onclick="mobMenuAction('pdf')">⎙ <span>Exportar PDF</span></button>
+  <div style="flex:1"></div>
+  <button class="mob-menu-btn" onclick="doLogout();closeMobMenu()" style="color:var(--red);border-color:rgba(224,85,85,.3)">⏻ <span>Sair</span></button>
+</div>
+
+
 <div id="distillModal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;width:100%;max-width:620px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire)">
@@ -6674,6 +6976,7 @@ var _reviewPointer = null;  // canvas overlay para caneta temporária
 var _reviewPointerTimer = null;
 var _reviewPermanentMarks = {}; // imgName → [{x,y,r,color}]
 var _reviewMarkMode = false; // tr
+var _annotations = {};      // imgName → [{type,x,y,r,color,label}]
 var _pointerMarks = {};     // imgName → [{nx,ny}] persistent pointer dotsue = círculo permanente, false = caneta temporária
 
 // Sugestões IA por imagem — construídas a partir de S.lastResult.achados
@@ -14352,6 +14655,182 @@ function printPPEResult() {
     return origFetch.call(this, url, opts);
   };
 })();
+</script>
+
+<script>
+// ══ MOBILE LAYOUT — detecção e lógica de tabs ═══════════════════════════════
+
+var _mobActive = false;
+var _mobTab = 'form'; // 'form' | 'result' | 'horses'
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+function mobInit() {
+  if (!isMobile()) return;
+  _mobActive = true;
+
+  // Mostrar bottom nav e hamburger
+  var nav = document.getElementById('mobNav');
+  if (nav) nav.style.display = 'flex';
+  var hb = document.getElementById('btnMobMenu');
+  if (hb) hb.style.display = 'flex';
+
+  // Activar tab inicial
+  mobSwitchTab('form');
+
+  // Ajustar shell height ao resize (teclado virtual iOS)
+  window.addEventListener('resize', function() {
+    var shell = document.querySelector('.shell');
+    if (!shell) return;
+    var navH = 64;
+    var tbH  = 52;
+    shell.style.height = (window.innerHeight - tbH - navH) + 'px';
+  });
+}
+
+function mobSwitchTab(tab) {
+  if (!isMobile()) return;
+  _mobTab = tab;
+
+  var sidebar = document.querySelector('.sidebar');
+  var main    = document.querySelector('.main');
+
+  // Fechar menu se aberto
+  closeMobMenu();
+
+  // Activar o painel certo
+  if (tab === 'form') {
+    if (sidebar) { sidebar.style.display = 'flex'; sidebar.classList.add('mob-active'); }
+    if (main)    { main.style.display = 'none';  main.classList.remove('mob-active'); }
+  } else if (tab === 'result') {
+    if (sidebar) { sidebar.style.display = 'none'; sidebar.classList.remove('mob-active'); }
+    if (main)    { main.style.display = 'flex';  main.classList.add('mob-active'); }
+    // Mostrar FAB partilhar se há relatório
+    updateMobShareBtn();
+  } else if (tab === 'horses') {
+    // Abre o painel de cavalos existente (funciona sobre qualquer vista)
+    openCavalosPanel();
+    return; // não altera sidebar/main
+  }
+
+  // Actualizar estado visual dos botões
+  ['mobNavForm','mobNavResult','mobNavHorses'].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  var activeId = tab === 'form' ? 'mobNavForm' : tab === 'result' ? 'mobNavResult' : 'mobNavHorses';
+  var activeBtn = document.getElementById(activeId);
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+// Chamado quando relatório fica pronto — ir automaticamente para tab resultado
+function mobOnReportReady() {
+  if (!isMobile()) return;
+  var btn = document.getElementById('mobNavResult');
+  if (btn) btn.classList.add('has-result');
+  mobSwitchTab('result');
+}
+
+function updateMobShareBtn() {
+  var fab = document.getElementById('btnMobShare');
+  if (!fab) return;
+  if (isMobile() && S.lastResult) {
+    fab.classList.remove('hidden');
+    fab.style.display = 'flex';
+  } else {
+    fab.classList.add('hidden');
+    fab.style.display = 'none';
+  }
+}
+
+// Web Share API — partilha resumo do relatório
+function mobShare() {
+  if (!S.lastResult) { showToast('Ainda não há relatório para partilhar'); return; }
+  var r    = S.lastResult;
+  var info = S._lastInfo || {};
+
+  // Construir resumo
+  var nome  = info.name  || info.horse || 'Cavalo';
+  var raca  = info.breed || '';
+  var idade = info.age   || '';
+  var score = r.score_global || r.score || '';
+  var class_ = r.classificacao_global || r.classificacao || '';
+
+  var achados = (r.achados || r.findings || []).slice(0, 5);
+  var linhas  = achados.map(function(a) {
+    var emoji = (a.grau||'').toLowerCase().includes('normal') ? '🟢' :
+                (a.grau||'').toLowerCase().includes('ligei')  ? '🟡' :
+                (a.grau||'').toLowerCase().includes('mode')   ? '🟠' : '🔴';
+    return emoji + ' ' + (a.estrutura || a.structure || '') + ' — ' + (a.grau || a.grade || '');
+  }).join('\n');
+
+  var texto = '🐴 ' + nome + (raca ? ' · ' + raca : '') + (idade ? ' · ' + idade + 'a' : '') + '\n';
+  if (score) texto += '📊 Score: ' + score + '/100';
+  if (class_) texto += ' — ' + class_;
+  texto += '\n─────────────────\n';
+  texto += linhas;
+  texto += '\n─────────────────\nGerado por EquiScan Pro';
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'Relatório EquiScan — ' + nome,
+      text:  texto
+    }).catch(function(){});
+  } else {
+    // Fallback: copiar para clipboard
+    navigator.clipboard.writeText(texto).then(function() {
+      showToast('✓ Relatório copiado para a área de transferência');
+    }).catch(function() {
+      showToast('Partilha não disponível neste browser');
+    });
+  }
+}
+
+// Hamburger menu
+function toggleMobMenu() {
+  var ov = document.getElementById('mobMenuOverlay');
+  if (!ov) return;
+  ov.classList.toggle('open');
+}
+function closeMobMenu() {
+  var ov = document.getElementById('mobMenuOverlay');
+  if (ov) ov.classList.remove('open');
+}
+function mobMenuAction(action) {
+  closeMobMenu();
+  if (action === 'calibrations')  { showCalibrationsPanel(); }
+  else if (action === 'intelligence') { openIntelligencePanel(); }
+  else if (action === 'ppe')       { openPPEModal(); }
+  else if (action === 'secondop')  { runSecondOpinion(); }
+  else if (action === 'compare')   { openCompareModal(); }
+  else if (action === 'pdf')       { printReport(); }
+}
+
+// Hook no fim de run() para detectar relatório pronto em mobile
+(function() {
+  var _origShowFinalReportBtn = window.showFinalReportBtn;
+  window.showFinalReportBtn = function() {
+    if (_origShowFinalReportBtn) _origShowFinalReportBtn();
+    mobOnReportReady();
+    updateMobShareBtn();
+  };
+})();
+
+// Inicializar ao carregar
+window.addEventListener('DOMContentLoaded', function() {
+  mobInit();
+});
+
+// Re-inicializar ao rodar o ecrã
+window.addEventListener('orientationchange', function() {
+  setTimeout(function() {
+    if (isMobile()) {
+      mobInit();
+    }
+  }, 150);
+});
 </script>
 
 </body>

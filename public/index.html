@@ -1123,7 +1123,7 @@ window.addEventListener('DOMContentLoaded', function() {
       <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">IA · Radiologia Equina</div>
       <!-- Steps -->
       <div style="display:flex;flex-direction:column;gap:12px">
-        <div id="ph-step1" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">
+        <div id="ph-step1" onclick="document.getElementById('fileIn').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(201,168,76,.5)';this.style.background='var(--ink3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)';this.style.background='var(--ink2)'">
           <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📂</div>
           <div>
             <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Carregar radiografias</div>
@@ -1131,7 +1131,7 @@ window.addEventListener('DOMContentLoaded', function() {
           </div>
           <div id="ph-step1-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>
         </div>
-        <div id="ph-step2" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">
+        <div id="ph-step2" onclick="openCavalosPanel()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(74,201,201,.4)';this.style.background='var(--ink3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)';this.style.background='var(--ink2)'">
           <div style="width:28px;height:28px;border-radius:50%;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🐴</div>
           <div>
             <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Seleccionar cavalo</div>
@@ -1139,11 +1139,11 @@ window.addEventListener('DOMContentLoaded', function() {
           </div>
           <div id="ph-step2-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px">
+        <div onclick="document.getElementById('runBtn').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(74,170,122,.4)';this.style.background='var(--ink3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)';this.style.background='var(--ink2)'">
           <div style="width:28px;height:28px;border-radius:50%;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">▶</div>
           <div>
             <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Gerar Relatório</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">Botão dourado em baixo à esquerda</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">Carrega imagens primeiro — depois clica aqui</div>
           </div>
         </div>
       </div>
@@ -1224,9 +1224,19 @@ function getBreedRisk(breed){
 }
 
 function clearImages(){
+  // Reset ALL analysis state
   S.imgs=[];S.idx=0;
-  // Reset compare mode
+  S.lastResult = null;
+  S._lastBatch = null;
+  S._lastInfo = null;
+  S.identMap = {};
+  S.identValidation = {};
   S._compareMode = false;
+  S._calibContext = '';
+  S._confContext = '';
+  S._confidenceMap = {};
+  S._horseContext = '';
+  S._webSearchContext = '';
   // Reset chat state
   _chatOpen = false;
   _chatHistory = [];
@@ -1251,22 +1261,22 @@ function clearImages(){
     '<div style="font-family:\'Lora\',serif;font-size:22px;font-style:italic;color:var(--t2);text-align:center;margin-bottom:6px;opacity:.5">Relatório Radiológico</div>'+
     '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">IA · Radiologia Equina</div>'+
     '<div style="display:flex;flex-direction:column;gap:12px">'+
-    '<div id="ph-step1" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">'+
+    '<div id="ph-step1" onclick="document.getElementById(\'fileIn\').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor=\'rgba(201,168,76,.5)\';this.style.background=\'var(--ink3)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.background=\'var(--ink2)\'">'+
       '<div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📂</div>'+
       '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Carregar radiografias</div>'+
       '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">JPG · PNG · PDF · DICOM · até 60 imagens</div></div>'+
       '<div id="ph-step1-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>'+
     '</div>'+
-    '<div id="ph-step2" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">'+
+    '<div id="ph-step2" onclick="openCavalosPanel()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor=\'rgba(74,201,201,.4)\';this.style.background=\'var(--ink3)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.background=\'var(--ink2)\'">'+
       '<div style="width:28px;height:28px;border-radius:50%;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🐴</div>'+
       '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Seleccionar cavalo</div>'+
       '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)" id="ph-step2-sub">Opcional — activa histórico e evolução</div></div>'+
       '<div id="ph-step2-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>'+
     '</div>'+
-    '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px">'+
+    '<div onclick="document.getElementById(\'runBtn\').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor=\'rgba(74,170,122,.4)\';this.style.background=\'var(--ink3)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.background=\'var(--ink2)\'">'+
       '<div style="width:28px;height:28px;border-radius:50%;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">▶</div>'+
       '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Gerar Relatório</div>'+
-      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">Botão dourado em baixo à esquerda</div></div>'+
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">Carrega imagens primeiro — depois clica aqui</div></div>'+
     '</div>'+
     '</div></div></div>';
 }
@@ -2788,6 +2798,10 @@ async function run(){
   // Reset state from any previous analysis
   S._compareMode = false;
   var key=document.getElementById('fKey').value.trim();
+  if(!key || key.length < 20){
+    showAlert({title:'API Key em falta', msg:'Preenche a API Key da Anthropic antes de gerar o relatório.\n\nPodes obter a tua key em console.anthropic.com', type:'error'});
+    return;
+  }
   var info={
     name:  document.getElementById('fName').value.trim()||'Não identificado',
     breed: document.getElementById('fBreed').value||'Não especificada',
@@ -2803,6 +2817,8 @@ async function run(){
     horse_id: window._selectedHorseId || '',
     horse_historico: buildHorseHistoricoBlock(window._selectedHorseId)
   };
+  // Aliases for consumers that expect different key names
+  info.horse = info.name;
 
   // Warn if few images — likely incomplete session
   if(S.imgs.length<8){
@@ -7231,6 +7247,12 @@ function closeReviewMode(generateReport) {
   }
 }
 
+// ── Show report menu after review mode closes with an existing result ──
+function showFinalReportBtn() {
+  var rmw = document.getElementById('reportMenuWrap');
+  if (rmw) rmw.style.display = 'block';
+}
+
 // Add review notes to final report generation context
 var _reviewContextNotes = {};
 
@@ -10134,18 +10156,18 @@ function openCaseStudyModal() {
 
   // Pre-preencher com cavalo seleccionado na sidebar
   try {
-    if (S._selectedHorseId) {
-      var horses = JSON.parse(localStorage.getItem('eq_horses_v1')||'[]');
-      var h = horses.find(function(x){ return x.id === S._selectedHorseId; });
+    if (window._selectedHorseId) {
+      var horses = loadHorses();
+      var h = horses.find(function(x){ return x.id === window._selectedHorseId; });
       if (h) {
         var elH = document.getElementById('csHorse');
         var elB = document.getElementById('csBreed');
         var elA = document.getElementById('csAge');
         var elD = document.getElementById('csDisc');
-        if (elH && !elH.value) elH.value = h.name || '';
-        if (elB && !elB.value) elB.value = h.breed || '';
-        if (elA && !elA.value) elA.value = h.age || '';
-        if (elD && !elD.value) elD.value = h.discipline || '';
+        if (elH && !elH.value) elH.value = h.nome || '';
+        if (elB && !elB.value) elB.value = h.raca || '';
+        if (elA && !elA.value) elA.value = h.idade || '';
+        if (elD && !elD.value) elD.value = h.disciplina || '';
       }
     }
   } catch(e) {}
@@ -11175,7 +11197,7 @@ function openHorseProfileModal(horseId) {
     +'<div style="font-size:14px;font-weight:700;color:var(--gold)">🐴 '+horse.nome+'</div>'
     +'<div style="font-family:'+mono+';font-size:9px;color:var(--t3);margin-top:2px">'+(horse.raca||'')+(horse.idade?' · '+horse.idade+' anos':'')+(horse.disciplina?' · '+horse.disciplina:'')+'</div>'
     +'</div>'
-    +'<button onclick=\'document.getElementById(\'horseProfileOverlay\').remove()\' style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">×</button>'
+    +'<button onclick="closeHorseProfile()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">×</button>'
     +'</div>'
     +'<div style="padding:16px 18px">'
     // Stats row
@@ -11197,16 +11219,32 @@ function openHorseProfileModal(horseId) {
     +'<div style="margin-top:12px">'
     +'<div style="font-family:'+mono+';font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Adicionar nota ao último exame</div>'
     +'<textarea id="hpExamNote" rows="2" placeholder="ex: Melhorou após repouso, iniciou fisioterapia..." style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;padding:7px 9px;font-family:'+mono+';font-size:10px;color:var(--t1);resize:vertical;box-sizing:border-box"></textarea>'
-    +'<button onclick=\'saveHorseExamNote(\'+horseId+\')\' style="margin-top:6px;font-family:'+mono+';font-size:10px;padding:7px 14px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer">💾 Guardar nota</button>'
+    +'<button onclick=\'saveHorseExamNote("'+horseId+'")\' style="margin-top:6px;font-family:'+mono+';font-size:10px;padding:7px 14px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer">💾 Guardar nota</button>'
     +'</div>'
     +'</div>'
     +'<div style="padding:10px 18px;border-top:1px solid var(--wire);display:flex;gap:8px">'
-    +'<button onclick=\'document.getElementById(\'horseProfileOverlay\').remove()\' style="flex:1;font-family:'+mono+';font-size:10px;padding:8px;background:rgba(74,201,201,.1);border:1px solid rgba(74,201,201,.3);border-radius:5px;color:var(--ice);cursor:pointer">Fechar</button>'
-    +'<button onclick=\'deleteHorse(\'+horseId+\')\' style="font-family:'+mono+';font-size:10px;padding:8px 14px;background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.3);border-radius:5px;color:var(--red);cursor:pointer">🗑 Apagar cavalo</button>'
+    +'<button onclick=\'closeHorseProfile()\' style="flex:1;font-family:'+mono+';font-size:10px;padding:8px;background:rgba(74,201,201,.1);border:1px solid rgba(74,201,201,.3);border-radius:5px;color:var(--ice);cursor:pointer">Fechar</button>'
+    +'<button onclick=\'deleteHorse("'+horseId+'")\' style="font-family:'+mono+';font-size:10px;padding:8px 14px;background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.3);border-radius:5px;color:var(--red);cursor:pointer">🗑 Apagar cavalo</button>'
     +'</div>'
     +'</div>';
 
   document.body.appendChild(ov);
+}
+
+function closeHorseProfile() {
+  var ov = document.getElementById('horseProfileOverlay');
+  if(ov) ov.remove();
+  // Se há relatório gerado, mostra-o; se há imagens, mantém viewer; senão volta ao placeholder
+  if(S.lastResult) {
+    // Relatório já está no main — não fazer nada, só fechar o overlay
+    return;
+  }
+  // Se o ecrã principal está vazio (sem relatório, sem imagens), garante que o placeholder está visível
+  var main = document.getElementById('main');
+  if(main && !document.getElementById('ph') && !S.imgs.length) {
+    // Recria o placeholder se foi destruído
+    clearImages();
+  }
 }
 
 function saveHorseExamNote(horseId) {
@@ -11334,38 +11372,17 @@ function sbSelect(table, params) {
 }
 
 // Generic UPSERT (insert or update by client_id)
+// Uses PostgREST native upsert: POST with Prefer: resolution=merge-duplicates
+// This correctly inserts new rows AND updates existing ones by primary key.
 function sbUpsert(table, data) {
-  // Use PATCH by client_id if record may already exist — avoids 409 conflict
-  var clientId = data.client_id;
-  if (clientId) {
-    // Try PATCH first (update existing)
-    return fetch(sbUrl(table, 'client_id=eq.' + encodeURIComponent(clientId)), {
-      method: 'PATCH',
-      headers: Object.assign({}, sbHeaders(), { 'Prefer': 'return=minimal' }),
-      body: JSON.stringify(data)
-    }).then(function(r) {
-      if (r.status === 404 || r.status === 406) {
-        // Not found — fall back to INSERT
-        return fetch(sbUrl(table), {
-          method: 'POST',
-          headers: Object.assign({}, sbHeaders(), { 'Prefer': 'return=minimal' }),
-          body: JSON.stringify(data)
-        }).then(function(r2) {
-          if (!r2.ok) return r2.text().then(function(t){ throw new Error('sbInsert ' + table + ': ' + t); });
-          return [];
-        });
-      }
-      if (!r.ok) return r.text().then(function(t){ throw new Error('sbPatch ' + table + ': ' + t); });
-      return [];
-    });
-  }
-  // No client_id — plain insert
   return fetch(sbUrl(table), {
     method: 'POST',
-    headers: Object.assign({}, sbHeaders(), { 'Prefer': 'return=minimal' }),
+    headers: Object.assign({}, sbHeaders(), {
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    }),
     body: JSON.stringify(data)
   }).then(function(r) {
-    if (!r.ok) return r.text().then(function(t){ throw new Error('sbInsert ' + table + ': ' + t); });
+    if (!r.ok) return r.text().then(function(t){ throw new Error('sbUpsert ' + table + ': ' + t); });
     return [];
   });
 }
@@ -11765,7 +11782,8 @@ function saveExamForHorse(horseId, reportResult, score, classe) {
     classe:       exam.classe,
     n_achados:    exam.achados,
     achados_json: JSON.stringify(exam.achados_detalhe || []),
-    result_json:  exam.result_json ? JSON.stringify(exam.result_json) : null,
+    result_json:  reportResult ? JSON.stringify(reportResult) : null,
+    model_version: (reportResult && reportResult._model) || null,
     ref:          exam.ref,
     user_name:    (AUTH && AUTH.user) || 'unknown'
   });
@@ -13689,11 +13707,16 @@ async function sendChat() {
     rptCtx = 'RELATÓRIO JSON:\n' + JSON.stringify(S.lastResult).slice(0, 6000);
   } catch(e) {}
   var info = S._lastInfo || {};
-  var infoCtx = 'Cavalo: ' + (info.horse||'—') + ' | Raça: ' + (info.breed||'—') + ' | Idade: ' + (info.age||'—') + ' | Disciplina: ' + (info.disc||'—') + ' | Veterinário: ' + (info.vet||'—');
+  var infoCtx = 'Cavalo: ' + (info.name||'—') + ' | Raça: ' + (info.breed||'—') + ' | Idade: ' + (info.age||'—') + ' | Disciplina: ' + (info.disc||'—') + ' | Veterinário: ' + ((document.getElementById('fVet')&&document.getElementById('fVet').value)||'—');
 
   var sysPrompt = 'És o Assistente Clínico do EquiScan Pro, especialista em radiologia equina. Tens acesso ao relatório radiológico completo abaixo e respondes exclusivamente com base nesse contexto. Responde sempre em português de Portugal. Sê preciso, clínico e conciso. Quando adequado, usa bullet points.\n\n' + infoCtx + '\n\n' + rptCtx;
 
   var apiKey = (document.getElementById('fKey') && document.getElementById('fKey').value) || '';
+  if (!apiKey || apiKey.length < 20) {
+    if(loadBubble) loadBubble.innerHTML = '<span style="color:var(--red)">❌ API Key não configurada. Preenche o campo API Key na barra lateral.</span>';
+    if(btn) btn.disabled = false;
+    return;
+  }
   var messages = _chatHistory.slice(-10); // keep last 10 turns
 
   try {
@@ -13706,7 +13729,7 @@ async function sendChat() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: sysPrompt,
         messages: messages
@@ -13761,7 +13784,7 @@ function openCompareModal() {
   exams = exams.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
 
   if(exams.length < 1) {
-    showAlert('Sem exames anteriores para comparar. Selecciona um cavalo com histórico.');
+    showAlert({title:'Sem histórico', msg:'Sem exames anteriores para comparar. Selecciona um cavalo com histórico.', type:'info'});
     return;
   }
 
@@ -14213,6 +14236,14 @@ async function generatePPE() {
       ].join('\n');
 
   var apiKey = (document.getElementById('fKey') && document.getElementById('fKey').value) || '';
+  if (!apiKey || apiKey.length < 20) {
+    var sp3 = document.getElementById('ppeSpinner');
+    if(sp3) sp3.remove();
+    if(form) form.style.display = '';
+    if(genBtn) { genBtn.textContent = '🏇 GERAR PARECER PPE'; genBtn.disabled = false; }
+    showToast('❌ API Key não configurada. Preenche o campo API Key na barra lateral.', 'error');
+    return;
+  }
 
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -14224,7 +14255,7 @@ async function generatePPE() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1200,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]

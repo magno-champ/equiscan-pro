@@ -759,6 +759,62 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   /* ── Btn test / testar ligação — esconder no mobile ── */
   .btn-test, #testOut { display: none !important; }
   .run-hint { font-size: 10px !important; }
+
+  /* ══ TOGGLE RÁPIDO / COMPLETO ══════════════════════════════════
+     Rápido: só upload + cavalo + disciplina + sintomas + analisar
+     Completo: tudo visível
+  ════════════════════════════════════════════════════════════════ */
+  #mobModeToggle {
+    display: flex !important;
+    margin: 10px 14px 4px;
+    background: var(--ink3);
+    border: 1px solid var(--wire2);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .mob-mode-btn {
+    flex: 1;
+    padding: 9px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    border: none;
+    background: transparent;
+    color: var(--t3);
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mob-mode-btn.active {
+    background: var(--gold);
+    color: #000;
+    font-weight: 700;
+  }
+
+  /* ── MODO RÁPIDO: esconder campos secundários ── */
+  .sidebar:not(.mob-mode-full) .field:has(#fPerfil),
+  .sidebar:not(.mob-mode-full) .field:has(#fClinic),
+  .sidebar:not(.mob-mode-full) .field:has(#fVet),
+  .sidebar:not(.mob-mode-full) .field:has(#fFlexoes),
+  .sidebar:not(.mob-mode-full) .field:has(#fHist),
+  .sidebar:not(.mob-mode-full) #sbPaciente .row2,
+  .sidebar:not(.mob-mode-full) .field:has(#fWeight),
+  .sidebar:not(.mob-mode-full) .field:has(#fSex),
+  .sidebar:not(.mob-mode-full) #sbMemoria,
+  .sidebar:not(.mob-mode-full) #datasetConsent,
+  .sidebar:not(.mob-mode-full) #sbToolsPanel,
+  .sidebar:not(.mob-mode-full) .sb-tools-toggle {
+    display: none !important;
+  }
+
+  /* ── MODO RÁPIDO: botão analisar maior ── */
+  .sidebar:not(.mob-mode-full) .btn-run {
+    font-size: 17px !important;
+    padding: 16px !important;
+    border-radius: 10px !important;
+  }
 }
 
 /* iOS safe area para notch/home indicator */
@@ -1205,6 +1261,12 @@ window.addEventListener('DOMContentLoaded', function() {
 
   <!-- ══ SCROLL AREA ══════════════════════════════════════════ -->
   <div class="sb-scroll">
+
+    <!-- TOGGLE RÁPIDO/COMPLETO — só aparece em mobile via CSS -->
+    <div id="mobModeToggle" style="display:none">
+      <button class="mob-mode-btn active" id="mobModeBtnFast" onclick="setMobMode('fast')">⚡ Rápido</button>
+      <button class="mob-mode-btn" id="mobModeBtnFull" onclick="setMobMode('full')">☰ Completo</button>
+    </div>
 
     <!-- DROP / VIEWER -->
     <div class="sb">
@@ -14771,12 +14833,28 @@ function isMobile() {
   return window.innerWidth <= 768;
 }
 
+function setMobMode(mode) {
+  var sidebar = document.querySelector('.sidebar');
+  var btnFast = document.getElementById('mobModeBtnFast');
+  var btnFull = document.getElementById('mobModeBtnFull');
+  if (mode === 'full') {
+    if (sidebar) sidebar.classList.add('mob-mode-full');
+    if (btnFast) btnFast.classList.remove('active');
+    if (btnFull) btnFull.classList.add('active');
+  } else {
+    if (sidebar) sidebar.classList.remove('mob-mode-full');
+    if (btnFast) btnFast.classList.add('active');
+    if (btnFull) btnFull.classList.remove('active');
+  }
+  try { localStorage.setItem('eq_mob_mode', mode); } catch(e) {}
+}
+
 function mobInit() {
   if (!isMobile()) {
     // Garantir desktop intacto — remover quaisquer classes mobile residuais
     var sidebar = document.querySelector('.sidebar');
     var main    = document.querySelector('.main');
-    if (sidebar) { sidebar.classList.remove('mob-active'); sidebar.style.display = ''; }
+    if (sidebar) { sidebar.classList.remove('mob-active'); sidebar.classList.remove('mob-mode-full'); sidebar.style.display = ''; }
     if (main)    { main.classList.remove('mob-active');    main.style.display = ''; }
     return;
   }
@@ -14790,6 +14868,12 @@ function mobInit() {
 
   // Activar tab inicial
   mobSwitchTab('form');
+
+  // Restaurar modo rápido/completo
+  try {
+    var savedMode = localStorage.getItem('eq_mob_mode') || 'fast';
+    setMobMode(savedMode);
+  } catch(e) { setMobMode('fast'); }
 
   // Ajustar shell height ao resize (teclado virtual iOS) — só em mobile
   window.addEventListener('resize', function() {

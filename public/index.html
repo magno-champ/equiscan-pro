@@ -4635,9 +4635,11 @@ function callApi(key,batch,info,bNum,bTotal){
   var calibBlock = results[1] || '';
   return new Promise(function(resolve,reject){
     var mIdx=0;
+    var _retryCount=0;
+    var MAX_RETRIES=3;
     function attempt(){
       if(mIdx>=C.MODELS.length){reject(new Error('Todos os modelos falharam no lote '+bNum));return;}
-      var model=C.MODELS[mIdx%C.MODELS.length]||C.MODELS[0];
+      var model=C.MODELS[mIdx]||C.MODELS[0];
       var content=[];
       batch.imgs.forEach(function(b64){
         content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
@@ -4681,8 +4683,14 @@ function callApi(key,batch,info,bNum,bTotal){
       })
       .then(function(resp) {
         if (resp.status === 401) { reject(new Error('API Key inválida (401)')); return; }
-        if (resp.status === 429) { setTimeout(attempt, 8000); return; }
-        if (resp.status === 529) { setTimeout(attempt, 5000); return; }
+        if (resp.status === 429) {
+          if(++_retryCount > MAX_RETRIES){ mIdx++; _retryCount=0; attempt(); return; }
+          setTimeout(attempt, 8000 * _retryCount); return;
+        }
+        if (resp.status === 529) {
+          if(++_retryCount > MAX_RETRIES){ mIdx++; _retryCount=0; attempt(); return; }
+          setTimeout(attempt, 5000 * _retryCount); return;
+        }
         if (!resp.ok) { mIdx++; attempt(); return; }
 
         var reader = resp.body.getReader();
@@ -4744,7 +4752,10 @@ function callApi(key,batch,info,bNum,bTotal){
         xhr.timeout = C.TIMEOUT;
         xhr.onload = function() {
           if (xhr.status === 401) { reject(new Error('API Key inválida (401)')); return; }
-          if (xhr.status === 429) { setTimeout(attempt, 8000); return; }
+          if (xhr.status === 429) {
+            if(++_retryCount > MAX_RETRIES){ mIdx++; _retryCount=0; attempt(); return; }
+            setTimeout(attempt, 8000 * _retryCount); return;
+          }
           if (xhr.status !== 200) { mIdx++; attempt(); return; }
           try {
             var data = JSON.parse(xhr.responseText);

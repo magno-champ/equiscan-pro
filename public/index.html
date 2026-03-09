@@ -3044,6 +3044,12 @@ async function run(){
 
   var confContext = '';
   var totalRefs = Object.values(confidenceMap).reduce(function(a,b){return a+b;}, 0);
+  var confAlta = [], confMedia = [], confBaixa = [], confNenhuma = [];
+  Object.entries(confidenceMap).forEach(function(e){
+    if(e[1]>=5) confAlta.push(e[0]);
+    else if(e[1]>=2) confMedia.push(e[0]);
+    else confBaixa.push(e[0]);
+  });
 
   confContext += '\n\n' + '='.repeat(40) + '\n';
   confContext += 'MAPA DE CONFIANÇA LOCAL (referências desta instalação):\n';

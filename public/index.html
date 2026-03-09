@@ -1,3 +1,4 @@
+<!-- equiscan-v97-20260309-1410 -->
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -4193,6 +4194,11 @@ function syncCalibsFromSupabase() {
       console.log('[EQ] syncCalibsFromSupabase: ' + added + ' CALIBs sincronizadas (' + rows.length + ' total activas)');
     } else {
       console.log('[EQ] syncCalibsFromSupabase: localStorage já actualizado (' + rows.length + ' CALIBs)');
+      // Popular _calibCache para evitar segunda chamada ao Supabase durante análise
+      if (rows.length > 0 && typeof _calibCacheTime !== 'undefined') {
+        _calibCache = rows.map(function(r){ return {key: r.chave||r.key||'', value: r.valor||r.value||'', clinic_id: r.clinic_id||''}; });
+        _calibCacheTime = Date.now();
+      }
     }
   })
   .catch(function(e) {

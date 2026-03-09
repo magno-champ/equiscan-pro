@@ -399,8 +399,17 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   @page:first{margin-top:10mm}
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   MOBILE — ≤ 768px
+/* ═══ MOBILE-ONLY ELEMENTS — always hidden on desktop ═══════════ */
+#mobNav,
+#btnMobShare,
+#mobMenuOverlay,
+#btnMobMenu,
+#mobReportActions {
+  display: none !important;
+}
+/* These are re-enabled inside @media (max-width: 768px) by JS only */
+
+
    Layout: topbar minimalista + ecrã único + bottom nav com 3 tabs
    Sidebar e main não coexistem — alternam via .mob-tab-*
 ═══════════════════════════════════════════════════════════════════ */
@@ -14763,20 +14772,28 @@ function isMobile() {
 }
 
 function mobInit() {
-  if (!isMobile()) return;
+  if (!isMobile()) {
+    // Garantir desktop intacto — remover quaisquer classes mobile residuais
+    var sidebar = document.querySelector('.sidebar');
+    var main    = document.querySelector('.main');
+    if (sidebar) { sidebar.classList.remove('mob-active'); sidebar.style.display = ''; }
+    if (main)    { main.classList.remove('mob-active');    main.style.display = ''; }
+    return;
+  }
   _mobActive = true;
 
-  // Mostrar bottom nav e hamburger
+  // Mostrar bottom nav e hamburger (override do display:none!important via style inline)
   var nav = document.getElementById('mobNav');
-  if (nav) nav.style.display = 'flex';
+  if (nav) { nav.style.setProperty('display', 'flex', 'important'); }
   var hb = document.getElementById('btnMobMenu');
-  if (hb) hb.style.display = 'flex';
+  if (hb) { hb.style.setProperty('display', 'flex', 'important'); }
 
   // Activar tab inicial
   mobSwitchTab('form');
 
-  // Ajustar shell height ao resize (teclado virtual iOS)
+  // Ajustar shell height ao resize (teclado virtual iOS) — só em mobile
   window.addEventListener('resize', function() {
+    if (!isMobile()) return; // nunca afectar desktop
     var shell = document.querySelector('.shell');
     if (!shell) return;
     var navH = 64;
@@ -14899,13 +14916,23 @@ function mobShare() {
 
 // Hamburger menu
 function toggleMobMenu() {
+  if (!isMobile()) return;
   var ov = document.getElementById('mobMenuOverlay');
   if (!ov) return;
-  ov.classList.toggle('open');
+  if (ov.classList.contains('open')) {
+    ov.classList.remove('open');
+    ov.style.setProperty('display', 'none', 'important');
+  } else {
+    ov.style.setProperty('display', 'flex', 'important');
+    ov.classList.add('open');
+  }
 }
 function closeMobMenu() {
   var ov = document.getElementById('mobMenuOverlay');
-  if (ov) ov.classList.remove('open');
+  if (ov) {
+    ov.classList.remove('open');
+    if (isMobile()) {} else { ov.style.setProperty('display', 'none', 'important'); }
+  }
 }
 function mobMenuAction(action) {
   closeMobMenu();

@@ -3152,7 +3152,7 @@ async function run(){
   try {
     var merged = valid.length===1?valid[0]:merge(valid);
     S.lastResult = merged;
-    S._lastBatch = singleBatch;
+    S._lastBatch = batches[0];
     S._lastInfo = info;
     saveToHistory(merged, info);
     renderReport(merged, info);

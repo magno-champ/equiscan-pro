@@ -1205,8 +1205,42 @@ window.addEventListener('DOMContentLoaded', function() {
   <!-- ══ SCROLL AREA ══════════════════════════════════════════ -->
   <div class="sb-scroll">
 
-    <!-- DROP / VIEWER -->
+    <!-- DROP / VIEWER — com selector de cavalo integrado no topo -->
     <div class="sb">
+      <!-- Cavalo selector integrado — compacto, sem secção separada -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--wire)">
+        <select id="horseSelect" class="horse-select" onchange="onHorseSelect(this.value)"
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink2);border:1px solid var(--wire2);color:var(--t1);padding:7px 10px;border-radius:5px;cursor:pointer">
+          <option value="">🐴 — Seleccionar cavalo —</option>
+        </select>
+        <button onclick="openNewHorseModal()" title="Criar novo cavalo"
+          style="font-family:'JetBrains Mono',monospace;font-size:14px;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:5px;padding:6px 11px;cursor:pointer;flex-shrink:0;line-height:1">+</button>
+        <button onclick="openCavalosPanel()" title="Gerir cavalos"
+          style="font-family:'JetBrains Mono',monospace;font-size:11px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;padding:6px 9px;cursor:pointer;flex-shrink:0;line-height:1" onmouseover="this.style.color='var(--ice)'" onmouseout="this.style.color='var(--t3)'">⊞</button>
+        <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);flex-shrink:0"></span>
+      </div>
+
+      <!-- Horse mini-card — aparece só quando cavalo seleccionado -->
+      <div class="horse-card" id="horseCard" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="display:flex;gap:12px">
+            <div class="horse-stat"><span class="horse-stat-label">Raça</span><span class="horse-stat-val" id="hcRaca">—</span></div>
+            <div class="horse-stat"><span class="horse-stat-label">Idade</span><span class="horse-stat-val" id="hcIdade">—</span></div>
+            <div class="horse-stat"><span class="horse-stat-label">Disc.</span><span class="horse-stat-val" id="hcDisc">—</span></div>
+            <div class="horse-stat"><span class="horse-stat-label">Exames</span><span class="horse-stat-val" id="hcExames">0</span></div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button onclick="openHorseProfileModal(window._selectedHorseId)" title="Perfil" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 7px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:3px;color:var(--gold);cursor:pointer">📋</button>
+            <button onclick="openEditHorseModal(window._selectedHorseId)" title="Editar" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 7px;background:rgba(74,201,201,.07);border:1px solid rgba(74,201,201,.15);border-radius:3px;color:var(--ice);cursor:pointer">✏</button>
+            <button onclick="deleteHorse(window._selectedHorseId)" title="Apagar" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 7px;background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.15);border-radius:3px;color:var(--red);cursor:pointer">🗑</button>
+          </div>
+        </div>
+        <div class="horse-timeline" id="hcTimeline" style="display:none">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Histórico</div>
+          <div id="hcTimelineList"></div>
+        </div>
+      </div>
+
       <div class="sb-lbl">Radiografias <span id="imgBadge" style="color:var(--gold);margin-left:3px"></span></div>
       <div class="drop" id="dropzone"
         ondragover="event.preventDefault();event.stopPropagation();this.classList.add('over')"
@@ -1236,32 +1270,6 @@ window.addEventListener('DOMContentLoaded', function() {
       <input type="file" id="addIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" style="display:none" onchange="onFileInput(this)">
       <div id="clearRow" style="display:none;margin-top:6px">
         <button onclick="clearImages()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.15);border-radius:3px;padding:5px;cursor:pointer;letter-spacing:.04em">✕ LIMPAR IMAGENS</button>
-      </div>
-    </div>
-
-    <!-- CAVALOS -->
-    <div class="sb" id="sbCavallos">
-      <div class="sb-lbl">Cavalos <span id="horseBadge" style="color:var(--gold);margin-left:2px"></span></div>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <select id="horseSelect" class="horse-select" onchange="onHorseSelect(this.value)" style="flex:1">
-          <option value="">— Seleccionar cavalo —</option>
-        </select>
-        <button onclick="openNewHorseModal()" title="Criar novo cavalo" style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--ink3);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:4px 10px;cursor:pointer;flex-shrink:0">+</button>
-      </div>
-      <div class="horse-card" id="horseCard">
-        <div class="horse-stat"><span class="horse-stat-label">Raça</span><span class="horse-stat-val" id="hcRaca">—</span></div>
-        <div class="horse-stat"><span class="horse-stat-label">Idade</span><span class="horse-stat-val" id="hcIdade">—</span></div>
-        <div class="horse-stat"><span class="horse-stat-label">Disciplina</span><span class="horse-stat-val" id="hcDisc">—</span></div>
-        <div class="horse-stat"><span class="horse-stat-label">Exames</span><span class="horse-stat-val" id="hcExames">0</span></div>
-        <div class="horse-timeline" id="hcTimeline" style="display:none">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Histórico</div>
-          <div id="hcTimelineList"></div>
-        </div>
-        <div style="display:flex;gap:5px;margin-top:8px">
-          <button onclick="openHorseProfileModal(window._selectedHorseId)" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;padding:6px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:4px;color:var(--gold);cursor:pointer">📋 Perfil</button>
-          <button onclick="openEditHorseModal(window._selectedHorseId)" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:6px 10px;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);border-radius:4px;color:var(--ice);cursor:pointer">✏ Editar</button>
-          <button onclick="deleteHorse(window._selectedHorseId)" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:6px 10px;background:rgba(224,85,85,.08);border:1px solid rgba(224,85,85,.2);border-radius:4px;color:var(--red);cursor:pointer">🗑</button>
-        </div>
       </div>
     </div>
 
@@ -5173,7 +5181,7 @@ function rejectCalib(idx) {
 function loadActiveCalibsUI() {
   var panel = document.getElementById('activeCalibsPanel');
   if(!panel) return;
-  panel.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--t3)">A carregar...</div>';
+  panel.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--t3);padding:8px">A carregar...</div>';
 
   fetch(SB_URL + '/rest/v1/calib_rules?status=eq.active&order=created_at.asc', {
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
@@ -5181,25 +5189,79 @@ function loadActiveCalibsUI() {
   .then(function(r){ return r.json(); })
   .then(function(rows){
     if(!Array.isArray(rows)||rows.length===0){
-      panel.innerHTML = '<div style="font-size:11px;color:var(--t3);text-align:center;padding:12px">Nenhuma CALIB destilada activa ainda.</div>';
+      panel.innerHTML = '<div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Nenhuma CALIB activa ainda.</div>';
       return;
     }
-    var html = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">'+rows.length+' CALIB(s) activa(s)</div>';
-    rows.forEach(function(r){
-      html += '<div style="margin-bottom:8px;padding:10px 12px;background:var(--ink2);border:1px solid rgba(74,170,122,.15);border-radius:5px;display:flex;gap:10px;align-items:flex-start">';
-      html += '<div style="flex:1"><div style="font-size:11px;color:var(--t1);line-height:1.55">'+escH(r.rule_text||'')+'</div>';
-      if(r.source_cases) html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:4px">→ '+escH(r.source_cases)+'</div>';
-      html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:2px">Activada: '+(r.approved_at||r.created_at||'').slice(0,10)+'</div>';
-      html += '</div>';
-      html += '<button onclick="deactivateApprovedCalib(\''+r.id+'\')" title="Desactivar" style="padding:4px 8px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0">✕</button>';
+
+    // ── Agrupar por região anatómica ─────────────────────────────
+    var REGIONS = [
+      { key: 'casco',    label: '🦶 Casco / P3 / Navicular',  terms: ['casco','p3','navicular','cofim','ungular'] },
+      { key: 'boleto',   label: '🦴 Boleto / MCF / MTP',       terms: ['boleto','mcf','mtp','metacarpo','metatarso','fetlock'] },
+      { key: 'carpo',    label: '💪 Carpo / Joelho',           terms: ['carpo','joelho','carpiano'] },
+      { key: 'tarso',    label: '🦵 Tarso / Jarrete',          terms: ['tarso','jarrete','hock','tibiotarsal','bone spavin','espavin'] },
+      { key: 'estifle',  label: '🦿 Estifle / Rótula',        terms: ['estifle','rotula','rótula','stifle','femoral','trocl'] },
+      { key: 'coluna',   label: '🦴 Coluna / Dorso',           terms: ['coluna','dorso','vertebr','sacro','ilíaco','sacroilíaco'] },
+      { key: 'geral',    label: '📋 Geral / Outro',            terms: [] },
+    ];
+
+    function getRegion(ruleText) {
+      var txt = (ruleText || '').toLowerCase();
+      for (var i = 0; i < REGIONS.length - 1; i++) {
+        for (var j = 0; j < REGIONS[i].terms.length; j++) {
+          if (txt.indexOf(REGIONS[i].terms[j]) !== -1) return REGIONS[i].key;
+        }
+      }
+      return 'geral';
+    }
+
+    // Group rows
+    var groups = {};
+    REGIONS.forEach(function(r){ groups[r.key] = []; });
+    rows.forEach(function(r){ groups[getRegion(r.rule_text)].push(r); });
+
+    var html = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);padding:8px 12px 4px;letter-spacing:.06em">' + rows.length + ' CALIB(s) activa(s)</div>';
+
+    REGIONS.forEach(function(region) {
+      var grp = groups[region.key];
+      if (!grp || grp.length === 0) return;
+
+      html += '<div style="margin:0">';
+      // Section header
+      html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;' +
+        'padding:8px 12px 5px;background:rgba(201,168,76,.05);border-top:1px solid rgba(201,168,76,.15);border-bottom:1px solid rgba(201,168,76,.1);' +
+        'display:flex;align-items:center;justify-content:space-between">' +
+        '<span>' + region.label + '</span>' +
+        '<span style="color:var(--t3);font-size:8px">' + grp.length + '</span>' +
+        '</div>';
+
+      grp.forEach(function(r) {
+        html += '<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:10px;align-items:flex-start;transition:background .1s" ' +
+          'onmouseover="this.style.background=\'rgba(255,255,255,.03)\'" onmouseout="this.style.background=\'\'">'+
+          '<div style="flex:1">' +
+            '<div style="font-size:11px;color:var(--t1);line-height:1.6">' + escH(r.rule_text || '') + '</div>';
+        if (r.source_cases) {
+          html += '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-top:3px">↳ ' + escH(r.source_cases) + '</div>';
+        }
+        html += '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3);margin-top:2px;opacity:.6">' +
+          (r.approved_at || r.created_at || '').slice(0, 10) + '</div>' +
+          '</div>' +
+          '<button onclick="deactivateApprovedCalib(\'' + r.id + '\')" title="Desactivar" ' +
+          'style="padding:4px 8px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:3px;color:rgba(255,100,100,.5);' +
+          'font-family:JetBrains Mono,monospace;font-size:9px;cursor:pointer;flex-shrink:0;transition:all .15s" ' +
+          'onmouseover="this.style.borderColor=\'rgba(255,80,80,.5)\';this.style.color=\'var(--red)\'" ' +
+          'onmouseout="this.style.borderColor=\'rgba(255,80,80,.2)\';this.style.color=\'rgba(255,100,100,.5)\'">✕</button>' +
+          '</div>';
+      });
       html += '</div>';
     });
+
     panel.innerHTML = html;
   })
   .catch(function(e){
-    panel.innerHTML = '<div style="color:var(--red);font-size:11px">Erro: '+e.message+'</div>';
+    panel.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px">Erro: '+e.message+'</div>';
   });
 }
+
 
 // Desactiva uma CALIB
 function deactivateApprovedCalib(id) {
@@ -7121,22 +7183,41 @@ function openReviewMode(startFromIdx) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:950;background:#000;display:flex;flex-direction:column;overflow:hidden';
 
   overlay.innerHTML =
-    // Top bar
-    '<div id="reviewTopBar" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent)">' +
+    // Top bar — sticky, sempre visível
+    '<div id="reviewTopBar" style="position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(10,12,16,.97);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">' +
       '<div style="display:flex;align-items:center;gap:10px">' +
         '<span id="reviewImgTag" style="font-family:'+mono+';font-size:11px;color:var(--gold);letter-spacing:.08em"></span>' +
         '<span id="reviewProgress" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.4)"></span>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
+        // W/L sliders — persistent in topbar
+        '<div style="display:flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px">' +
+          '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(255,255,255,.3)">W</span>' +
+          '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:60px;cursor:pointer;outline:none">' +
+          '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(255,255,255,.3)">L</span>' +
+          '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:60px;cursor:pointer;outline:none">' +
+          '<button onclick="if(window._reviewResetWL)window._reviewResetWL()" style="font-family:JetBrains Mono,monospace;font-size:8px;padding:2px 6px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:2px;color:rgba(255,255,255,.3);cursor:pointer" title="Reset W/L">⊡</button>' +
+        '</div>' +
+        '<span id="reviewZoomBadge" style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.3);min-width:34px;text-align:right">100%</span>' +
+        // Tool separator
+        '<div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>' +
         '<button id="reviewBtnPointer" onclick="setReviewTool(\'pointer\')" title="Caneta temporária (aponta e desaparece)" '+
           'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer">✏ Caneta</button>' +
+        '<button id="reviewBtnFreeDraw" onclick="setReviewTool(\'freedraw\')" title="Desenho livre permanente" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer">🖊 Livre</button>' +
         '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Círculo permanente" '+
           'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer">⊙ Marcar</button>' +
+        '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar marcas — clica numa marca para apagar, ou arrasta para apagar zona" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,80,80,.3);border-radius:4px;color:rgba(255,100,100,.6);cursor:pointer">⌫ Apagar</button>' +
+        // Color picker for drawings
+        '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor das marcas" ' +
+          'style="width:28px;height:28px;border:1px solid rgba(255,255,255,.15);border-radius:4px;background:transparent;cursor:pointer;padding:2px" ' +
+          'onchange="window._reviewColor=this.value">' +
         '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar lado a lado" '+
           'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(74,201,201,.3);border-radius:4px;color:rgba(74,201,201,.7);cursor:pointer">⊞ Comparar</button>' +
-        '<button onclick="clearPointerMarks()" title="Limpar marcas da caneta" '+
-        'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,80,80,.3);border-radius:4px;color:rgba(255,100,100,.7);cursor:pointer">🗑 Limpar</button>' +
-        '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:10px;padding:5px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.7);cursor:pointer">✕ Fechar</button>' +
+        '<button onclick="clearAllReviewMarks()" title="Limpar todas as marcas desta imagem" '+
+        'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer">🗑 Limpar</button>' +
+        '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:10px;padding:5px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.7);cursor:pointer">✕</button>' +
       '</div>' +
     '</div>' +
 
@@ -7149,15 +7230,6 @@ function openReviewMode(startFromIdx) {
 
     // Image area
     '<div id="reviewMainImgArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden">' +
-    // W/L toolbar
-    '<div style="height:36px;flex-shrink:0;background:rgba(17,20,26,.95);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 12px;gap:8px">' +
-      '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.25)">W</span>' +
-      '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:3px;background:rgba(255,255,255,.15);border-radius:2px;width:80px;cursor:pointer;outline:none">' +
-      '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.25)">L</span>' +
-      '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:3px;background:rgba(255,255,255,.15);border-radius:2px;width:80px;cursor:pointer;outline:none">' +
-      '<span id="reviewZoomBadge" style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.3);margin-left:8px">100%</span>' +
-      '<button onclick="if(window._reviewResetView)window._reviewResetView()" style="font-family:JetBrains Mono,monospace;font-size:9px;padding:3px 8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.3);cursor:pointer;margin-left:4px">⊡ Reset</button>' +
-    '</div>' +
     '<div id="reviewImgWrap" style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:crosshair">' +
       '<img id="reviewImg" style="max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;transition:filter .15s;transform-origin:center center" alt="">' +
       '<canvas id="reviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;transform-origin:center center"></canvas>' +
@@ -7204,6 +7276,29 @@ function openReviewMode(startFromIdx) {
   renderReviewFrame();
   setupReviewInteraction();
   setReviewTool('pointer');
+  window._reviewColor = '#C9A84C'; // default gold
+
+  // Wire W/L sliders
+  function applyReviewWL() {
+    var img = document.getElementById('reviewImg');
+    if (!img) return;
+    var w = parseFloat(document.getElementById('reviewWSlider').value);
+    var l = parseFloat(document.getElementById('reviewLSlider').value);
+    var brightness = 0.4 + (l / 100) * 1.4;
+    var contrast   = 0.5 + (w / 100) * 1.8;
+    img.style.filter = 'brightness(' + brightness + ') contrast(' + contrast + ')';
+  }
+  window._reviewResetWL = function() {
+    var ws = document.getElementById('reviewWSlider');
+    var ls = document.getElementById('reviewLSlider');
+    if (ws) ws.value = 50;
+    if (ls) ls.value = 50;
+    applyReviewWL();
+  };
+  var ws = document.getElementById('reviewWSlider');
+  var ls = document.getElementById('reviewLSlider');
+  if (ws) ws.addEventListener('input', applyReviewWL);
+  if (ls) ls.addEventListener('input', applyReviewWL);
 
   // Keyboard nav
   document._reviewKeyHandler = function(e) {
@@ -7395,6 +7490,22 @@ function redrawReviewCanvas() {
     ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2*Math.PI);
     ctx.fillStyle = 'rgba(255,120,120,1)'; ctx.fill();
   });
+
+  // Draw free draw paths
+  var fpaths = (window._freeDrawPaths && window._freeDrawPaths[imgName]) || [];
+  fpaths.forEach(function(path) {
+    if (!path || path.length < 2) return;
+    ctx.strokeStyle = 'rgba(139,92,246,0.85)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(path[0].x * canvas.width, path[0].y * canvas.height);
+    for (var i = 1; i < path.length; i++) {
+      ctx.lineTo(path[i].x * canvas.width, path[i].y * canvas.height);
+    }
+    ctx.stroke();
+  });
 }
 
 function setupReviewInteraction() {
@@ -7406,14 +7517,17 @@ function setupReviewInteraction() {
   var _vZoom = 1, _vPanX = 0, _vPanY = 0;
   var _isPanning = false, _panStart = null;
   var pointerStart = null;
+  var _isFreeDraw = false;
   canvas.style.pointerEvents = 'auto';
+
+  // Free draw paths storage
+  if (!window._freeDrawPaths) window._freeDrawPaths = {};
 
   function applyTransform() {
     var img = document.getElementById('reviewImg');
     var t = 'translate(' + _vPanX + 'px,' + _vPanY + 'px) scale(' + _vZoom + ')';
     if (img) img.style.transform = t;
     if (canvas) { canvas.style.transform = t; }
-    // Update zoom badge
     var zb = document.getElementById('reviewZoomBadge');
     if (zb) zb.textContent = Math.round(_vZoom * 100) + '%';
   }
@@ -7430,46 +7544,107 @@ function setupReviewInteraction() {
     applyTransform();
   }, { passive: false });
 
-  // ── MOUSE PAN (when zoomed) ──
-  canvas.addEventListener('mousedown', function(e) {
+  function getRelPos(clientX, clientY) {
     var rect = canvas.getBoundingClientRect();
-    if (_vZoom > 1) {
+    return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+  }
+
+  // ── ERASER: check if click is near a circle or free path ──
+  function tryErase(rx, ry, isTouchEvent) {
+    var tol = isTouchEvent ? 0.08 : 0.04; // muito maior em touch
+    var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+    var erased = false;
+
+    // Check annotations (circles)
+    var anns = _annotations[imgName] || [];
+    for (var i = anns.length - 1; i >= 0; i--) {
+      var a = anns[i];
+      var dist = Math.sqrt(Math.pow(rx - a.x, 2) + Math.pow(ry - a.y, 2));
+      if (dist <= a.r + tol) {
+        anns.splice(i, 1);
+        erased = true;
+        break;
+      }
+    }
+    // Also check permanentMarks
+    var pm = _reviewPermanentMarks[imgName] || [];
+    for (var j = pm.length - 1; j >= 0; j--) {
+      var m = pm[j];
+      var d2 = Math.sqrt(Math.pow(rx - m.x, 2) + Math.pow(ry - m.y, 2));
+      if (d2 <= m.r + tol) { pm.splice(j, 1); erased = true; break; }
+    }
+    // Free draw paths — erase path if click is near any point
+    var fp = (window._freeDrawPaths || {})[imgName] || [];
+    for (var k = fp.length - 1; k >= 0; k--) {
+      var path = fp[k];
+      for (var p = 0; p < path.length; p++) {
+        var dd = Math.sqrt(Math.pow(rx - path[p].x, 2) + Math.pow(ry - path[p].y, 2));
+        if (dd < tol * 1.5) { fp.splice(k, 1); erased = true; break; }
+      }
+    }
+    if (erased) { redrawReviewCanvas(); showToast('Marca apagada'); }
+  }
+
+  // ── MOUSEDOWN ──
+  canvas.addEventListener('mousedown', function(e) {
+    var tool = window._reviewTool || 'pointer';
+    if (_vZoom > 1 && tool !== 'freedraw') {
       _isPanning = true;
       _panStart = { x: e.clientX - _vPanX, y: e.clientY - _vPanY };
       canvas.style.cursor = 'grabbing';
-    } else {
-      pointerStart = { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
+      return;
     }
+    var pos = getRelPos(e.clientX, e.clientY);
+    if (tool === 'eraser') {
+      tryErase(pos.x, pos.y, false);
+      return;
+    }
+    if (tool === 'freedraw') {
+      _isFreeDraw = true;
+      var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+      if (!window._freeDrawPaths[imgName]) window._freeDrawPaths[imgName] = [];
+      window._freeDrawPaths[imgName].push([pos]);
+      return;
+    }
+    pointerStart = pos;
   });
-
-
 
   function handleDrawEnd(clientX, clientY) {
     if (_isPanning) { _isPanning = false; canvas.style.cursor = _vZoom > 1 ? 'grab' : 'crosshair'; return; }
+    if (_isFreeDraw) { _isFreeDraw = false; redrawReviewCanvas(); return; }
     if (!pointerStart) return;
-    var rect = canvas.getBoundingClientRect();
-    // Compensate for zoom/pan transform
-    var ex = (clientX - rect.left) / rect.width;
-    var ey = (clientY - rect.top) / rect.height;
-    if (_reviewMarkMode) {
-      var dx = ex - pointerStart.x, dy = ey - pointerStart.y;
+    var pos = getRelPos(clientX, clientY);
+    var tool = window._reviewTool || 'pointer';
+    if (tool === 'circle' || _reviewMarkMode) {
+      var dx = pos.x - pointerStart.x, dy = pos.y - pointerStart.y;
       var r = Math.sqrt(dx * dx + dy * dy);
       if (r < 0.01) r = 0.06;
       var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+      var markColor = window._reviewColor || 'rgba(201,168,76,0.9)';
+      var markColorHex = window._reviewColor || '#C9A84C';
       if (!_reviewPermanentMarks[imgName]) _reviewPermanentMarks[imgName] = [];
-      _reviewPermanentMarks[imgName].push({ x: pointerStart.x, y: pointerStart.y, r: r, color: 'rgba(201,168,76,0.9)' });
+      _reviewPermanentMarks[imgName].push({ x: pointerStart.x, y: pointerStart.y, r: r, color: markColor });
       if (!_annotations[imgName]) _annotations[imgName] = [];
-      _annotations[imgName].push({ type: 'circle', x: pointerStart.x, y: pointerStart.y, r: r, color: '#C9A84C', label: '' });
+      _annotations[imgName].push({ type: 'circle', x: pointerStart.x, y: pointerStart.y, r: r, color: markColorHex, label: '' });
       redrawReviewCanvas();
       renderReviewFrame();
     } else {
-      showPointerFlash(pointerStart.x, pointerStart.y, rect.width, rect.height);
+      showPointerFlash(pointerStart.x, pointerStart.y, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height);
     }
     pointerStart = null;
   }
 
   document.addEventListener('mousemove', function(e) {
-    if (_isPanning) { _vPanX = e.clientX - _panStart.x; _vPanY = e.clientY - _panStart.y; applyTransform(); }
+    if (_isPanning) { _vPanX = e.clientX - _panStart.x; _vPanY = e.clientY - _panStart.y; applyTransform(); return; }
+    if (_isFreeDraw) {
+      var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+      var paths = window._freeDrawPaths[imgName];
+      if (paths && paths.length) {
+        var pos = getRelPos(e.clientX, e.clientY);
+        paths[paths.length - 1].push(pos);
+        redrawReviewCanvas();
+      }
+    }
   });
   document.addEventListener('mouseup', function(e) { handleDrawEnd(e.clientX, e.clientY); });
 
@@ -7488,18 +7663,33 @@ function setupReviewInteraction() {
     } else if (e.touches.length === 1) {
       _touchSwipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, panX: _vPanX, panY: _vPanY };
       _touchMoved = false;
+      // Touch draw start
+      var tool = window._reviewTool || 'pointer';
+      if (tool === 'freedraw') {
+        _isFreeDraw = true;
+        var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+        if (!window._freeDrawPaths[imgName]) window._freeDrawPaths[imgName] = [];
+        window._freeDrawPaths[imgName].push([getRelPos(e.touches[0].clientX, e.touches[0].clientY)]);
+      } else if (tool !== 'eraser') {
+        pointerStart = getRelPos(e.touches[0].clientX, e.touches[0].clientY);
+      }
     }
   }, { passive: true });
 
   wrap.addEventListener('touchmove', function(e) {
     if (e.touches.length === 2 && _touch0) {
-      e.preventDefault();
       var dx = e.touches[0].clientX - e.touches[1].clientX;
       var dy = e.touches[0].clientY - e.touches[1].clientY;
       var dist = Math.sqrt(dx * dx + dy * dy);
-      _vZoom = Math.min(8, Math.max(1, _touchZoomBase * (dist / _touch0)));
-      if (_vZoom === 1) { _vPanX = 0; _vPanY = 0; }
+      _vZoom = Math.max(1, Math.min(6, _touchZoomBase * (dist / _touch0)));
       applyTransform();
+    } else if (e.touches.length === 1 && _isFreeDraw) {
+      var imgName2 = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+      var paths2 = window._freeDrawPaths[imgName2];
+      if (paths2 && paths2.length) {
+        paths2[paths2.length - 1].push(getRelPos(e.touches[0].clientX, e.touches[0].clientY));
+        redrawReviewCanvas();
+      }
     } else if (e.touches.length === 1 && _vZoom > 1 && _touchSwipeStart) {
       e.preventDefault();
       _touchMoved = true;
@@ -7512,26 +7702,20 @@ function setupReviewInteraction() {
   wrap.addEventListener('touchend', function(e) {
     if (_touch0 && e.touches.length < 2) { _touch0 = null; return; }
     if (_touchSwipeStart && !_touchMoved && _vZoom <= 1) {
+      var t = window._reviewTool || 'pointer';
       var dx = e.changedTouches[0].clientX - _touchSwipeStart.x;
-      if (Math.abs(dx) > 50) { dx < 0 ? reviewNext() : reviewPrev(); }
+      var dy = e.changedTouches[0].clientY - _touchSwipeStart.y;
+      if (t === 'eraser') {
+        // Touch erase at tap position
+        var pos = getRelPos(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        tryErase(pos.x, pos.y, true);
+      } else if (Math.abs(dx) > 50 && Math.abs(dy) < 60) {
+        dx < 0 ? reviewNext() : reviewPrev();
+      }
     }
+    _isFreeDraw = false;
     _touch0 = null; _touchSwipeStart = null;
   }, { passive: true });
-
-  // ── WINDOW/LEVEL ──
-  var wSlider = document.getElementById('reviewWSlider');
-  var lSlider = document.getElementById('reviewLSlider');
-  function applyWL() {
-    var img = document.getElementById('reviewImg');
-    if (!img) return;
-    var w = wSlider ? parseInt(wSlider.value) : 50;
-    var l = lSlider ? parseInt(lSlider.value) : 50;
-    var brightness = 0.5 + (l / 100);
-    var contrast = 0.5 + (w / 100) * 1.5;
-    img.style.filter = 'brightness(' + brightness + ') contrast(' + contrast + ')';
-  }
-  if (wSlider) wSlider.addEventListener('input', applyWL);
-  if (lSlider) lSlider.addEventListener('input', applyWL);
 
   // ── FILM STRIP CLICKS ──
   wrap._resetView = resetView;
@@ -7553,13 +7737,42 @@ function clearPointerMarks() {
 
 function setReviewTool(tool) {
   _reviewMarkMode = (tool === 'circle');
+  window._reviewTool = tool; // 'pointer' | 'circle' | 'freedraw' | 'eraser'
+
   var btnP = document.getElementById('reviewBtnPointer');
+  var btnF = document.getElementById('reviewBtnFreeDraw');
   var btnC = document.getElementById('reviewBtnCircle');
+  var btnE = document.getElementById('reviewBtnEraser');
   var canvas = document.getElementById('reviewCanvas');
-  if (btnP) { btnP.style.background = tool === 'pointer' ? 'rgba(201,168,76,.25)' : 'rgba(201,168,76,.15)'; btnP.style.borderColor = tool === 'pointer' ? 'var(--gold)' : 'rgba(201,168,76,.3)'; }
-  if (btnC) { btnC.style.background = tool === 'circle' ? 'rgba(74,201,201,.2)' : 'transparent'; btnC.style.borderColor = tool === 'circle' ? 'rgba(74,201,201,.5)' : 'rgba(255,255,255,.2)'; btnC.style.color = tool === 'circle' ? 'var(--ice)' : 'rgba(255,255,255,.5)'; }
-  if (canvas) canvas.style.cursor = tool === 'circle' ? 'crosshair' : 'cell';
+
+  // Reset all buttons
+  var allBtns = [btnP, btnF, btnC, btnE];
+  allBtns.forEach(function(b) {
+    if (b) { b.style.background = 'transparent'; b.style.opacity = '0.6'; }
+  });
+
+  // Activate selected
+  var activeBg = { pointer: 'rgba(201,168,76,.25)', freedraw: 'rgba(139,92,246,.25)', circle: 'rgba(74,201,201,.2)', eraser: 'rgba(255,80,80,.2)' };
+  var activeBtn = { pointer: btnP, freedraw: btnF, circle: btnC, eraser: btnE };
+  if (activeBtn[tool]) { activeBtn[tool].style.background = activeBg[tool]; activeBtn[tool].style.opacity = '1'; }
+
+  // Cursor
+  var cursors = { pointer: 'cell', freedraw: 'crosshair', circle: 'crosshair', eraser: 'not-allowed' };
+  if (canvas) canvas.style.cursor = cursors[tool] || 'default';
 }
+
+function clearAllReviewMarks() {
+  var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+  _pointerMarks[imgName] = [];
+  _annotations[imgName] = [];
+  if (window._freeDrawPaths) window._freeDrawPaths[imgName] = [];
+  redrawReviewCanvas();
+  showToast('Marcas limpas');
+}
+
+// Alias para compatibilidade
+function clearPointerMarks() { clearAllReviewMarks(); }
+
 
 function acceptIaSuggestion(achIdx) {
   var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));

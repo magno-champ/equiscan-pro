@@ -655,6 +655,101 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 
   /* ── Horse select dropdown maior ── */
   #horseSelect { font-size: 15px; padding: 10px 12px; min-height: 44px; }
+
+  /* ══ UX MOBILE — reorganização de prioridades ══════════════
+     Princípio: o que o vet preenche no campo deve estar
+     imediatamente visível sem scroll nem expandir accordions.
+     Ordem de importância clínica:
+       1. Cavalo (já seleccionado → preenche tudo)
+       2. Sintomas (afecta directamente o diagnóstico)
+       3. Disciplina (contexto de risco)
+       4. História (secundário)
+       5. Peso / Perfil / Clínica / Vet → esconder no mobile
+  ════════════════════════════════════════════════════════════ */
+
+  /* Forçar accordions Paciente e Clínico sempre abertos no mobile */
+  #sbPaciente .sb-acc-body,
+  #sbClinical .sb-acc-body {
+    max-height: none !important;
+    display: block !important;
+  }
+  /* Esconder header do accordion (substituído pela lógica abaixo) */
+  #sbPaciente .sb-acc-header,
+  #sbClinical .sb-acc-header {
+    display: none !important;
+  }
+
+  /* Esconder campos de baixo valor no mobile */
+  #sbPaciente .row2,           /* Raça + Idade — vêm do cavalo */
+  #sbPaciente .field:first-child, /* Nome — vem do cavalo */
+  #fWeight, #fWeight + *, /* Peso */
+  #fSex, #fSex + *,       /* Sexo */
+  label[for="fWeight"],
+  label[for="fSex"],
+  #fPerfil,                /* Perfil de uso */
+  #fClinic,                /* Clínica — guardada em localStorage */
+  #fVet,                   /* Veterinário — guardado em localStorage */
+  /* Esconder labels dos campos acima */
+  #sbClinical .field:has(#fPerfil),
+  #sbClinical .field:has(#fClinic),
+  #sbClinical .field:has(#fVet) {
+    display: none !important;
+  }
+
+  /* Esconder accordion Memória completamente no mobile */
+  #sbMemoria { display: none !important; }
+
+  /* Esconder dataset consent no mobile (está no footer) */
+  #datasetConsent { display: none !important; }
+
+  /* Secção Paciente: label mais curto e sem padding extra */
+  #sbPaciente { padding-top: 10px; padding-bottom: 10px; }
+  #sbClinical { padding-top: 10px; }
+
+  /* Sintomas — campo principal, destaque visual */
+  #fSymp {
+    font-size: 15px !important;
+    min-height: 72px !important;
+    border-color: rgba(201,168,76,.25) !important;
+  }
+  #fSymp:focus { border-color: rgba(201,168,76,.5) !important; }
+
+  /* Flexões — inline com sintomas, tamanho ok */
+  #fFlexoes { font-size: 14px !important; min-height: 42px !important; }
+
+  /* Histórico — menos destaque */
+  #fHist { font-size: 14px !important; min-height: 42px !important; }
+
+  /* Região anatómica — select grande */
+  #fRegion { font-size: 15px !important; min-height: 42px !important; }
+  #fDisc    { font-size: 15px !important; min-height: 42px !important; }
+
+  /* Horse card no mobile — mais compacto, só info essencial */
+  .horse-card {
+    padding: 8px 10px !important;
+  }
+  .horse-stat { padding: 3px 0 !important; }
+
+  /* Botões do horse card — maior para toque */
+  .horse-card > div:last-child button {
+    padding: 9px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* ── Botão + novo cavalo — mais visível ── */
+  #sbCavallos button[onclick="openNewHorseModal()"] {
+    padding: 8px 16px !important;
+    font-size: 15px !important;
+    min-height: 44px !important;
+  }
+
+  /* ── sb-footer com botão share além de gerar ── */
+  .sb-footer { gap: 8px; display: flex; flex-direction: column; }
+  #btnWebSearch { display: none !important; } /* esconder opção literatura no mobile */
+
+  /* ── Btn test / testar ligação — esconder no mobile ── */
+  .btn-test, #testOut { display: none !important; }
+  .run-hint { font-size: 10px !important; }
 }
 
 /* iOS safe area para notch/home indicator */
@@ -14730,6 +14825,20 @@ function mobOnReportReady() {
   if (!isMobile()) return;
   var btn = document.getElementById('mobNavResult');
   if (btn) btn.classList.add('has-result');
+
+  // Injectar barra de acções rápidas no topo do relatório (só uma vez)
+  if (!document.getElementById('mobReportActions')) {
+    var main = document.querySelector('.main');
+    var actBar = document.createElement('div');
+    actBar.id = 'mobReportActions';
+    actBar.style.cssText = 'display:flex;gap:8px;padding:10px 12px;background:rgba(17,20,26,.98);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10;flex-shrink:0';
+    actBar.innerHTML =
+      '<button onclick="mobShare()" style="flex:2;padding:11px;background:#c9a84c;color:#000;border:none;border-radius:7px;font-family:\'Syne\',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">↑ Partilhar</button>'+
+      '<button onclick="mobMenuAction(\'ppe\')" style="flex:1;padding:11px;background:rgba(224,85,85,.1);color:#e05555;border:1px solid rgba(224,85,85,.25);border-radius:7px;font-family:\'JetBrains Mono\',monospace;font-size:10px;cursor:pointer;font-weight:700">🏇 PPE</button>'+
+      '<button onclick="mobMenuAction(\'pdf\')" style="flex:1;padding:11px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:7px;font-family:\'JetBrains Mono\',monospace;font-size:10px;cursor:pointer">⎙ PDF</button>';
+    if (main) main.insertBefore(actBar, main.firstChild);
+  }
+
   mobSwitchTab('result');
 }
 

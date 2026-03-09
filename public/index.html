@@ -4653,9 +4653,9 @@ function callApi(key,batch,info,bNum,bTotal){
 
       var _abortCtrl = new AbortController();
       var _streamTimeout = setTimeout(function() {
-        console.warn('[EQ] Stream timeout 200s — aborting');
+        console.warn('[EQ] Stream timeout 360s — aborting');
         _abortCtrl.abort();
-      }, 200000);
+      }, 360000);
 
       fetch('/api/claude', {
         method: 'POST',

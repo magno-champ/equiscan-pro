@@ -1,10 +1,10 @@
-<!-- equiscan-v97-20260309-1410 -->
+<!-- equiscan-v98-20260309 -->
 <!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EquiScan Pro v64</title>
+<title>EquiScan Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <!-- PDF.js loaded dynamically via loadPdfJs() with 3-CDN fallback -->
 <style>
@@ -331,7 +331,14 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   /* ── Hide all UI chrome ── */
   .topbar,.sidebar,#btnPrint,#btnExport,
   #btnFeedback,#btnSecondOp,#btnDistill,#btnCalibList,
-  .mode-tabs,.no-print,[data-noprint]{display:none!important}
+  .mode-tabs,.no-print,[data-noprint],
+  #feedbackPanel{display:none!important}
+
+  /* ── Hide mode-switch tab buttons (inline in report) ── */
+  #btn-mode-inv,#btn-mode-vet,#btn-mode-cli{display:none!important}
+  /* Hide the tab bar wrapper too */
+  #report-inv > div[style*="display:flex"][style*="border:1px solid"],
+  .report > div[style*="btn-mode"]{display:none!important}
 
   /* ── Layout ── */
   .shell{display:block!important;margin-top:0!important}
@@ -350,19 +357,30 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   .report{padding:16px 22px 32px!important;max-width:none!important;margin:0!important}
   .rpt-head{border-bottom:2px solid #8B6914!important;margin-bottom:16px!important}
 
-  /* ── Page breaks ── */
+  /* ── Show all report sections in print ── */
+  #report-inv{display:block!important}
+  #report-vet{display:block!important}
+  #report-cliente{display:block!important}
+  .mode-tabs{display:none!important}
+  .print-show{display:block!important}
+  .print-vet-header-print{display:block!important}
+
+  /* ── Page breaks — sections start on new page ── */
   .print-page-break{display:block!important;page-break-before:always!important;break-before:page!important}
   .print-section-sep{display:block!important;page-break-before:always!important;break-before:page!important}
+  /* Vet section always starts fresh page */
+  #report-vet{page-break-before:always!important;break-before:page!important}
+  /* Cliente section starts fresh page */
+  #report-cliente{page-break-before:always!important;break-before:page!important}
+  /* Major sections within vet report — break before large ones */
+  #report-vet .sec:nth-child(n+3){break-before:auto}
+  /* Keep individual cards and rows together */
   .narr-section{break-inside:avoid}
   .sec{break-inside:avoid}
   .tbl{break-inside:avoid}
   .rcard{break-inside:avoid}
   .pt-card{break-inside:avoid}
-
-  /* ── Show both vet + cliente sections in print ── */
-  #report-vet{display:block!important}
-  #report-cliente{display:block!important}
-  .mode-tabs{display:none!important}
+  tr{break-inside:avoid}
 
   /* ── Section divider styling ── */
   .print-owner-header{
@@ -380,6 +398,64 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   @page{size:A4 portrait;margin:14mm 12mm 16mm 12mm}
   @page:first{margin-top:10mm}
 }
+</style>
+<style>
+/* ═══ PAINEL CAVALOS ═══════════════════════════════════════════════ */
+.cav-panel{position:fixed;inset:0;z-index:980;background:rgba(0,0,0,.85);display:flex;align-items:stretch;justify-content:center;padding:16px}
+.cav-inner{background:var(--ink1);border:1px solid rgba(74,201,201,.2);border-radius:12px;width:100%;max-width:960px;display:flex;flex-direction:column;overflow:hidden}
+.cav-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--wire);background:rgba(74,201,201,.03);flex-shrink:0}
+.cav-title{font-family:'Lora',serif;font-size:17px;font-style:italic;color:var(--ice)}
+.cav-body{flex:1;display:grid;grid-template-columns:280px 1fr;overflow:hidden;min-height:0}
+.cav-list{border-right:1px solid var(--wire);display:flex;flex-direction:column;overflow:hidden}
+.cav-search{padding:10px 12px;border-bottom:1px solid var(--wire);flex-shrink:0}
+.cav-search input{width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 10px;color:var(--t1);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none}
+.cav-search input:focus{border-color:rgba(74,201,201,.4)}
+.cav-horses{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent}
+.cav-horse-row{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--wire);transition:background .12s}
+.cav-horse-row:hover{background:var(--ink2)}
+.cav-horse-row.active{background:rgba(74,201,201,.07);border-left:2px solid var(--ice)}
+.cav-horse-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.cav-horse-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)}
+.cav-status-badge{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:2px 7px;border-radius:3px;float:right;margin-top:1px;text-transform:uppercase;letter-spacing:.05em}
+.csb-novo{background:rgba(74,201,201,.1);color:var(--ice)}
+.csb-leve{background:rgba(90,159,212,.1);color:var(--blue)}
+.csb-moderado{background:rgba(212,147,58,.1);color:var(--amber)}
+.csb-severo{background:rgba(224,85,85,.1);color:var(--red)}
+.cav-add-row{padding:10px 12px;border-top:1px solid var(--wire);flex-shrink:0}
+.cav-detail{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent;padding:20px 24px}
+.cav-detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:.3;text-align:center}
+.cav-det-name{font-family:'Lora',serif;font-size:22px;font-style:italic;color:var(--t1);margin-bottom:4px}
+.cav-det-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.cav-det-tag{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);border-radius:12px;padding:3px 10px}
+.cav-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.cav-stat-box{background:var(--ink2);border:1px solid var(--wire);border-radius:7px;padding:10px 12px;text-align:center}
+.cav-stat-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.cav-stat-val{font-size:13px;font-weight:700;color:var(--t1)}
+.cav-stat-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:2px;line-height:1.4}
+.cav-section-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.cav-section-title::after{content:'';flex:1;height:1px;background:var(--wire)}
+.cav-exam-card{background:var(--ink2);border:1px solid var(--wire);border-radius:7px;padding:12px 14px;margin-bottom:8px}
+.cav-exam-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cav-exam-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);font-weight:600}
+.cav-exam-vet{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)}
+.cav-exam-imgs{display:flex;gap:4px;overflow-x:auto;margin-bottom:8px;scrollbar-width:none}
+.cav-exam-thumb{width:44px;height:44px;border-radius:4px;object-fit:cover;border:1px solid var(--wire);flex-shrink:0;background:var(--ink3);cursor:pointer;transition:border-color .15s}
+.cav-exam-thumb:hover{border-color:var(--gold)}
+.cav-exam-more{width:44px;height:44px;border-radius:4px;background:var(--ink3);border:1px solid var(--wire);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);flex-shrink:0}
+.cav-achados{display:flex;gap:5px;flex-wrap:wrap}
+.cav-achado-pill{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wire)}
+.cav-prog-block{background:rgba(224,85,85,.05);border:1px solid rgba(224,85,85,.2);border-radius:6px;padding:10px 12px;margin-bottom:12px}
+.cav-evo-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cav-evo-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ═══ VIEWER COMPARE MODE ════════════════════════════════════════ */
+.compare-pane{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.compare-pane+.compare-pane{border-left:2px solid rgba(201,168,76,.2)}
+.compare-tag{position:absolute;top:8px;left:10px;z-index:5;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:rgba(0,0,0,.7);padding:3px 8px;border-radius:3px;pointer-events:none}
+.compare-img-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:crosshair}
+.compare-img-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;transition:filter .15s}
+.viewer-region-group{padding:4px 5px 2px;font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em;border-top:1px solid rgba(255,255,255,.04);margin-top:2px}
+.viewer-region-group:first-child{border-top:none;margin-top:0}
 </style>
 </head>
 <body>
@@ -624,10 +700,21 @@ window.addEventListener('DOMContentLoaded', function() {
     <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:var(--t3);transition:background .3s"></span>
     <span id="syncLabel"></span>
   </div>
-        <button id="btnPrint" onclick="printReport()" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.25);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">⎙ PDF COMPLETO</button>
-    <button id="btnExport" onclick="exportJSON()" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:var(--ice-dim);border:1px solid rgba(74,201,201,.2);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">⬇ JSON</button>
-    <button id="btnHistory" onclick="showHistoryPanel(S.lastResult, S._lastInfo||{})" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.2);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">📊 Histórico</button>
-    <button id="btnSecondOp" onclick="runSecondOpinion()" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);background:rgba(255,160,0,.08);border:1px solid rgba(255,160,0,.2);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">🔄 2ª Opinião</button>
+        <button id="btnPrint" onclick="printReport()" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.25);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">⎙ PDF</button>
+    <!-- Dropdown Relatório -->
+    <div id="reportMenuWrap" style="display:none;position:relative">
+      <button onclick="toggleReportMenu()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.25);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;display:flex;align-items:center;gap:5px">📋 Relatório <span id="reportMenuArrow" style="font-size:8px;transition:transform .15s">▾</span></button>
+      <div id="reportMenuDropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--ink2);border:1px solid var(--wire2);border-radius:6px;min-width:160px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden">
+        <button onclick="printReport();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⎙ PDF Completo</button>
+        <button id="btnExportMenu" onclick="exportJSON();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ice);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⬇ Exportar JSON</button>
+        <button id="btnHistoryMenu" onclick="showHistoryPanel(S.lastResult, S._lastInfo||{});toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">📊 Histórico</button>
+        <button id="btnSecondOpMenu" onclick="runSecondOpinion();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">🔄 2ª Opinião</button>
+      </div>
+    </div>
+    <button id="btnExport" style="display:none"></button>
+    <button id="btnHistory" style="display:none"></button>
+    <button id="btnSecondOp" style="display:none"></button>
+    <button onclick="openCavalosPanel()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#4ac9c9;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.25);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">🐴 CAVALOS</button>
     <button onclick="showCalibrationsPanel()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t2);background:transparent;border:1px solid var(--wire);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">⚙ Calibrações</button>
     <button id="btnIntelligence" onclick="openIntelligencePanel()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#a78bfa;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.3);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;transition:all .15s;position:relative" title="Painel de Inteligência Adaptativa">🧠 INTELIGÊNCIA <span id="intelBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#a78bfa;color:#000;font-size:7px;padding:1px 4px;border-radius:8px;font-weight:700">0</span></button>
     <!-- MULTI-USER: user info + admin button -->
@@ -664,15 +751,16 @@ window.addEventListener('DOMContentLoaded', function() {
         <div class="drop-hint" id="dropHint" style="font-size:10px;color:var(--amber);margin-top:4px;display:none">⚠ Carregue <strong>todas</strong> as imagens da sessão de uma vez para obter um único relatório</div>
       </div>
       <div class="viewer" id="viewer">
-        <img id="viewImg" alt="">
+        <img id="viewImg" alt="" onclick="if(S.imgs.length)openReviewMode(S.idx)" title="Clica para abrir em ecrã inteiro" style="cursor:zoom-in">
         <div class="viewer-tag" id="viewTag"></div>
         <div class="viewer-ctrls">
-          <button class="vbtn" onclick="fa(.1,0)">☀</button>
-          <button class="vbtn" onclick="fa(-.1,0)">☾</button>
-          <button class="vbtn" onclick="fa(0,.15)">◑</button>
-          <button class="vbtn" onclick="fa(0,-.15)">◐</button>
-          <button class="vbtn" onclick="fi()">⊙</button>
-          <button class="vbtn" onclick="fr()">↺</button>
+          <button class="vbtn" onclick="fa(.1,0)" title="Brilho +">☀</button>
+          <button class="vbtn" onclick="fa(-.1,0)" title="Brilho -">☾</button>
+          <button class="vbtn" onclick="fa(0,.15)" title="Contraste +">◑</button>
+          <button class="vbtn" onclick="fa(0,-.15)" title="Contraste -">◐</button>
+          <button class="vbtn" onclick="fi()" title="Inverter">⊙</button>
+          <button class="vbtn" onclick="fr()" title="Rodar">↺</button>
+          <button class="vbtn" onclick="openReviewMode(S.idx)" title="Ecrã inteiro" style="color:var(--gold);font-size:13px">⤢</button>
         </div>
       </div>
       <div class="thumb-grid" id="grid"></div>
@@ -931,10 +1019,37 @@ window.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <main class="main" id="main">
-  <div class="placeholder" id="ph">
-    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".7"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    <h3>Relatório Radiológico</h3>
-    <p>Carregue as radiografias, preencha os dados clínicos e prima Gerar Relatório.</p>
+  <div class="placeholder" id="ph" style="opacity:1;gap:0;padding:48px 40px">
+    <div style="max-width:340px;width:100%">
+      <div style="font-family:'Lora',serif;font-size:22px;font-style:italic;color:var(--t2);text-align:center;margin-bottom:6px;opacity:.5">Relatório Radiológico</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">IA · Radiologia Equina</div>
+      <!-- Steps -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div id="ph-step1" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📂</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Carregar radiografias</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">JPG · PNG · PDF · DICOM · até 60 imagens</div>
+          </div>
+          <div id="ph-step1-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>
+        </div>
+        <div id="ph-step2" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🐴</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Seleccionar cavalo</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)" id="ph-step2-sub">Opcional — activa histórico e evolução</div>
+          </div>
+          <div id="ph-step2-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">▶</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Gerar Relatório</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">Botão dourado em baixo à esquerda</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </main>
 </div>
@@ -1012,15 +1127,45 @@ function getBreedRisk(breed){
 
 function clearImages(){
   S.imgs=[];S.idx=0;
+  // Reset compare mode
+  S._compareMode = false;
   document.getElementById('grid').innerHTML='';
   document.getElementById('viewer').style.display='none';
   document.getElementById('imgBadge').textContent='';
-  document.getElementById('dropTitle').textContent='Prima ou arraste aqui';
+  document.getElementById('dropTitle').textContent='Prima aqui ou arrasta imagens';
   document.getElementById('clearRow').style.display='none';
   document.getElementById('runBtn').disabled=true;
-  document.getElementById('hint').textContent='Carregue imagens e introduza a API Key.';
+  document.getElementById('hint').textContent='Carregue imagens radiográficas.';
+  // Hide topbar report controls
   var bp=document.getElementById('btnPrint');if(bp)bp.style.display='none';
-  document.getElementById('main').innerHTML=document.getElementById('ph')?document.getElementById('ph').outerHTML:'';
+  var rmw=document.getElementById('reportMenuWrap');if(rmw)rmw.style.display='none';
+  // Remove review mode button if present
+  var brm=document.getElementById('btnReviewMode');if(brm)brm.remove();
+  // Restore placeholder (build fresh so ph-step states reset)
+  document.getElementById('main').innerHTML=
+    '<div class="placeholder" id="ph" style="opacity:1;gap:0;padding:48px 40px">'+
+    '<div style="max-width:340px;width:100%">'+
+    '<div style="font-family:\'Lora\',serif;font-size:22px;font-style:italic;color:var(--t2);text-align:center;margin-bottom:6px;opacity:.5">Relatório Radiológico</div>'+
+    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">IA · Radiologia Equina</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px">'+
+    '<div id="ph-step1" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">'+
+      '<div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📂</div>'+
+      '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Carregar radiografias</div>'+
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">JPG · PNG · PDF · DICOM · até 60 imagens</div></div>'+
+      '<div id="ph-step1-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>'+
+    '</div>'+
+    '<div id="ph-step2" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:border-color .2s">'+
+      '<div style="width:28px;height:28px;border-radius:50%;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🐴</div>'+
+      '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Seleccionar cavalo</div>'+
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)" id="ph-step2-sub">Opcional — activa histórico e evolução</div></div>'+
+      '<div id="ph-step2-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px">'+
+      '<div style="width:28px;height:28px;border-radius:50%;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">▶</div>'+
+      '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Gerar Relatório</div>'+
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">Botão dourado em baixo à esquerda</div></div>'+
+    '</div>'+
+    '</div></div></div>';
 }
 
 function saveClinic(){
@@ -1049,9 +1194,9 @@ function buildImgPage(){
 }
 
 function printReport(){
-  // Ensure both vet and cliente sections are visible for print
   var vetEl  = document.getElementById('report-vet');
   var cliEl  = document.getElementById('report-cliente');
+  var invEl  = document.getElementById('report-inv');
   var sepEl  = document.getElementById('print-owner-sep');
   var imgEl  = document.getElementById('print-img-page');
 
@@ -1059,16 +1204,16 @@ function printReport(){
   if(!imgEl){
     imgEl = document.createElement('div');
     imgEl.id = 'print-img-page';
-    imgEl.className = 'no-print'; // hidden on screen
+    imgEl.className = 'no-print';
     imgEl.innerHTML = buildImgPage();
-    // Insert after vet section, before owner separator
     var sepRef = document.getElementById('print-owner-sep');
     if(sepRef) sepRef.parentNode.insertBefore(imgEl, sepRef);
   } else {
-    imgEl.innerHTML = buildImgPage(); // refresh in case images changed
+    imgEl.innerHTML = buildImgPage();
   }
 
-  // Make all sections visible for print
+  // Make all report sections visible for print
+  if(invEl)  invEl.style.display='block';
   if(vetEl)  vetEl.style.display='block';
   if(cliEl)  cliEl.style.display='block';
   if(sepEl)  sepEl.style.display='block';
@@ -1083,16 +1228,19 @@ function printReport(){
     hdr.innerHTML=(clinic?'<strong>'+clinic+'</strong>':'')+(vet?' · '+vet:'');
   }
 
-  window.print();
-
-  // Restore display after print dialog closes
-  setTimeout(function(){
-    var mode = window._reportMode||'vet';
+  // Restore after print (use afterprint event for reliability)
+  function restoreAfterPrint() {
+    var mode = window._reportMode||'inv';
+    if(invEl)  invEl.style.display = mode==='inv'?'block':'none';
     if(vetEl)  vetEl.style.display = mode==='vet'?'block':'none';
     if(cliEl)  cliEl.style.display = mode==='cli'?'block':'none';
     if(sepEl)  sepEl.style.display = 'none';
     if(imgEl)  imgEl.style.display = 'none';
-  }, 1000);
+    window.removeEventListener('afterprint', restoreAfterPrint);
+  }
+  window.addEventListener('afterprint', restoreAfterPrint);
+
+  window.print();
 }
 
 function autoDetectModels(key){
@@ -1219,7 +1367,7 @@ function ingest(files) {
       return loadPdfJs().then(function(lib) {
         return pdfToImgs(f, lib);
       }).catch(function(err) {
-        alert('PDF não suportado: ' + (err.message||err) + '\n\nConverte em JPG em ilovepdf.com');
+        showAlert({title:'PDF não suportado', msg:(err.message||err)+'\n\nConverte em JPG em ilovepdf.com', type:'error'});
         return [];
       });
     });
@@ -1426,7 +1574,7 @@ function renderGrid() {
   var h = S.imgs.map(function(img,i){
     var dicomBadge = img.isDICOM ? '<div style="position:absolute;top:2px;left:2px;font-family:JetBrains Mono,monospace;font-size:7px;background:rgba(74,201,201,.85);color:#000;padding:1px 3px;border-radius:2px;font-weight:700">DCM</div>' : '';
     var scaleBadge = img.pxPerMm ? '<div style="position:absolute;top:2px;right:16px;font-family:JetBrains Mono,monospace;font-size:7px;background:rgba(74,170,122,.85);color:#000;padding:1px 3px;border-radius:2px;font-weight:700">mm</div>' : '';
-    return '<div class="thumb'+(i===S.idx?' active':'')+'" onclick="setImg('+i+')">' +
+    return '<div class="thumb'+(i===S.idx?' active':'')+'" onclick="setImg('+i+')" ondblclick="openReviewMode('+i+')" title="Duplo clique — ecrã inteiro">' +
       '<img src="'+img.url+'" loading="lazy">' +
       dicomBadge + scaleBadge +
       '<div class="thumb-n">'+String(i+1).padStart(2,'0')+'</div>' +
@@ -1463,6 +1611,11 @@ function showImg() {
   document.getElementById('viewImg').src=img.url;
   document.getElementById('viewTag').textContent='IMG '+String(S.idx+1).padStart(2,'0')+' · '+img.name.slice(0,22);
   applyF();
+  // Update placeholder step 1
+  var s1 = document.getElementById('ph-step1');
+  var s1c = document.getElementById('ph-step1-check');
+  if (s1) s1.style.borderColor = 'rgba(74,170,122,.4)';
+  if (s1c) s1c.style.display = 'block';
 }
 
 function setImg(i){S.idx=i;renderGrid();showImg();updateDICOMPanel(S.imgs[i]);}
@@ -1490,14 +1643,13 @@ function ui(){
   var ok=S.imgs.length>0;
   document.getElementById('runBtn').disabled=!ok;
   var h=document.getElementById('hint');
-  if(!S.imgs.length)h.textContent='Carregue imagens radiográficas.';
-  else if(!S.imgs.length)h.textContent='Carregue imagens radiográficas.';
-  
-  else {
-    var nB=Math.ceil(S.imgs.length/C.BATCH);
-    // Cost estimate: batch1=Sonnet (~$0.018 per batch), rest=Haiku (~$0.003)
-    var estCost = 0.025 + S.imgs.length * 0.004; // single call: ~$0.025 base + $0.004/img at 768px
-    h.textContent=S.imgs.length+' imagem(ns) pronta(s) · análise única (contexto contínuo) · custo estimado $'+estCost.toFixed(3);
+  if(!S.imgs.length){
+    h.textContent='Carregue imagens radiográficas.';
+  } else {
+    var n = S.imgs.length;
+    var estSecs = 30 + n * 2;
+    var estStr = estSecs < 60 ? '~' + estSecs + 's' : '~' + Math.round(estSecs/60) + 'min';
+    h.textContent = n + ' imagem' + (n>1?'ns':'') + ' pronta' + (n>1?'s':'') + ' · análise em ' + estStr;
   }
 }
 
@@ -2530,6 +2682,8 @@ IMPLICACÕES: Lateralidade sem marcador = incerta (88.8% dos erros são de later
 // MAIN RUN
 // ═══════════════════════════════════════════════════════
 async function run(){
+  // Reset state from any previous analysis
+  S._compareMode = false;
   var key=document.getElementById('fKey').value.trim();
   var info={
     name:  document.getElementById('fName').value.trim()||'Não identificado',
@@ -2549,16 +2703,15 @@ async function run(){
 
   // Warn if few images — likely incomplete session
   if(S.imgs.length<8){
-    var msg='Carregou apenas '+S.imgs.length+' imagem'+(S.imgs.length>1?'ns':'')+'.\n\n';
-    msg+='Para um exame completo, carregue TODAS as imagens da sessão de uma vez\n';
-    msg+='(tipicamente 20-50 imagens) para obter um único relatório consolidado.\n\n';
-    msg+='Pretende continuar mesmo assim?';
-    if(!confirm(msg)) return;
+    var fewMsg='Carregou apenas '+S.imgs.length+' imagem'+(S.imgs.length>1?'ns':'')+'.\n\nPara um exame completo, carregue TODAS as imagens da sessão de uma vez (tipicamente 20–50 imagens) para obter um único relatório consolidado.\n\nPretende continuar mesmo assim?';
+    var ok = await showConfirm({ title:'Poucas imagens', msg:fewMsg, confirmLabel:'Continuar', cancelLabel:'Cancelar', danger:false });
+    if(!ok) return;
   }
 
   document.getElementById('runBtn').disabled=true;
   document.getElementById('runBtn').innerHTML='⏳ A verificar…';
   var bp=document.getElementById('btnPrint');if(bp)bp.style.display='none';
+  var rmw=document.getElementById('reportMenuWrap');if(rmw)rmw.style.display='none';
 
   // Show initial loading state
   showLoading(1, S.imgs.length);
@@ -3099,7 +3252,6 @@ async function run(){
   // ── v51: CHAMADA ÚNICA — CONTEXTO CONTÍNUO ───────────────────────────────────
   // Todas as imagens numa só chamada. O modelo vê tudo em sequência,
   // correlaciona projecções do mesmo membro como um radiologista real.
-  document.getElementById('lmsg').textContent='A analisar todas as imagens em contexto contínuo…';
 
   // ── BATCHING INTELIGENTE ─────────────────────────────────────────────
   // ≤20 imgs → 1 lote (análise contínua total)
@@ -3931,9 +4083,14 @@ function seedLiteraturaCalibs() {
   var jaFeito = Object.values(active).some(function(c){return c.source==='literatura';}) ||
                 existing.some(function(c){return c.source==='literatura';});
   if (jaFeito) {
-    if (!confirm('Literatura base já carregada. Recarregar na mesma?\n(Duplicados serão ignorados)')) return;
+    showConfirm({title:'Literatura já carregada', msg:'A literatura base já está activa.\nRecarregar na mesma?\n(Duplicados serão ignorados)', confirmLabel:'Recarregar', danger:false}).then(function(ok){ if(ok) _doSeedLiteratura(); });
+    return;
   }
-
+  _doSeedLiteratura();
+}
+function _doSeedLiteratura() {
+  var active = {};
+  try { active = JSON.parse(localStorage.getItem('eq_calibrations_v1')||'{}'); } catch(e){}
   var date = new Date().toLocaleDateString('pt-PT');
 
   var REGRAS = [
@@ -4148,7 +4305,7 @@ function seedLiteraturaCalibs() {
       setTimeout(function(){ hint.style.color=''; hint.textContent=prev; }, 4000);
     }
   } else {
-    alert('Todas as regras de literatura já estavam activas.');
+    showAlert({msg:'Todas as regras de literatura já estavam activas.',type:'info'});
   }
 }
 
@@ -4456,7 +4613,7 @@ function approveCalib(idx, p) {
     invalidateCalibCache();
     console.log('[EQ] CALIB aprovada e guardada:', p.rule_text.slice(0,60));
   }).catch(function(e){
-    alert('Erro ao guardar CALIB: '+e.message);
+    showAlert({title:'Erro',msg:'Erro ao guardar CALIB: '+e.message,type:'error'});
   });
 }
 
@@ -4505,7 +4662,8 @@ function loadActiveCalibsUI() {
 
 // Desactiva uma CALIB
 function deactivateApprovedCalib(id) {
-  if(!confirm('Desactivar esta CALIB? Deixará de ser usada nas análises.')) return;
+  showConfirm({title:'Desactivar CALIB', msg:'Desactivar esta calibração?\nDeixará de ser usada nas análises.', confirmLabel:'Desactivar'}).then(function(ok){
+    if(!ok) return;
   fetch(SB_URL + '/rest/v1/calib_rules?id=eq.'+id, {
     method: 'PATCH',
     headers: {
@@ -4519,6 +4677,7 @@ function deactivateApprovedCalib(id) {
     invalidateCalibCache();
     loadActiveCalibsUI();
   });
+  }); // end showConfirm
 }
 
 function openDistillModal() {
@@ -6221,6 +6380,8 @@ function openReviewMode(startFromIdx) {
           'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer">✏ Caneta</button>' +
         '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Círculo permanente" '+
           'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer">⊙ Marcar</button>' +
+        '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar lado a lado" '+
+          'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(74,201,201,.3);border-radius:4px;color:rgba(74,201,201,.7);cursor:pointer">⊞ Comparar</button>' +
         '<button onclick="clearPointerMarks()" title="Limpar marcas da caneta" '+
         'style="font-family:'+mono+';font-size:10px;padding:5px 10px;background:transparent;border:1px solid rgba(255,80,80,.3);border-radius:4px;color:rgba(255,100,100,.7);cursor:pointer">🗑 Limpar</button>' +
         '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:10px;padding:5px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.7);cursor:pointer">✕ Fechar</button>' +
@@ -6235,7 +6396,7 @@ function openReviewMode(startFromIdx) {
     '</div>' +
 
     // Image area
-    '<div style="flex:1;display:flex;flex-direction:column">' +
+    '<div id="reviewMainImgArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden">' +
     // W/L toolbar
     '<div style="height:36px;flex-shrink:0;background:rgba(17,20,26,.95);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 12px;gap:8px">' +
       '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.25)">W</span>' +
@@ -6249,7 +6410,7 @@ function openReviewMode(startFromIdx) {
       '<img id="reviewImg" style="max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;transition:filter .15s;transform-origin:center center" alt="">' +
       '<canvas id="reviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;transform-origin:center center"></canvas>' +
     '</div>' +
-    '</div>' + // end image column
+    '</div>' + // end reviewMainImgArea
 
     // Findings panel
     '<div id="reviewFindingsPanel" style="width:200px;flex-shrink:0;background:#11141a;border-left:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden">' +
@@ -6327,27 +6488,64 @@ function renderReviewFrame() {
   var noteEl = document.getElementById('reviewNote');
   if (noteEl) noteEl.value = (_reviewNotes[imgName] && _reviewNotes[imgName].text) || '';
 
-  // ── FILM STRIP ──
+  // ── FILM STRIP com agrupamento por região ──
   var strip = document.getElementById('reviewFilmStrip');
   if (strip) {
     strip.innerHTML = '';
+
+    // Detectar região de cada imagem pelo nome
+    function detectRegiao(name) {
+      var n = (name||'').toLowerCase();
+      if (n.indexOf('mcf') >= 0 || n.indexOf('boleto') >= 0 || n.indexOf('fetlock') >= 0) return 'MCF';
+      if (n.indexOf('navicular') >= 0 || n.indexOf('oxspring') >= 0) return 'NAVICULAR';
+      if (n.indexOf('casco') >= 0 || n.indexOf('coffin') >= 0 || n.indexOf('foot') >= 0 || n.indexOf('pe ') >= 0 || n.indexOf('pé') >= 0) return 'CASCO';
+      if (n.indexOf('tars') >= 0 || n.indexOf('jarrete') >= 0 || n.indexOf('hock') >= 0) return 'TARSO';
+      if (n.indexOf('carpo') >= 0 || n.indexOf('carpus') >= 0 || n.indexOf('knee') >= 0) return 'CARPO';
+      if (n.indexOf('estifle') >= 0 || n.indexOf('stifle') >= 0) return 'ESTIFLE';
+      if (n.indexOf('coluna') >= 0 || n.indexOf('spine') >= 0) return 'COLUNA';
+      return 'GERAL';
+    }
+
+    // Agrupar imagens por região
+    var groups = {};
+    var groupOrder = [];
     S.imgs.forEach(function(im, i) {
-      var thumb = document.createElement('div');
-      var isActive = i === S.idx;
-      thumb.style.cssText = 'border-radius:4px;border:1px solid ' + (isActive ? 'rgba(201,168,76,.7)' : 'rgba(255,255,255,.08)') + ';cursor:pointer;overflow:hidden;position:relative;background:#0d1018;transition:border-color .15s;flex-shrink:0';
-      var imgEl = document.createElement('img');
-      imgEl.src = im.url;
-      imgEl.style.cssText = 'width:100%;display:block;max-height:54px;object-fit:cover;opacity:' + (isActive ? '1' : '.55');
-      var lbl = document.createElement('div');
-      lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-family:JetBrains Mono,monospace;font-size:7px;color:' + (isActive ? 'var(--gold)' : 'rgba(255,255,255,.4)') + ';text-align:center;padding:2px 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-      lbl.textContent = (im.name || ('IMG'+(i+1))).slice(0,9);
-      thumb.appendChild(imgEl); thumb.appendChild(lbl);
-      thumb.onclick = (function(idx){ return function(){ S.idx = idx; if(window._reviewResetView) window._reviewResetView(); renderReviewFrame(); }; })(i);
-      strip.appendChild(thumb);
+      var reg = detectRegiao(im.name || ('IMG'+(i+1)));
+      if (!groups[reg]) { groups[reg] = []; groupOrder.push(reg); }
+      groups[reg].push({ im: im, idx: i });
     });
+
+    groupOrder.forEach(function(reg) {
+      // Label do grupo
+      var groupLabel = document.createElement('div');
+      groupLabel.className = 'viewer-region-group';
+      groupLabel.textContent = reg;
+      strip.appendChild(groupLabel);
+
+      groups[reg].forEach(function(item) {
+        var i = item.idx; var im = item.im;
+        var thumb = document.createElement('div');
+        var isActive = i === S.idx;
+        thumb.style.cssText = 'border-radius:4px;border:1px solid ' + (isActive ? 'rgba(201,168,76,.7)' : 'rgba(255,255,255,.08)') + ';cursor:pointer;overflow:hidden;position:relative;background:#0d1018;transition:border-color .15s;flex-shrink:0';
+        var imgEl = document.createElement('img');
+        imgEl.src = im.url;
+        imgEl.style.cssText = 'width:100%;display:block;max-height:54px;object-fit:cover;opacity:' + (isActive ? '1' : '.55');
+        var lbl = document.createElement('div');
+        lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-family:JetBrains Mono,monospace;font-size:7px;color:' + (isActive ? 'var(--gold)' : 'rgba(255,255,255,.4)') + ';text-align:center;padding:2px 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+        lbl.textContent = (im.name || ('IMG'+(i+1))).slice(0,9);
+        thumb.appendChild(imgEl); thumb.appendChild(lbl);
+        thumb.onclick = (function(idx){ return function(){ S.idx = idx; if(window._reviewResetView) window._reviewResetView(); renderReviewFrame(); }; })(i);
+        strip.appendChild(thumb);
+      });
+    });
+
     // Scroll active into view
-    var activeThumb = strip.children[S.idx];
-    if (activeThumb) activeThumb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    var allThumbs = strip.querySelectorAll('div[style*="cursor:pointer"]');
+    allThumbs.forEach(function(t) {
+      if (t.style.borderColor && t.style.borderColor.indexOf('201,168,76') >= 0) {
+        t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    });
   }
 
   // ── FINDINGS PANEL ──
@@ -7353,15 +7551,19 @@ function renderReport(r,info){
   // ══════════════════════════════════════════════════════
   // BUILD HTML
   // ══════════════════════════════════════════════════════
-  // Show print button
+  // Show report menu dropdown (replaces individual buttons)
+  var reportMenuWrap = document.getElementById('reportMenuWrap');
+  if (reportMenuWrap) reportMenuWrap.style.display = 'block';
+  // Keep btnPrint hidden (now inside dropdown)
   var btnPrint=document.getElementById('btnPrint');
-  if(btnPrint) btnPrint.style.display='inline-flex';
+  if(btnPrint) btnPrint.style.display='none';
+  // Keep legacy stubs hidden
   var btnExport=document.getElementById('btnExport');
-  if(btnExport) btnExport.style.display='inline-flex';
+  if(btnExport) btnExport.style.display='none';
   var btnHistory=document.getElementById('btnHistory');
-  if(btnHistory) btnHistory.style.display='inline-flex';
+  if(btnHistory) btnHistory.style.display='none';
   var btnSecondOp=document.getElementById('btnSecondOp');
-  if(btnSecondOp) btnSecondOp.style.display='inline-flex';
+  if(btnSecondOp) btnSecondOp.style.display='none';
 
   // Get clinic info
   var clinicName='',vetName='';
@@ -7520,7 +7722,7 @@ function renderReport(r,info){
     '</div>';
   })()+
 
-  '<div style="display:flex;gap:0;border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin:14px 0 18px;font-family:JetBrains Mono,monospace;font-size:10px">'+
+  '<div class="no-print" style="display:flex;gap:0;border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin:14px 0 18px;font-family:JetBrains Mono,monospace;font-size:10px">'+
     '<button id="btn-mode-inv" onclick="setReportMode(\'inv\')" style="flex:1;padding:8px 4px;background:var(--gold);color:var(--ink1);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.04em;font-weight:700">🔬 INVENTÁRIO</button>'+
     '<button id="btn-mode-vet" onclick="setReportMode(\'vet\')" style="flex:1;padding:8px 4px;background:var(--ink3);color:var(--t2);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.04em">🧠 INTERPRETAÇÃO</button>'+
     '<button id="btn-mode-cli" onclick="setReportMode(\'cli\')" style="flex:1;padding:8px 4px;background:var(--ink3);color:var(--t2);border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.04em">👤 PROPRIETÁRIO</button>'+
@@ -7538,6 +7740,12 @@ function renderReport(r,info){
   '<div id="report-inv">'+buildInventarioReport(r,sc,sc_col,info)+'</div>'+
   '<div id="report-cliente" style="display:none">'+buildClienteReport(r,cl,sc,sc_col,info)+'</div>'+
   '<div id="report-vet" style="display:none">'+
+  '<div class="print-page-break" style="display:none"></div>'+
+  '<div class="no-print" style="display:none" id="print-vet-header"></div>'+
+  '<div class="print-vet-header-print" style="padding:18px 0 14px;border-bottom:2px solid #8B6914;margin-bottom:18px;display:none">'+
+    '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#8B6914;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px">⎯⎯⎯⎯⎯  Relatório Veterinário  ⎯⎯⎯⎯⎯</div>'+
+    '<div style="font-size:14px;font-weight:700;color:#000">Interpretação Clínica · Para uso exclusivo do médico veterinário</div>'+
+  '</div>'+
   buildInterpretacaoReport(r,sc,sc_col,info)+
   '<div style="margin-top:24px;border-top:2px solid var(--wire2);padding-top:20px">'+
   '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px">Relatório Veterinário Completo</div>'+
@@ -7678,11 +7886,14 @@ function renderReport(r,info){
   '<div class="sig"><div class="sig-inner"><div class="sig-line"></div><div class="sig-name">EquiScan Pro · IA Especializada</div><div class="sig-role">'+X(r._model||'—')+'</div></div></div>'+
 
   '<div class="legal"><div class="legal-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>'+
-  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro v64 · '+ds+'</p></div>'+
+  '<p><strong>Aviso Legal:</strong> Relatório gerado com assistência de IA. Classificações baseadas em McIlwraith, Oxspring e Dyson/Denoix. Não substitui avaliação de médico veterinário licenciado. REF. '+X(ref)+' · EquiScan Pro · '+ds+'</p></div>'+
 
   buildFeedbackPanel(r, ref)+
 
   '</div>';
+
+  // Default to Inventário tab after render, reset any prior mode
+  setTimeout(function(){ setReportMode('inv'); }, 0);
 }
 
 function buildFeedbackPanel(r, ref){
@@ -7795,7 +8006,7 @@ function saveFeedback(ref){
 function exportApprovedCalibs() {
   var calibs = {};
   try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
-  if (!Object.keys(calibs).length) { alert('Nenhuma calibração activa para exportar.'); return; }
+  if (!Object.keys(calibs).length) { showAlert({msg:'Nenhuma calibração activa para exportar.',type:'info'}); return; }
   var exportData = {
     exported_at: new Date().toISOString(),
     version: 'eq_calibrations_v1',
@@ -7813,7 +8024,7 @@ function exportApprovedCalibs() {
 function exportFeedbackLog(){
   var log = [];
   try{ log = JSON.parse(localStorage.getItem('eq_feedback_log')||'[]'); }catch(e){}
-  if(!log.length){alert('Nenhum feedback guardado ainda.');return;}
+  if(!log.length){showAlert({msg:'Nenhum feedback guardado ainda.',type:'info'});return;}
   var blob = new Blob([JSON.stringify(log,null,2)],{type:'application/json'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -8917,15 +9128,19 @@ function importVetReport(input) {
 
       if (alreadyExists || alreadyActive) {
         var where = alreadyExists ? 'pendentes' : 'activas';
-        var confirmMsg = '⚠ Já existem calibrações de "' + (horse||fonte) + '" nas CALIBs ' + where + '.\n\nSubstituir pelas novas ou Acumular?';
-        var doReplace = confirm(confirmMsg + '\n\n[OK = Substituir] [Cancelar = Acumular]');
-        if (doReplace) {
-          existingPending = existingPending.filter(function(p){ return p.horse !== (horse||fonte) && p.fonte_doc !== fonte; });
-          Object.keys(existingActive).forEach(function(k){
-            if (existingActive[k].horse === (horse||fonte) || existingActive[k].fonte_doc === fonte) delete existingActive[k];
-          });
-          localStorage.setItem('eq_calibrations_v1', JSON.stringify(existingActive));
-        }
+        var confirmMsg2 = '⚠ Já existem calibrações de "' + (horse||fonte) + '" nas CALIBs ' + where + '.\n\nSubstituir pelas novas ou Acumular?';
+        showConfirm({title:'Calibrações duplicadas', msg:confirmMsg2, confirmLabel:'Substituir', cancelLabel:'Acumular', danger:true}).then(function(doReplace){
+          if (doReplace) {
+            existingPending = existingPending.filter(function(p){ return p.horse !== (horse||fonte) && p.fonte_doc !== fonte; });
+            Object.keys(existingActive).forEach(function(k){
+              if (existingActive[k].horse === (horse||fonte) || existingActive[k].fonte_doc === fonte) delete existingActive[k];
+            });
+            localStorage.setItem('eq_calibrations_v1', JSON.stringify(existingActive));
+          }
+          existingPending = existingPending.concat(pending);
+          localStorage.setItem('eq_calibrations_pending', JSON.stringify(existingPending));
+        });
+        return;
       }
       existingPending = existingPending.concat(pending);
       localStorage.setItem('eq_calibrations_pending', JSON.stringify(existingPending));
@@ -9119,25 +9334,25 @@ function cleanCalibsBySource(fonte) {
     if ((c.fonte_doc || c.horse || c.source || 'manual') === fonte) total++;
   });
 
-  if (!confirm('Remover ' + total + ' CALIB(s) de "' + fonte + '"?\n\nPodes re-importar o documento a seguir com o novo pipeline.')) return;
-
-  Object.keys(active).forEach(function(k) {
-    if ((active[k].fonte_doc || active[k].horse || active[k].source || 'manual') === fonte) delete active[k];
+  if (!total) { showAlert({msg:'Nenhuma CALIB encontrada para "'+fonte+'".', type:'info'}); return; }
+  showConfirm({title:'Remover CALIBs', msg:'Remover '+total+' CALIB(s) de "'+fonte+'"?\n\nPodes re-importar o documento a seguir com o novo pipeline.', confirmLabel:'Remover', danger:true}).then(function(ok){
+    if(!ok) return;
+    Object.keys(active).forEach(function(k) {
+      if ((active[k].fonte_doc || active[k].horse || active[k].source || 'manual') === fonte) delete active[k];
+    });
+    localStorage.setItem('eq_calibrations_v1', JSON.stringify(active));
+    pending = pending.filter(function(c) {
+      return (c.fonte_doc || c.horse || c.source || 'manual') !== fonte;
+    });
+    localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
+    invalidateCalibCache();
+    updateSidebarBadges();
+    try { refreshConfidencePanel(); } catch(e) {}
+    showToast('✓ ' + total + ' CALIBs de "' + fonte.slice(0,30) + '" removidas');
+    var ov = document.getElementById('cleanCalibsOverlay');
+    if (ov) { ov.remove(); openCleanCalibsBySourceModal(); }
   });
-  localStorage.setItem('eq_calibrations_v1', JSON.stringify(active));
-
-  pending = pending.filter(function(c) {
-    return (c.fonte_doc || c.horse || c.source || 'manual') !== fonte;
-  });
-  localStorage.setItem('eq_calibrations_pending', JSON.stringify(pending));
-
-  invalidateCalibCache();
-  updateSidebarBadges();
-  try { refreshConfidencePanel(); } catch(e) {}
-  showToast('✓ ' + total + ' CALIBs de "' + fonte.slice(0,30) + '" removidas');
-  var ov = document.getElementById('cleanCalibsOverlay');
-  if (ov) { ov.remove(); openCleanCalibsBySourceModal(); }
-}
+} // end cleanCalibsBySource
 
 function cleanAllUserCalibs() {
   var active = {};
@@ -9146,20 +9361,21 @@ function cleanAllUserCalibs() {
   try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
   var nonLit = Object.keys(active).filter(function(k){ return active[k].source !== 'literatura'; }).length;
   var total = nonLit + pending.length;
-  if (!confirm('⚠ ATENÇÃO: Remover TODAS as ' + total + ' CALIBs (excepto literatura base)?\nEsta acção não pode ser revertida.')) return;
-
-  var cleaned = {};
-  Object.entries(active).forEach(function(kv) {
-    if (kv[1].source === 'literatura') cleaned[kv[0]] = kv[1];
+  showConfirm({title:'⚠ Remover TODAS as CALIBs', msg:'Remover TODAS as '+total+' CALIBs (excepto literatura base)?\n\nEsta acção não pode ser revertida.', confirmLabel:'Remover Tudo', danger:true}).then(function(ok){
+    if(!ok) return;
+    var cleaned = {};
+    Object.entries(active).forEach(function(kv) {
+      if (kv[1].source === 'literatura') cleaned[kv[0]] = kv[1];
+    });
+    localStorage.setItem('eq_calibrations_v1', JSON.stringify(cleaned));
+    localStorage.removeItem('eq_calibrations_pending');
+    invalidateCalibCache();
+    updateSidebarBadges();
+    try { refreshConfidencePanel(); } catch(e) {}
+    showToast('✓ CALIBs removidas. Literatura base preservada.');
+    var ov = document.getElementById('cleanCalibsOverlay');
+    if (ov) { ov.remove(); openCleanCalibsBySourceModal(); }
   });
-  localStorage.setItem('eq_calibrations_v1', JSON.stringify(cleaned));
-  localStorage.removeItem('eq_calibrations_pending');
-  invalidateCalibCache();
-  updateSidebarBadges();
-  try { refreshConfidencePanel(); } catch(e) {}
-  showToast('✓ CALIBs removidas. Literatura base preservada.');
-  var ov = document.getElementById('cleanCalibsOverlay');
-  if (ov) { ov.remove(); openCleanCalibsBySourceModal(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -9653,7 +9869,7 @@ function openPendingCalibsModal() {
   try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
 
   if (!pending.length) {
-    alert('Não há calibrações pendentes de aprovação.');
+    showAlert({msg:'Não há calibrações pendentes de aprovação.',type:'info'});
     return;
   }
 
@@ -10001,7 +10217,8 @@ function approveAllPendingCalibs() {
   var pending = [];
   try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
   if (!pending.length) return;
-  if (!confirm('Aprovar todas as ' + pending.length + ' calibrações pendentes? Esta acção activa todas imediatamente.')) return;
+  showConfirm({title:'Aprovar todas', msg:'Aprovar todas as '+pending.length+' calibrações pendentes?\nEsta acção activa todas imediatamente.', confirmLabel:'Aprovar Tudo', danger:false}).then(function(ok){
+    if(!ok) return;
   var calibrations = {};
   try { calibrations = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
   var date = new Date().toLocaleDateString('pt-PT');
@@ -10057,30 +10274,34 @@ function approveAllPendingCalibs() {
     overlay.style.alignItems = 'center';
   }
   updateSidebarBadges();
+  }); // end showConfirm
 }
 
 function removeLocalCalib(key) {
-  if (!confirm('Remover calibração "' + key + '" das CALIBs activas?')) return;
-  var calibs = {};
-  try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
-  delete calibs[key];
-  localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibs));
-  updateSidebarBadges();
-  showToast('Calibração removida das activas.');
-  // Refresh modal if open
-  var overlay = document.getElementById('calibsModal');
-  if (overlay && overlay.style.display === 'flex') openCalibsModal();
+  showConfirm({title:'Remover calibração', msg:'Remover "'+key+'" das CALIBs activas?', confirmLabel:'Remover', danger:true}).then(function(ok){
+    if(!ok) return;
+    var calibs = {};
+    try { calibs = JSON.parse(localStorage.getItem('eq_calibrations_v1') || '{}'); } catch(e) {}
+    delete calibs[key];
+    localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibs));
+    updateSidebarBadges();
+    showToast('Calibração removida das activas.');
+    var overlay = document.getElementById('calibsModal');
+    if (overlay && overlay.style.display === 'flex') openCalibsModal();
+  });
 }
 
 function rejectAllPendingCalibs() {
   var pending = [];
   try { pending = JSON.parse(localStorage.getItem('eq_calibrations_pending') || '[]'); } catch(e) {}
   if (!pending.length) return;
-  if (!confirm('Rejeitar todas as ' + pending.length + ' calibrações pendentes? Esta acção é IRREVERSÍVEL.')) return;
-  localStorage.removeItem('eq_calibrations_pending');
-  var overlay = document.getElementById('pendingCalibsOverlay');
-  if (overlay) overlay.remove();
-  updateSidebarBadges();
+  showConfirm({title:'Rejeitar tudo', msg:'Rejeitar todas as '+pending.length+' calibrações pendentes?\n\nEsta acção é IRREVERSÍVEL.', confirmLabel:'Rejeitar Tudo', danger:true}).then(function(ok){
+    if(!ok) return;
+    localStorage.removeItem('eq_calibrations_pending');
+    var overlay = document.getElementById('pendingCalibsOverlay');
+    if (overlay) overlay.remove();
+    updateSidebarBadges();
+  });
 }
 
 function updateSidebarBadges() {
@@ -10237,7 +10458,7 @@ function eqUndoRow(idx){
 
 function eqViewImg(idx){
   var imgs = S.imgs||[];
-  if(!imgs[idx]||!imgs[idx].url){ alert('Imagem não disponível em memória'); return; }
+  if(!imgs[idx]||!imgs[idx].url){ showAlert({msg:'Imagem não disponível em memória',type:'error'}); return; }
   var imap = S.identMap||{};
   var m = imap[idx]||{};
   var label = (m.texto_visivel||m.label||imgs[idx].name||'IMG'+String(idx+1).padStart(2,'0')).slice(0,60);
@@ -11054,6 +11275,14 @@ function onHorseSelect(id) {
   // Load exams for this horse
   _renderHorseTimeline(id);
   window._selectedHorseId = id;
+
+  // Update placeholder step 2
+  var s2 = document.getElementById('ph-step2');
+  var s2c = document.getElementById('ph-step2-check');
+  var s2sub = document.getElementById('ph-step2-sub');
+  if (s2) s2.style.borderColor = 'rgba(74,170,122,.4)';
+  if (s2c) s2c.style.display = 'block';
+  if (s2sub && horse) s2sub.textContent = horse.nome;
 }
 
 function openNewHorseModal() {
@@ -11160,6 +11389,9 @@ function saveExamForHorse(horseId, reportResult, score, classe) {
     date:     new Date().toISOString(),
     score:    score || 0,
     classe:   classe || '',
+    nimgs:    S.imgs ? S.imgs.length : 0,
+    vet:      (document.getElementById('fVet') && document.getElementById('fVet').value) || '',
+    clinic:   (document.getElementById('fClinic') && document.getElementById('fClinic').value) || '',
     achados:  (reportResult && reportResult.achados) ? reportResult.achados.length : 0,
     ref:      (reportResult && reportResult.ref) || '',
     achados_detalhe: (reportResult && reportResult.achados) ? reportResult.achados.map(function(a){
@@ -11279,8 +11511,12 @@ window.addEventListener('DOMContentLoaded', function(){
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
+  // Close report dropdown if open
+  var rdd = document.getElementById('reportMenuDropdown');
+  if (rdd && rdd.style.display !== 'none') { rdd.style.display='none'; var arr=document.getElementById('reportMenuArrow');if(arr)arr.style.transform=''; return; }
   // Close topmost modal overlay
   var overlays = [
+    document.getElementById('cavaiosPanel'),
     document.getElementById('importModeOverlay'),
     document.getElementById('caseStudyOverlay'),
     document.getElementById('newHorseOverlay'),
@@ -11300,12 +11536,89 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-function showToast(msg) {
+// ── MODAL CONFIRM / ALERT (substitui confirm() e alert() nativos) ─────────────
+/**
+ * showConfirm(opts) → Promise<boolean>
+ * opts: { title, msg, confirmLabel, cancelLabel, danger }
+ */
+function showConfirm(opts) {
+  return new Promise(function(resolve) {
+    var mono = 'JetBrains Mono,monospace';
+    var danger = opts.danger !== false;
+    var accentCol = danger ? 'rgba(224,85,85,.4)' : 'rgba(74,201,201,.3)';
+    var btnCol    = danger ? 'rgba(224,85,85,.15);color:var(--red);border:1px solid rgba(224,85,85,.4)' : 'rgba(74,201,201,.12);color:var(--ice);border:1px solid rgba(74,201,201,.3)';
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML =
+      '<div style="background:var(--ink1);border:1px solid '+accentCol+';border-radius:10px;padding:26px 28px;max-width:400px;width:100%">' +
+      (opts.title ? '<div style="font-family:'+mono+';font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">'+opts.title+'</div>' : '') +
+      '<div style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:20px;white-space:pre-line">'+opts.msg+'</div>' +
+      '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+      '<button id="_mc_cancel" style="font-family:'+mono+';font-size:10px;padding:9px 18px;background:transparent;border:1px solid var(--wire2);border-radius:5px;color:var(--t3);cursor:pointer">'+(opts.cancelLabel||'Cancelar')+'</button>' +
+      '<button id="_mc_confirm" style="font-family:'+mono+';font-size:10px;padding:9px 18px;background:'+btnCol+';border-radius:5px;cursor:pointer;font-weight:700">'+(opts.confirmLabel||'Confirmar')+'</button>' +
+      '</div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#_mc_cancel').onclick  = function() { ov.remove(); resolve(false); };
+    ov.querySelector('#_mc_confirm').onclick = function() { ov.remove(); resolve(true); };
+    ov.addEventListener('keydown', function(e) { if (e.key === 'Escape') { ov.remove(); resolve(false); } });
+  });
+}
+
+/**
+ * showAlert(opts)
+ * opts: { title, msg, type } — type: 'error'|'warning'|'info'
+ */
+function showAlert(opts) {
+  return new Promise(function(resolve) {
+    var mono = 'JetBrains Mono,monospace';
+    var col = opts.type === 'error' ? 'rgba(224,85,85,.4)' : opts.type === 'warning' ? 'rgba(212,147,58,.4)' : 'rgba(74,201,201,.3)';
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML =
+      '<div style="background:var(--ink1);border:1px solid '+col+';border-radius:10px;padding:26px 28px;max-width:400px;width:100%">' +
+      (opts.title ? '<div style="font-family:'+mono+';font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">'+opts.title+'</div>' : '') +
+      '<div style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:20px;white-space:pre-line">'+opts.msg+'</div>' +
+      '<div style="display:flex;justify-content:flex-end">' +
+      '<button id="_ma_ok" style="font-family:'+mono+';font-size:10px;padding:9px 20px;background:rgba(74,201,201,.1);border:1px solid rgba(74,201,201,.3);border-radius:5px;color:var(--ice);cursor:pointer;font-weight:700">OK</button>' +
+      '</div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#_ma_ok').onclick = function() { ov.remove(); resolve(); };
+    ov.addEventListener('keydown', function(e) { if (e.key === 'Escape' || e.key === 'Enter') { ov.remove(); resolve(); } });
+  });
+}
+
+// ── REPORT MENU DROPDOWN ──────────────────────────────────────────────────────
+function toggleReportMenu() {
+  var dd = document.getElementById('reportMenuDropdown');
+  var arrow = document.getElementById('reportMenuArrow');
+  if (!dd) return;
+  var isOpen = dd.style.display === 'block';
+  dd.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+// Close report menu when clicking outside
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('reportMenuWrap');
+  var dd = document.getElementById('reportMenuDropdown');
+  if (dd && dd.style.display === 'block' && wrap && !wrap.contains(e.target)) {
+    dd.style.display = 'none';
+    var arrow = document.getElementById('reportMenuArrow');
+    if (arrow) arrow.style.transform = '';
+  }
+});
+
+function showToast(msg, type) {
+  // type: 'success' | 'error' | 'warning' | undefined (neutral)
+  var isSuccess = type === 'success' || (!type && /^[✓✔☑]/.test(msg));
+  var isError   = type === 'error'   || (!type && /^[✕✗❌⚠]/.test(msg));
+  var isWarning = type === 'warning' || (!type && /^⚠/.test(msg));
+  var borderCol = isError ? 'rgba(224,85,85,.4)' : isSuccess ? 'rgba(74,170,122,.35)' : isWarning ? 'rgba(212,147,58,.4)' : 'var(--wire2)';
+  var iconCol   = isError ? 'var(--red)' : isSuccess ? 'var(--green)' : isWarning ? 'var(--amber)' : 'var(--t2)';
   var t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--ink2);border:1px solid var(--wire2);border-radius:5px;padding:10px 16px;font-size:12px;color:var(--t1);z-index:9000;animation:fadeup .3s ease;max-width:280px;line-height:1.5';
+  t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--ink2);border:1px solid '+borderCol+';border-left:3px solid '+iconCol+';border-radius:5px;padding:10px 16px;font-size:12px;color:var(--t1);z-index:9000;animation:fadeup .3s ease;max-width:300px;line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.4)';
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .5s'; setTimeout(function(){ t.remove(); }, 500); }, 3500);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){ t.remove(); }, 400); }, 3500);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -11674,7 +11987,7 @@ function _activateCalib(calibData) {
   };
   localStorage.setItem('eq_calibrations_v1', JSON.stringify(calibs));
   try { invalidateCalibCache(); } catch(e) {}
-  updateSidebarBadges();
+  try { updateSidebarBadges(); } catch(e) {}
 }
 
 function adminApproveCalib(calibId) {
@@ -11933,12 +12246,14 @@ function adminChangeRole(username, newRole) {
 }
 
 function adminRemoveUser(username) {
-  if (!confirm('Remover utilizador "' + username + '"? Os seus dados ficam preservados.')) return;
-  var mu = muLoad();
-  mu.users = mu.users.filter(function(u){ return u.username !== username; });
-  muSave(mu);
-  renderAdminContent();
-  showToast('Utilizador removido');
+  showConfirm({title:'Remover utilizador', msg:'Remover utilizador "'+username+'"?\n\nOs seus dados ficam preservados.', confirmLabel:'Remover', danger:true}).then(function(ok){
+    if(!ok) return;
+    var mu = muLoad();
+    mu.users = mu.users.filter(function(u){ return u.username !== username; });
+    muSave(mu);
+    renderAdminContent();
+    showToast('Utilizador removido');
+  });
 }
 
 // ── Marcar análise no perfil do vet ──────────────────
@@ -12570,14 +12885,16 @@ function intelDeleteCase(caseId) {
 }
 
 function intelForgetAll() {
-  if (!confirm('Apagar TODA a memória adaptativa? Esta acção não pode ser desfeita.')) return;
-  var mem = intelLoad();
-  mem.cases = [];
-  mem.lastLearn = null;
-  intelSave(mem);
-  renderIntelPanel();
-  updateIntelBadge();
-  showToast('Memória adaptativa limpa.');
+  showConfirm({title:'Apagar memória adaptativa', msg:'Apagar TODA a memória adaptativa?\n\nEsta acção não pode ser desfeita.', confirmLabel:'Apagar Tudo', danger:true}).then(function(ok){
+    if(!ok) return;
+    var mem = intelLoad();
+    mem.cases = [];
+    mem.lastLearn = null;
+    intelSave(mem);
+    renderIntelPanel();
+    updateIntelBadge();
+    showToast('Memória adaptativa limpa.');
+  });
 }
 
 function intelExport() {
@@ -12630,13 +12947,317 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
 
-<script>
-window.addEventListener('DOMContentLoaded', function(){
-  updateSidebarBadges();
-});
-</script>
 
 </div><!-- /appShell -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// COMPARE MODE — Viewer lado a lado
+// ═══════════════════════════════════════════════════════
+var _compareMode = false;
+var _compareIdx = null; // segundo índice
+
+function toggleCompareMode() {
+  _compareMode = !_compareMode;
+  var btn = document.getElementById('reviewBtnCompare');
+  if (btn) {
+    btn.style.background = _compareMode ? 'rgba(74,201,201,.2)' : 'transparent';
+    btn.style.color = _compareMode ? 'var(--ice)' : 'rgba(74,201,201,.7)';
+    btn.textContent = _compareMode ? '⊞ Comparar ✓' : '⊞ Comparar';
+  }
+  if (_compareMode) {
+    // Escolher segundo índice: próxima imagem ou anterior
+    _compareIdx = S.idx + 1 < S.imgs.length ? S.idx + 1 : (S.idx > 0 ? S.idx - 1 : S.idx);
+    renderCompareMode();
+  } else {
+    // Voltar ao modo normal
+    var imgArea = document.getElementById('reviewMainImgArea');
+    if (imgArea) {
+      imgArea.innerHTML = '';
+      imgArea.style.flexDirection = '';
+      // Recriar imagem normal
+      var wrap = document.createElement('div');
+      wrap.id = 'reviewImgWrap';
+      wrap.className = 'compare-img-wrap';
+      wrap.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:crosshair';
+      var img = document.createElement('img');
+      img.id = 'reviewImg';
+      img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;transition:filter .15s;transform-origin:center center';
+      var canvas = document.createElement('canvas');
+      canvas.id = 'reviewCanvas';
+      canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;transform-origin:center center';
+      wrap.appendChild(img); wrap.appendChild(canvas);
+      imgArea.appendChild(wrap);
+      setupReviewInteraction();
+      renderReviewFrame();
+    }
+  }
+}
+
+function renderCompareMode() {
+  var imgArea = document.getElementById('reviewMainImgArea');
+  if (!imgArea || !S.imgs.length) return;
+  var im1 = S.imgs[S.idx];
+  var im2 = S.imgs[_compareIdx] || S.imgs[S.idx];
+
+  imgArea.style.display = 'flex';
+  imgArea.style.flexDirection = 'row';
+  imgArea.innerHTML =
+    '<div class="compare-pane">' +
+      '<div class="compare-tag">' + (im1.name||'IMG '+(S.idx+1)).slice(0,22) + '</div>' +
+      '<div class="compare-img-wrap" id="cmpWrap1">' +
+        '<img id="cmpImg1" src="' + im1.url + '" style="max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;transition:filter .15s">' +
+      '</div>' +
+    '</div>' +
+    '<div class="compare-pane">' +
+      '<div class="compare-tag" style="color:var(--ice)">' + (im2.name||'IMG '+(_compareIdx+1)).slice(0,22) + '</div>' +
+      // Selector para escolher a segunda imagem
+      '<div style="position:absolute;top:8px;right:10px;z-index:5">' +
+        '<select id="cmpSelect2" onchange="changeCmpImg2(this.value)" style="background:rgba(0,0,0,.8);border:1px solid rgba(74,201,201,.3);border-radius:4px;color:var(--ice);font-family:JetBrains Mono,monospace;font-size:9px;padding:3px 6px;cursor:pointer;max-width:120px">' +
+          S.imgs.map(function(im,i){
+            return '<option value="'+i+'"'+(i===_compareIdx?' selected':'')+'>IMG '+(i+1)+' · '+(im.name||'').slice(0,12)+'</option>';
+          }).join('') +
+        '</select>' +
+      '</div>' +
+      '<div class="compare-img-wrap" id="cmpWrap2">' +
+        '<img id="cmpImg2" src="' + im2.url + '" style="max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;transition:filter .15s">' +
+      '</div>' +
+    '</div>';
+
+  // Sincronizar W/L slider com ambas as imagens
+  var wSlider = document.getElementById('reviewWSlider');
+  var lSlider = document.getElementById('reviewLSlider');
+  function applyWLBoth() {
+    var w = wSlider ? parseInt(wSlider.value) : 50;
+    var l = lSlider ? parseInt(lSlider.value) : 50;
+    var brightness = 0.5 + (l / 100);
+    var contrast = 0.5 + (w / 100) * 1.5;
+    var filter = 'brightness('+brightness+') contrast('+contrast+')';
+    var i1 = document.getElementById('cmpImg1');
+    var i2 = document.getElementById('cmpImg2');
+    if (i1) i1.style.filter = filter;
+    if (i2) i2.style.filter = filter;
+  }
+  if (wSlider) wSlider.addEventListener('input', applyWLBoth);
+  if (lSlider) lSlider.addEventListener('input', applyWLBoth);
+  applyWLBoth();
+}
+
+function changeCmpImg2(idx) {
+  _compareIdx = parseInt(idx);
+  var im2 = S.imgs[_compareIdx];
+  if (!im2) return;
+  var img2 = document.getElementById('cmpImg2');
+  if (img2) img2.src = im2.url;
+  var tag = document.querySelector('.compare-pane:last-child .compare-tag');
+  if (tag) tag.textContent = (im2.name||'IMG '+(_compareIdx+1)).slice(0,22);
+}
+
+// Wrap do main image area para suportar compare mode
+// Aplicar ao openReviewMode: renomear reviewImgWrap container
+(function patchReviewMode() {
+  var _orig = window.openReviewMode;
+  if (!_orig) return;
+  window.openReviewMode = function(startFromIdx) {
+    _compareMode = false;
+    _orig(startFromIdx);
+    // Envolver a área de imagem num container com id reviewMainImgArea
+    var wrap = document.getElementById('reviewImgWrap');
+    if (wrap && wrap.parentElement && !document.getElementById('reviewMainImgArea')) {
+      var container = document.createElement('div');
+      container.id = 'reviewMainImgArea';
+      container.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative';
+      wrap.parentElement.insertBefore(container, wrap);
+      container.appendChild(wrap);
+    }
+  };
+})();
+
+// ═══════════════════════════════════════════════════════
+// PAINEL CAVALOS — vista expandida (mockup v2)
+// ═══════════════════════════════════════════════════════
+var _cavPanelSelectedId = null;
+
+function openCavalosPanel() {
+  if (document.getElementById('cavaiosPanel')) return;
+  var horses = loadHorses();
+  var panel = document.createElement('div');
+  panel.id = 'cavaiosPanel';
+  panel.className = 'cav-panel';
+
+  panel.innerHTML =
+    '<div class="cav-inner">' +
+      '<div class="cav-header">' +
+        '<div class="cav-title">🐴 Cavalos</div>' +
+        '<button onclick="document.getElementById(\'cavaiosPanel\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:20px;cursor:pointer;line-height:1">×</button>' +
+      '</div>' +
+      '<div class="cav-body">' +
+        // Lista
+        '<div class="cav-list">' +
+          '<div class="cav-search"><input id="cavSearch" placeholder="🔍 Pesquisar..." oninput="filterCavList(this.value)"></div>' +
+          '<div class="cav-horses" id="cavHorsesList"></div>' +
+          '<div class="cav-add-row">' +
+            '<button onclick="document.getElementById(\'cavaiosPanel\').remove();openNewHorseModal();" style="width:100%;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:9px;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.25);border-radius:5px;color:var(--ice);cursor:pointer;letter-spacing:.04em">+ Novo Cavalo</button>' +
+          '</div>' +
+        '</div>' +
+        // Detalhe
+        '<div class="cav-detail" id="cavDetail">' +
+          '<div class="cav-detail-empty">' +
+            '<div style="font-size:32px">🐴</div>' +
+            '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--t3)">Selecciona um cavalo</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(panel);
+  renderCavList(horses, null);
+
+  // Se já há um cavalo seleccionado na sidebar, abrir directamente
+  if (window._selectedHorseId) {
+    _cavPanelSelectedId = window._selectedHorseId;
+    renderCavDetail(_cavPanelSelectedId);
+    renderCavList(loadHorses(), _cavPanelSelectedId);
+  }
+}
+
+function filterCavList(query) {
+  var horses = loadHorses();
+  if (query) {
+    var q = query.toLowerCase();
+    horses = horses.filter(function(h){ return (h.nome||'').toLowerCase().indexOf(q) >= 0 || (h.raca||'').toLowerCase().indexOf(q) >= 0; });
+  }
+  renderCavList(horses, _cavPanelSelectedId);
+}
+
+function renderCavList(horses, selectedId) {
+  var list = document.getElementById('cavHorsesList');
+  if (!list) return;
+  if (!horses.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--t3)">Sem cavalos registados</div>';
+    return;
+  }
+  list.innerHTML = horses.map(function(h) {
+    var exams = loadExams().filter(function(e){ return e.horse_id === h.id; });
+    var lastExam = exams.length ? exams.sort(function(a,b){ return new Date(b.date)-new Date(a.date); })[0] : null;
+    var classe = lastExam ? (lastExam.classe||'') : '';
+    var statusClass = !lastExam ? 'csb-novo' : classe.toLowerCase().indexOf('sev') >= 0 ? 'csb-severo' : classe.toLowerCase().indexOf('mod') >= 0 ? 'csb-moderado' : classe.toLowerCase().indexOf('lev') >= 0 ? 'csb-leve' : 'csb-novo';
+    var statusLabel = !lastExam ? 'Novo' : classe || '—';
+    var isActive = h.id === selectedId;
+    return '<div class="cav-horse-row'+(isActive?' active':'')+'" onclick="selectCavHorse(\''+h.id+'\')">' +
+      '<span class="cav-status-badge '+statusClass+'">'+statusLabel+'</span>' +
+      '<div class="cav-horse-name">'+h.nome+'</div>' +
+      '<div class="cav-horse-sub">'+(h.raca||'')+(h.raca&&h.idade?' · ':'')+(h.idade?h.idade+'a':'')+((h.raca||h.idade)&&h.disciplina?' · ':'')+(h.disciplina||'')+'</div>' +
+    '</div>';
+  }).join('');
+}
+
+function selectCavHorse(horseId) {
+  _cavPanelSelectedId = horseId;
+  renderCavList(loadHorses(), horseId);
+  renderCavDetail(horseId);
+}
+
+function renderCavDetail(horseId) {
+  var detail = document.getElementById('cavDetail');
+  if (!detail) return;
+  var horses = loadHorses();
+  var horse = horses.find(function(h){ return h.id === horseId; });
+  if (!horse) return;
+
+  var exams = loadExams().filter(function(e){ return e.horse_id === horseId; });
+  var sorted = exams.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  var lastExam = sorted[0] || null;
+
+  // Estado ortopédico
+  var classe = lastExam ? (lastExam.classe||'') : '';
+  var statusColor = classe.toLowerCase().indexOf('sev') >= 0 ? 'var(--red)' : classe.toLowerCase().indexOf('mod') >= 0 ? 'var(--amber)' : classe.toLowerCase().indexOf('lev') >= 0 ? 'var(--blue)' : 'var(--t3)';
+
+  // Detectar progressão
+  var progressoes = detectarProgressao(sorted.slice().reverse());
+  var evolucaoTxt = progressoes.length ? 'Progressão detectada' : exams.length > 1 ? 'Estável' : exams.length === 1 ? 'Primeiro exame' : '—';
+  var evolucaoColor = progressoes.length ? 'var(--red)' : exams.length > 1 ? 'var(--green)' : 'var(--t3)';
+
+  // Estruturas activas (do último exame)
+  var estruturasActivas = [];
+  if (lastExam && lastExam.achados_detalhe) {
+    lastExam.achados_detalhe.forEach(function(a) {
+      if (a.sev && a.sev !== 'Normal' && estruturasActivas.indexOf(a.estrutura) < 0) estruturasActivas.push(a.estrutura);
+    });
+  }
+
+  // Tags do cavalo
+  var tags = [];
+  if (horse.raca) tags.push(horse.raca);
+  if (horse.idade) tags.push(horse.idade + ' anos');
+  if (horse.sexo) tags.push(horse.sexo);
+  if (horse.disciplina) tags.push(horse.disciplina);
+
+  // Gerar HTML dos exames
+  var examsHtml = '';
+  if (!sorted.length) {
+    examsHtml = '<div style="padding:20px;text-align:center;font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--t3);opacity:.5">Sem exames registados</div>';
+  } else {
+    examsHtml = sorted.map(function(ex) {
+      var achados = (ex.achados_detalhe||[]).filter(function(a){ return a.sev && a.sev !== 'Normal'; });
+      var achadosHtml = achados.slice(0,4).map(function(a) {
+        var col = a.sev === 'Severo' ? 'rgba(224,85,85,.12);color:var(--red);border-color:rgba(224,85,85,.3)' :
+                  a.sev === 'Moderado' ? 'rgba(212,147,58,.1);color:var(--amber);border-color:rgba(212,147,58,.3)' :
+                  'rgba(90,159,212,.08);color:var(--blue);border-color:rgba(90,159,212,.2)';
+        return '<span class="cav-achado-pill" style="background:'+col+'">'+(a.estrutura||'?')+(a.membro?' '+a.membro:'')+'</span>';
+      }).join('');
+      var scoreHtml = ex.score ? '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--gold);font-weight:700">'+ex.score+'/100</span>' : '';
+      return '<div class="cav-exam-card">' +
+        '<div class="cav-exam-top">' +
+          '<div><div class="cav-exam-date">'+(ex.date||'').slice(0,10)+'</div>' +
+          '<div class="cav-exam-vet">'+(ex.vet||ex.clinic||'')+(ex.nimgs?' · '+ ex.nimgs+' radiografias':'')+'</div></div>' +
+          scoreHtml +
+        '</div>' +
+        (achados.length ? '<div class="cav-achados" style="margin-bottom:6px">'+achadosHtml+'</div>' : '') +
+        (ex.notas_vet ? '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3);margin-top:4px;padding:5px 7px;background:var(--ink3);border-radius:4px">📝 '+ex.notas_vet+'</div>' : '') +
+      '</div>';
+    }).join('');
+  }
+
+  // Bloco de progressão
+  var progHtml = progressoes.length ?
+    '<div class="cav-prog-block">' +
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--red);font-weight:700;margin-bottom:6px">⚠ PROGRESSÃO DETECTADA</div>' +
+      progressoes.map(function(p){ return '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t2);margin-bottom:3px">'+p+'</div>'; }).join('') +
+    '</div>' : '';
+
+  detail.innerHTML =
+    '<div class="cav-det-name">'+horse.nome+'</div>' +
+    (horse.owner ? '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--t3);margin-bottom:10px">Prop: '+horse.owner+(horse.chip?' · Chip: '+horse.chip:'')+'</div>' : '') +
+    '<div class="cav-det-tags">' + tags.map(function(t){ return '<span class="cav-det-tag">'+t+'</span>'; }).join('') + '</div>' +
+
+    '<div class="cav-stats-grid">' +
+      '<div class="cav-stat-box"><div class="cav-stat-lbl">Estado Ortopédico</div><div class="cav-stat-val" style="color:'+statusColor+'">'+(classe||'—')+'</div></div>' +
+      '<div class="cav-stat-box"><div class="cav-stat-lbl">Estruturas Activas</div><div class="cav-stat-val">'+estruturasActivas.length+'</div>' +
+        (estruturasActivas.length ? '<div class="cav-stat-sub">'+estruturasActivas.slice(0,2).join(', ')+(estruturasActivas.length>2?'…':'')+'</div>' : '') +
+      '</div>' +
+      '<div class="cav-stat-box"><div class="cav-stat-lbl">Último Exame</div><div class="cav-stat-val" style="font-size:11px">'+(lastExam?(lastExam.date||'').slice(0,10):'—')+'</div>' +
+        (lastExam&&lastExam.nimgs?'<div class="cav-stat-sub">'+lastExam.nimgs+' radiografias</div>':'') +
+      '</div>' +
+      '<div class="cav-stat-box"><div class="cav-stat-lbl">Evolução</div><div class="cav-stat-val" style="font-size:11px;color:'+evolucaoColor+'">'+evolucaoTxt+'</div>' +
+        (exams.length > 1 ? '<div class="cav-stat-sub">'+exams.length+' exames</div>' : '') +
+      '</div>' +
+    '</div>' +
+
+    progHtml +
+
+    '<div class="cav-section-title">Histórico de Exames</div>' +
+    examsHtml +
+
+    (horse.notas ? '<div class="cav-section-title">Notas</div><div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--t2);padding:8px 10px;background:var(--ink2);border-radius:5px;border:1px solid var(--wire)">'+horse.notas+'</div>' : '') +
+
+    '<div style="display:flex;gap:8px;margin-top:16px">' +
+      '<button onclick="document.getElementById(\'cavaiosPanel\').remove();window._selectedHorseId=\''+horseId+'\';openHorseProfileModal(\''+horseId+'\')" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:9px 16px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:5px;color:var(--gold);cursor:pointer">📋 Perfil Completo</button>' +
+      '<button onclick="document.getElementById(\'cavaiosPanel\').remove();openEditHorseModal(\''+horseId+'\')" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:9px 16px;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);border-radius:5px;color:var(--ice);cursor:pointer">✏ Editar</button>' +
+      '<button onclick="document.getElementById(\'cavaiosPanel\').remove();onHorseSelect(\''+horseId+'\')" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:9px 16px;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);border-radius:5px;color:var(--green);cursor:pointer">✓ Seleccionar para análise</button>' +
+    '</div>';
+}
+</script>
 
 <script>
 // ── INTERCEPTOR — injeta token em todos os fetch /api/ ────────────────────────

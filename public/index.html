@@ -3063,6 +3063,24 @@ async function run(){
 
   S._confidenceMap = confidenceMap;
   S._confContext = confContext;
+
+  // Build horse context
+  var horseContext = '';
+  try {
+    var selHorseId = document.getElementById('horseSelect') && document.getElementById('horseSelect').value;
+    if (selHorseId) {
+      var horses = loadHorses();
+      var selHorse = horses.find(function(h){ return h.id === selHorseId; });
+      if (selHorse) {
+        horseContext = '\n\nCAVALO: ' + selHorse.nome;
+        if (selHorse.raca) horseContext += ' | Raça: ' + selHorse.raca;
+        if (selHorse.idade) horseContext += ' | Idade: ' + selHorse.idade + ' anos';
+        if (selHorse.disciplina) horseContext += ' | Disciplina: ' + selHorse.disciplina;
+        if (selHorse.notas) horseContext += '\nNotas clínicas: ' + selHorse.notas;
+      }
+    }
+  } catch(e) {}
+
   // Guardar contextos para injecção no prompt
   S._webSearchContext = webSearchContext;
   S._calibContext = calibContext;

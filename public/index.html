@@ -400,6 +400,102 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 }
 </style>
 <style>
+/* ═══ CHAT PÓS-RELATÓRIO ════════════════════════════════════════════ */
+.chat-panel{background:var(--ink1);border-top:2px solid rgba(201,168,76,.2);padding:0;max-width:860px;margin:0 auto;width:100%}
+.chat-header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--wire);cursor:pointer;user-select:none;transition:background .15s}
+.chat-header:hover{background:var(--ink2)}
+.chat-header-icon{font-size:15px}
+.chat-header-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.chat-header-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-left:auto}
+.chat-body{display:none;flex-direction:column;gap:0;max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent;padding:12px 16px}
+.chat-body.open{display:flex}
+.chat-msg{display:flex;gap:8px;margin-bottom:10px;animation:fadeup .2s ease}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-bubble{max-width:78%;padding:9px 13px;border-radius:10px;font-size:12px;line-height:1.6}
+.chat-bubble.user{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.2);color:var(--t1);border-radius:10px 2px 10px 10px}
+.chat-bubble.ai{background:var(--ink3);border:1px solid var(--wire2);color:var(--t2);border-radius:2px 10px 10px 10px}
+.chat-bubble.loading{color:var(--t3);font-style:italic}
+.chat-avatar{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.chat-avatar.user{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3)}
+.chat-avatar.ai{background:rgba(74,201,201,.1);border:1px solid rgba(74,201,201,.25)}
+.chat-input-row{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--wire);background:var(--ink1)}
+.chat-input{flex:1;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:8px 12px;color:var(--t1);font-size:12px;font-family:'Syne',sans-serif;outline:none;resize:none;min-height:36px;max-height:80px}
+.chat-input:focus{border-color:rgba(201,168,76,.4)}
+.chat-send{background:var(--gold);color:var(--ink1);border:none;border-radius:6px;padding:8px 14px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;transition:opacity .15s;flex-shrink:0}
+.chat-send:hover{opacity:.85}
+.chat-send:disabled{opacity:.4;cursor:not-allowed}
+.chat-quick{display:flex;flex-wrap:wrap;gap:5px;padding:8px 16px;border-bottom:1px solid var(--wire)}
+.chat-quick-btn{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.2);border-radius:12px;padding:4px 10px;cursor:pointer;transition:all .12s;white-space:nowrap}
+.chat-quick-btn:hover{background:rgba(74,201,201,.14);border-color:rgba(74,201,201,.4)}
+
+/* ═══ CONFIDENCE DOT ═════════════════════════════════════════════════ */
+.conf-dot{display:inline-flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:8px;padding:1px 6px;border-radius:10px;margin-left:6px;vertical-align:middle;flex-shrink:0}
+.conf-dot.confirmed{color:var(--green);background:rgba(74,170,122,.1);border:1px solid rgba(74,170,122,.25)}
+.conf-dot.suspect{color:var(--amber);background:rgba(212,147,58,.1);border:1px solid rgba(212,147,58,.25)}
+.conf-dot.uneval{color:var(--t3);background:rgba(255,255,255,.04);border:1px solid var(--wire)}
+
+/* ═══ MISSING PROJECTIONS BANNER (topo do relatório) ═══════════════ */
+.missing-banner{background:rgba(212,147,58,.07);border:1px solid rgba(212,147,58,.3);border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:18px;animation:fadeup .3s ease}
+.missing-banner-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.missing-banner-pills{display:flex;flex-wrap:wrap;gap:5px}
+.missing-pill{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);border:1px solid rgba(212,147,58,.35);padding:3px 9px;border-radius:3px;background:rgba(212,147,58,.06)}
+.missing-banner-copy{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid var(--wire);border-radius:4px;padding:4px 10px;cursor:pointer;transition:all .12s;margin-top:8px;display:inline-block}
+.missing-banner-copy:hover{color:var(--amber);border-color:rgba(212,147,58,.4)}
+
+/* ═══ COMPARE MODAL ══════════════════════════════════════════════════ */
+.cmp-overlay{position:fixed;inset:0;z-index:990;background:rgba(0,0,0,.88);display:flex;align-items:stretch;padding:16px;animation:fadeup .2s ease}
+.cmp-modal{background:var(--ink1);border:1px solid rgba(74,201,201,.2);border-radius:12px;width:100%;max-width:1280px;margin:auto;display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 32px)}
+.cmp-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--wire);background:rgba(74,201,201,.03);flex-shrink:0}
+.cmp-title{font-family:'Lora',serif;font-size:17px;font-style:italic;color:var(--ice)}
+.cmp-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;min-height:0}
+.cmp-col{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent;padding:20px 22px}
+.cmp-col:first-child{border-right:1px solid var(--wire)}
+.cmp-col-header{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--wire);display:flex;align-items:center;justify-content:space-between}
+.cmp-col-title{font-size:12px;color:var(--t2)}
+.cmp-col-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)}
+.cmp-score-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;margin-bottom:14px}
+.cmp-achado{padding:8px 10px;border-radius:5px;margin-bottom:5px;font-size:11px;border-left:3px solid;line-height:1.5}
+.cmp-achado.progress{background:rgba(224,85,85,.07);border-color:var(--red)}
+.cmp-achado.regress{background:rgba(74,170,122,.07);border-color:var(--green)}
+.cmp-achado.stable{background:rgba(255,255,255,.03);border-color:var(--wire2)}
+.cmp-achado.new{background:rgba(212,147,58,.07);border-color:var(--amber)}
+.cmp-diff-legend{display:flex;gap:10px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:8px;padding:8px 0;margin-bottom:10px}
+.cmp-select-row{display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--wire);background:var(--ink2);flex-shrink:0}
+.cmp-select-row select{flex:1;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 10px;color:var(--t1);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none}
+.cmp-select-row select:focus{border-color:rgba(74,201,201,.4)}
+.cmp-prog-bar{height:4px;border-radius:2px;background:var(--ink3);overflow:hidden;margin-top:4px}
+.cmp-prog-fill{height:100%;border-radius:2px;transition:width .6s ease}
+
+/* ═══ PPE MODAL ══════════════════════════════════════════════════════ */
+.ppe-overlay{position:fixed;inset:0;z-index:990;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeup .2s ease}
+.ppe-modal{background:var(--ink1);border:1px solid rgba(224,85,85,.25);border-radius:12px;width:100%;max-width:780px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}
+.ppe-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--wire);background:rgba(224,85,85,.04);flex-shrink:0}
+.ppe-title{font-family:'Lora',serif;font-size:17px;font-style:italic;color:#e05555}
+.ppe-title-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.ppe-body{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ink4) transparent;padding:20px 24px}
+.ppe-footer{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--wire);background:var(--ink2);flex-shrink:0;align-items:center}
+.ppe-field{margin-bottom:14px}
+.ppe-field label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px}
+.ppe-field input,.ppe-field select,.ppe-field textarea{width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:8px 11px;color:var(--t1);font-size:12px;font-family:'Syne',sans-serif;outline:none;box-sizing:border-box}
+.ppe-field input:focus,.ppe-field select:focus,.ppe-field textarea:focus{border-color:rgba(224,85,85,.4)}
+.ppe-field textarea{resize:vertical;min-height:56px}
+.ppe-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ppe-lang-toggle{display:flex;gap:0;border:1px solid var(--wire2);border-radius:5px;overflow:hidden}
+.ppe-lang-btn{flex:1;padding:6px;font-family:'JetBrains Mono',monospace;font-size:9px;border:none;cursor:pointer;background:transparent;color:var(--t3);transition:all .12s;text-transform:uppercase;letter-spacing:.06em}
+.ppe-lang-btn.active{background:rgba(224,85,85,.15);color:#e05555}
+.ppe-result{background:var(--ink);border:1px solid rgba(224,85,85,.15);border-radius:8px;padding:20px 22px;font-size:12px;line-height:1.8;color:var(--t1);white-space:pre-wrap;font-family:'Lora',serif;overflow-y:auto;max-height:420px}
+.ppe-result-wrap{display:none}
+.ppe-result-wrap.visible{display:block}
+.ppe-section-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:#e05555;text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(224,85,85,.15)}
+.ppe-risk-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.ppe-risk-low{background:rgba(74,170,122,.12);color:var(--green);border:1px solid rgba(74,170,122,.3)}
+.ppe-risk-mod{background:rgba(212,147,58,.12);color:var(--amber);border:1px solid rgba(212,147,58,.3)}
+.ppe-risk-high{background:rgba(224,85,85,.12);color:var(--red);border:1px solid rgba(224,85,85,.3)}
+.ppe-generating{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--t3)}
+.ppe-generating-spinner{width:28px;height:28px;border:2px solid rgba(224,85,85,.2);border-top-color:#e05555;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+<style>
 /* ═══ PAINEL CAVALOS ═══════════════════════════════════════════════ */
 .cav-panel{position:fixed;inset:0;z-index:980;background:rgba(0,0,0,.85);display:flex;align-items:stretch;justify-content:center;padding:16px}
 .cav-inner{background:var(--ink1);border:1px solid rgba(74,201,201,.2);border-radius:12px;width:100%;max-width:960px;display:flex;flex-direction:column;overflow:hidden}
@@ -708,7 +804,9 @@ window.addEventListener('DOMContentLoaded', function() {
         <button onclick="printReport();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⎙ PDF Completo</button>
         <button id="btnExportMenu" onclick="exportJSON();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ice);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⬇ Exportar JSON</button>
         <button id="btnHistoryMenu" onclick="showHistoryPanel(S.lastResult, S._lastInfo||{});toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">📊 Histórico</button>
-        <button id="btnSecondOpMenu" onclick="runSecondOpinion();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">🔄 2ª Opinião</button>
+        <button id="btnSecondOpMenu" onclick="runSecondOpinion();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">🔄 2ª Opinião</button>
+        <button id="btnCompareMenu" onclick="openCompareModal();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ice);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⇄ Comparar Exames</button>
+        <button id="btnPPEMenu" onclick="openPPEModal();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:rgba(224,85,85,.06);border:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:#e05555;cursor:pointer;letter-spacing:.04em;transition:background .12s;font-weight:700" onmouseover="this.style.background='rgba(224,85,85,.12)'" onmouseout="this.style.background='rgba(224,85,85,.06)'">🏇 Parecer PPE</button>
       </div>
     </div>
     <button id="btnExport" style="display:none"></button>
@@ -1129,6 +1227,11 @@ function clearImages(){
   S.imgs=[];S.idx=0;
   // Reset compare mode
   S._compareMode = false;
+  // Reset chat state
+  _chatOpen = false;
+  _chatHistory = [];
+  var chatEl = document.getElementById('chatPostReport');
+  if(chatEl) chatEl.remove();
   document.getElementById('grid').innerHTML='';
   document.getElementById('viewer').style.display='none';
   document.getElementById('imgBadge').textContent='';
@@ -3247,47 +3350,56 @@ async function run(){
   S._horseContext = horseContext;
   S._confContext = confContext;
 
-  document.getElementById('lmsg').textContent = '🔬 A analisar todas as imagens em contexto contínuo…';
+  document.getElementById('lmsg').textContent = '🔬 A preparar análise em 2 fases…';
 
-  // ── v51: CHAMADA ÚNICA — CONTEXTO CONTÍNUO ───────────────────────────────────
-  // Todas as imagens numa só chamada. O modelo vê tudo em sequência,
-  // correlaciona projecções do mesmo membro como um radiologista real.
-
-  // ── BATCHING INTELIGENTE ─────────────────────────────────────────────
-  // ≤20 imgs → 1 lote (análise contínua total)
-  // 21-40 imgs → 2 lotes de ~20 (contexto clínico completo em cada um)
-  // 41-60 imgs → 3 lotes de ~20
-  var MAX_BATCH = 20;
-  var nBatches = Math.ceil(resized.length / MAX_BATCH);
+  // ── ESTRATÉGIA DE ANÁLISE: 2 FASES SEQUENCIAIS ───────────────────────────
+  // Fase 1: o modelo vê TODAS as imagens → inventário visual em texto simples
+  // Fase 2: o modelo recebe a memória da Fase 1 → relatório JSON completo
+  // Nunca há lotes isolados. O modelo recorda tudo o que viu.
+  // Se >50 imgs, agrupa por membro para não separar projecções do mesmo membro.
+  var MAX_SINGLE = 50;
   var batches = [];
-  for (var _bi = 0; _bi < nBatches; _bi++) {
-    var _start = _bi * MAX_BATCH;
-    batches.push({
-      imgs:  resized.slice(_start, _start + MAX_BATCH),
-      names: names.slice(_start, _start + MAX_BATCH),
-      ident: []
+
+  if (resized.length <= MAX_SINGLE) {
+    batches.push({ imgs: resized, names: names, ident: [] });
+  } else {
+    // >50 imgs: dividir por membro para manter integridade anatómica
+    function detectMembroFromName(nm) {
+      nm = (nm || '').toLowerCase();
+      if (/\bmpe\b|post.*esq|left.*hind|hind.*left|\blh\b|mpesq/i.test(nm)) return 'MPE';
+      if (/\bmpd\b|post.*dir|right.*hind|hind.*right|\brh\b|mpdir/i.test(nm)) return 'MPD';
+      if (/\bmae\b|ant.*esq|left.*front|front.*left|\blf\b|maesq/i.test(nm)) return 'MAE';
+      if (/\bmad\b|ant.*dir|right.*front|front.*right|\brf\b|madir/i.test(nm)) return 'MAD';
+      if (/col[uo]na|spine|back|dorsal/i.test(nm)) return 'COL';
+      return 'UNK';
+    }
+    var byM = { MAE:[], MAD:[], MPE:[], MPD:[], COL:[], UNK:[] };
+    resized.forEach(function(img,i){ byM[detectMembroFromName(names[i])].push({img:img,name:names[i]}); });
+    var half = Math.ceil(resized.length / 2);
+    var b1i=[],b1n=[],b2i=[],b2n=[];
+    ['MAE','MAD','MPE','MPD','COL','UNK'].forEach(function(m){
+      byM[m].forEach(function(item){
+        if(b1i.length < half){ b1i.push(item.img); b1n.push(item.name); }
+        else { b2i.push(item.img); b2n.push(item.name); }
+      });
     });
+    batches.push({ imgs:b1i, names:b1n, ident:[] });
+    if(b2i.length) batches.push({ imgs:b2i, names:b2n, ident:[] });
   }
+
+  var nBatches = batches.length;
   showLoading(nBatches, resized.length);
-  document.getElementById('lmsg').textContent =
-    resized.length <= MAX_BATCH
-      ? 'A analisar ' + resized.length + ' imagens em contexto contínuo…'
-      : 'A analisar ' + resized.length + ' imagens em ' + nBatches + ' lotes (máx qualidade)…';
+  document.getElementById('lmsg').textContent = '👁 Fase 1/2 — a inventariar ' + resized.length + ' imagens…';
 
   var results = new Array(nBatches).fill(null);
   for (var _bi2 = 0; _bi2 < nBatches; _bi2++) {
-    setBatch(_bi2, 'running');
-    document.getElementById('lmsg').textContent =
-      nBatches > 1
-        ? 'Lote ' + (_bi2+1) + '/' + nBatches + ' — a analisar ' + batches[_bi2].imgs.length + ' imagens…'
-        : 'A analisar ' + batches[_bi2].imgs.length + ' imagens…';
+    if (nBatches > 1) setBatch(_bi2, 'running');
     try {
       results[_bi2] = await callApi(key, batches[_bi2], info, _bi2 + 1, nBatches);
-      setBatch(_bi2, 'done');
+      if (nBatches > 1) setBatch(_bi2, 'done');
     } catch(e) {
       console.error('[EQ] Lote ' + (_bi2+1) + ' falhou:', e.message);
-      setBatch(_bi2, 'error');
-      // Continua — resultados parciais são melhores que nada
+      if (nBatches > 1) setBatch(_bi2, 'error');
     }
   }
 
@@ -4788,207 +4900,398 @@ function updateDICOMPanel(im) {
   }
 }
 
+// ═══════════════════════════════════════════════════════
+// FASE 1 — Inventário visual puro (texto, sem JSON)
+// O modelo vê TODAS as imagens e descreve o que vê.
+// Output leve, nunca trunca, preserva o contexto completo para Fase 2.
+// ═══════════════════════════════════════════════════════
+function buildPhase1Prompt(allImgs, allNames, info) {
+  var imgList = allNames.map(function(nm,i){ return 'IMG'+String(i+1).padStart(2,'0')+': '+nm; }).join('\n');
+  var n = allImgs.length;
+  var dicomBlock = '';
+  var dicomImgs = S.imgs.filter(function(im){ return im.isDICOM; });
+  if(dicomImgs.length > 0) {
+    dicomBlock = '⬡ DICOM DETECTADO ('+dicomImgs.length+' de '+n+'): ';
+    dicomImgs.slice(0,5).forEach(function(im){ dicomBlock += im.name+' '; });
+    dicomBlock += '\n';
+  }
+  return [
+    '════════════════════════════════════════════════════',
+    dicomBlock,
+    'FASE 1 — INVENTÁRIO VISUAL PURO',
+    '════════════════════════════════════════════════════',
+    'Recebes '+n+' imagens radiográficas equinas. Esta é a FASE 1 de 2.',
+    '',
+    'TAREFA EXCLUSIVA DESTA FASE:',
+    'Para cada imagem, escreve UMA linha com exactamente este formato:',
+    'IMG01 | [texto visível] | [região: tarsus/boleto/pé/carpo/estifle/coluna/outro] | [membro: MAE/MAD/MPE/MPD/bilateral/?] | [vista: LM/DP/DMPLO/oblíqua/?] | [achados visuais: o que VÊS objectivamente — densidade, contornos, espaço articular, opacos, calcâneo visível s/n]',
+    '',
+    'REGRAS ABSOLUTAS:',
+    '· Lê o texto branco/amarelo visível em cada imagem — tem PRIORIDADE sobre morfologia',
+    '· HOCK/tarsus/jarrete/curvilhão → região=tarsus',
+    '· NAVICULAR/coffin/foot/casco/DIP/P3 → região=pé',
+    '· FETLOCK/boleto/MCP/MTP → região=boleto',
+    '· Texto "foot LM" com calcâneo visível → ainda é pé (texto ganha sempre)',
+    '· NÃO faças diagnósticos. NÃO gradues. SÓ descreve o que vês.',
+    '· NÃO produzas JSON. Texto simples, uma linha por imagem.',
+    '',
+    'Imagens ('+n+'):',
+    imgList,
+    '',
+    'Escreve agora as '+n+' linhas de inventário visual:'
+  ].join('\n');
+}
+
+// ═══════════════════════════════════════════════════════
+// FASE 2 — Relatório clínico completo (JSON)
+// Recebe as observações da Fase 1 como memória explícita.
+// Sem imagens. Contexto total garantido.
+// ═══════════════════════════════════════════════════════
+function buildPhase2Prompt(phase1Text, allNames, info, calibBlock, fbBlock) {
+  var n = allNames.length;
+  var imgList = allNames.map(function(nm,i){ return 'IMG'+String(i+1).padStart(2,'0')+': '+nm; }).join('\n');
+  var disc = info.disc||'Não especificada';
+  var ref = 'EQ-'+Date.now().toString(36).slice(-6).toUpperCase();
+
+  // Correcções manuais do veterinário
+  var identBlock = '';
+  var vetCorrections = S.identValidation||{};
+  var corrected = Object.keys(vetCorrections).filter(function(k){return vetCorrections[k].status==='corrected';});
+  if(corrected.length>0){
+    identBlock = '\nCORRECÇÕES MANUAIS DO VETERINÁRIO (prioridade máxima):\n';
+    corrected.forEach(function(k){
+      var c=vetCorrections[k];
+      var imgN='IMG'+String(parseInt(k)+1).padStart(2,'0');
+      identBlock += imgN+': membro='+c.membro+' | região='+c.regiao+' | vista='+c.vista+'\n';
+    });
+  }
+
+  // DICOM format flag
+  var dicomImgs = S.imgs.filter(function(im){ return im.isDICOM; });
+  var hasCalibrated = S.imgs.some(function(im){ return im.isDICOM && im.pxPerMm; });
+  var formatBlock;
+  if(dicomImgs.length > 0) {
+    formatBlock = hasCalibrated
+      ? '✓ DICOM com pixel spacing — medições em mm autorizadas para imagens calibradas.'
+      : '⚠ DICOM sem pixel spacing — grading qualitativo obrigatório (incipiente/discreto/moderado/avançado/marcado). PROIBIDO valores em mm.';
+  } else {
+    formatBlock = '⚠ JPEG/PDF — Regra 19 ACTIVA: PROIBIDO valores em mm. Grading qualitativo obrigatório.';
+  }
+
+  // Region-specific mc fields
+  var reg=(info.reg||'').toLowerCase();
+  var mcFields;
+  if(reg.indexOf('casco')>=0||reg.indexOf('p3')>=0){
+    mcFields='"rot_p3":null,"founder":null,"solar":null,"llz":null,"oxspring":null,"oa_mcilwraith":null';
+  } else if(reg.indexOf('jarrete')>=0||reg.indexOf('tarso')>=0){
+    mcFields='"oa_mcilwraith":null,"esp_tmt":null,"esp_ttc":null,"ocd":null';
+  } else if(reg.indexOf('carpo')>=0){
+    mcFields='"oa_mcilwraith":null,"chip":null,"slab":null,"terceiro_carpal_esclerose":null';
+  } else {
+    mcFields='"oa_mcilwraith":null,"ocd":null,"medida_principal":null';
+  }
+
+  // Dynamic per-image templates (names only — Fase 1 já os identificou)
+  var imgTemplates = allNames.map(function(nm,i){
+    return '{"n":"IMG'+String(i+1).padStart(2,'0')+'","fname":'+JSON.stringify(nm)+',"dicom_text":"","regiao_confirmada":"","membro_confirmado":"","proj":"","obs":"","medidas":"","grading":""}';
+  }).join(',');
+
+  return [
+    '════════════════════════════════════════════════════',
+    'FASE 2 — RELATÓRIO CLÍNICO COMPLETO',
+    '════════════════════════════════════════════════════',
+    '',
+    '⚠ CONTEXTO CRÍTICO: Na FASE 1 fizeste o inventário visual completo das '+n+' imagens.',
+    'Esse inventário é a tua MEMÓRIA DE TRABALHO. NUNCA contradijas o que observaste na Fase 1.',
+    'Usa as observações da Fase 1 como base factual irrevogável para este relatório.',
+    '',
+    formatBlock,
+    '',
+    identBlock,
+    'Paciente: '+info.name+' | Raça: '+info.breed+' | Idade: '+(info.age==='?'?'Não especificada':info.age+'a')+' | Sexo: '+info.sex+(info.w?' | '+info.w+'kg':''),
+    'Disciplina: '+disc+' | Região: '+info.reg,
+    (info.symp&&info.symp!=='Não descritos'?'\nSinais clínicos: ⚠ '+info.symp:''),
+    (info.flexoes?'\nFlexões positivas: ⚠ '+info.flexoes:''),
+    (info.hist&&info.hist!=='Sem história'?'\nHistória: ⚠ '+info.hist:''),
+    (info.horse_historico?'\n═══ HISTÓRICO RADIOGRÁFICO ANTERIOR ═══\n'+info.horse_historico+'\n═══ FIM HISTÓRICO ═══\n⚠ COMPARAR EVOLUÇÃO. Identificar progressão de achados.':''),
+    '',
+    (S._webSearchContext || ''),
+    (S._calibContext || ''),
+    (S._horseContext || ''),
+    (S._confContext || ''),
+    (localStorage.getItem('eq_intel_active') !== 'false' ? (intelBuildContextBlock(info) || '') : ''),
+    (calibBlock || ''),
+    (fbBlock || ''),
+    '',
+    '════════════════════════════════════════════════════',
+    'INVENTÁRIO VISUAL (FASE 1 — A TUA MEMÓRIA):',
+    '════════════════════════════════════════════════════',
+    phase1Text,
+    '════════════════════════════════════════════════════',
+    '',
+    'ORDEM DE ANÁLISE OBRIGATÓRIA:',
+    '1. MAE (carpo→boleto→pé/navicular) | 2. MAD | 3. MPE (tarsus TTC+TMT+PIT→boleto→pé) | 4. MPD | 5. Coluna | 6. Outros',
+    'Para cada estrutura: avalia TODAS as sub-articulações e correlaciona TODAS as projecções da Fase 1.',
+    '⚠ NUNCA omitir navicular ou tarsus quando as imagens existem — é falha crítica.',
+    '',
+    '▶ PROTOCOLO DE 3 FASES:',
+    'FASE A — INVENTÁRIO: factos visuais puros + grading standard (Oxspring, McIlwraith, Butler). Sem contexto clínico.',
+    'FASE B — CORRELAÇÃO: para cada achado, confirma em quantas projecções é visível. 1=suspeito, 2+ ortogonais=confirmado.',
+    'FASE C — INTERPRETAÇÃO: contextualiza com raça/idade/disciplina/estudos/feedback.',
+    '',
+    'REGRAS OUTPUT:',
+    '1. PT-PT. JSON válido, termina com }. Sem markdown.',
+    '2. inventario_radiografico[]: UMA entrada por estrutura (incluindo normais e não avaliáveis).',
+    '3. interpretacao_clinica[]: uma entrada por estrutura com grau ≥ Leve.',
+    '4. PROIBIDO: inventar estudos ou casos. "sem_dados" é resposta honesta.',
+    '5. REGRA 12 — LATERALIDADE: Moderado/Severo sem membro identificado = Leve + nota.',
+    '6. REGRA 13 — DEDUP: mesma estrutura+membro+lesão em múltiplas projecções = UM achado consolidado.',
+    '',
+    '{"ref":"'+ref+'",',
+    '"score":0,"_SCORE":"0-100: 0=pior, 100=melhor. Baseado no inventário.",',
+    '"classe":"","alerta":"ok",',
+    '"resumo_inventario":"[2-4 frases — APENAS achados visuais + grau. SEM contexto clínico]",',
+    '"resumo_interpretacao":"[2-4 frases — contextualização com estudos/feedback. Mencionar confiança]",',
+    '"resumo_cliente":"[2-3 frases — linguagem equestre simples]",',
+    '"qualidade":{"geral":"","posicionamento":"","projeccoes_presentes":[],"projeccoes_faltam":[]},',
+    '"por_imagem":['+imgTemplates+'],',
+    '"inventario_radiografico":[{"estrutura":"","membro":"","projeccoes_usadas":[],"projeccao_obrigatoria":"","projeccao_obrigatoria_presente":true,"avaliavel":true,"motivo_nao_avaliavel":"","achados_visuais":[],"escala_aplicada":"","fonte_criterio":"","criterio_grading":"","grau":"Normal|Grau 1 — Leve|Grau 2 — Moderado|Grau 3 — Severo|Não avaliável","evidencia":"","num_projeccoes_confirmadas":1,"confirmado":false}],',
+    '"interpretacao_clinica":[{"estrutura":"","membro":"","grau_inventario":"","contexto_raca_idade":"","contexto_disciplina":"","estudos_relevantes":[],"casos_referencia":[],"feedback_veterinario":"","base_evidencia_tipo":"peer_reviewed|caso_clinico|feedback_vet|combinado|sem_dados","num_estudos":0,"num_casos_similares":0,"num_feedbacks_vet":0,"confianca":"Alta|Média|Baixa|Sem dados","implicacao_clinica":"","prognostico_desportivo":"","divergencia_literatura":""}],',
+    '"achados":[{"estrutura":"","membro":"","lesao":"","sev":"Leve","prob":"Alta","grading":"","evidencia":"","num_projeccoes_confirmadas":1,"confirmado":false}],',
+    '"mc":{'+mcFields+'},',
+    '"narrativa":"",',
+    '"dds":[{"nome":"","prob":"Alta","just":"","suporte_visual":""}],',
+    '"recs":[{"pri":"Urgente","cat":"","acao":"","prazo":""},{"pri":"Alta","cat":"","acao":"","prazo":""},{"pri":"Média","cat":"","acao":"","prazo":""}],',
+    '"prog":{"desp":"","trabalho":"","rec":"","fav":[],"desfav":[]},',
+    '"exames":[{"tipo":"","motivo":"","pri":"Alta"}],',
+    '"inventario":{"total_recebidas":'+n+',"identificadas":[],"nao_identificadas":[]}',
+    '}'
+  ].join('\n');
+}
+
+// ═══════════════════════════════════════════════════════
+// STREAM HELPER — reutilizado em ambas as fases
+// ═══════════════════════════════════════════════════════
+function streamCall(model, sysVal, messages, onProgress, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    var streamText = '';
+    var _abortCtrl = new AbortController();
+    var _timeout = setTimeout(function() {
+      _abortCtrl.abort();
+      reject(new Error('Stream timeout ('+timeoutMs+'ms)'));
+    }, timeoutMs || 360000);
+
+    fetch('/api/claude', {
+      method: 'POST',
+      signal: _abortCtrl.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'accept': 'text/event-stream',
+        'x-session-token': (AUTH && AUTH.token) || ''
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 20000,
+        stream: true,
+        system: sysVal,
+        messages: messages
+      })
+    })
+    .then(function(resp) {
+      if (resp.status === 401) { clearTimeout(_timeout); reject(new Error('API Key inválida (401)')); return; }
+      if (resp.status === 429 || resp.status === 529) { clearTimeout(_timeout); reject(new Error('RATE_LIMIT_'+resp.status)); return; }
+      if (!resp.ok) { clearTimeout(_timeout); reject(new Error('HTTP_'+resp.status)); return; }
+      var reader = resp.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      function pump() {
+        reader.read().then(function(result) {
+          if (result.done) { clearTimeout(_timeout); resolve(streamText); return; }
+          buf += decoder.decode(result.value, {stream:true});
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          lines.forEach(function(line) {
+            if (!line.startsWith('data: ')) return;
+            var data = line.slice(6).trim();
+            if (data === '[DONE]') return;
+            try {
+              var evt = JSON.parse(data);
+              if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
+                streamText += evt.delta.text;
+                if (onProgress) onProgress(streamText);
+              }
+            } catch(e) {}
+          });
+          pump();
+        }).catch(function(e) { clearTimeout(_timeout); reject(e); });
+      }
+      pump();
+    })
+    .catch(function(e) { clearTimeout(_timeout); reject(e); });
+  });
+}
+
 function callApi(key,batch,info,bNum,bTotal){
-  return Promise.all([loadFeedbacksFromSupabase(), loadCalibRules()]).then(function(results){
-  var fbBlock = results[0] || '';
-  var calibBlock = results[1] || '';
+  return Promise.all([loadFeedbacksFromSupabase(), loadCalibRules()]).then(function(preloaded){
+  var fbBlock = preloaded[0] || '';
+  var calibBlock = preloaded[1] || '';
   return new Promise(function(resolve,reject){
     var mIdx=0;
     var _retryCount=0;
     var MAX_RETRIES=3;
-    function attempt(){
-      if(mIdx>=C.MODELS.length){reject(new Error('Todos os modelos falharam no lote '+bNum));return;}
-      var model=C.MODELS[mIdx]||C.MODELS[0];
-      var content=[];
-      batch.imgs.forEach(function(b64){
-        content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
-      });
-      content.push({type:'text',text:buildPrompt(batch,info,bNum,bTotal)});
-      var sysText = SYS + (calibBlock || '') + (fbBlock || '');
-      var sysVal = [{type:'text', text:sysText, cache_control:{type:'ephemeral'}}];
-      var msgContent=content;
-      var hasRealRefs = window.ANA_REF_IMGS && ANA_REF_IMGS.some(function(r){return r.b64 && r.b64.length >= 10;});
-      if(hasRealRefs){
-        var refBlocks=getAnaRefBlocks();
-        msgContent = Array.isArray(content) ? refBlocks.concat(content) : refBlocks.concat([{type:'text',text:content}]);
-      }
+    var model = C.MODELS[mIdx]||C.MODELS[0];
 
-      // ── STREAMING ────────────────────────────────────────────────────────────
-      var streamText = '';
-      var streamEl = document.getElementById('lmsg');
-      var imgsFound = 0;
+    var sysText = SYS + (calibBlock || '') + (fbBlock || '');
+    var sysVal = [{type:'text', text:sysText, cache_control:{type:'ephemeral'}}];
 
-      var _abortCtrl = new AbortController();
-      var _streamTimeout = setTimeout(function() {
-        console.warn('[EQ] Stream timeout 360s — aborting');
-        _abortCtrl.abort();
-      }, 360000);
+    // ── FASE 1: inventário visual com imagens ─────────────────────────────
+    var streamEl = document.getElementById('lmsg');
+    if (streamEl) streamEl.innerHTML = '👁 Fase 1/2 — a inventariar <strong>'+batch.imgs.length+'</strong> imagens…';
 
-      fetch('/api/claude', {
-        method: 'POST',
-        signal: _abortCtrl.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'text/event-stream',
-          'x-session-token': (AUTH && AUTH.token) || ''
+    var phase1Content = [];
+    // Ref anatomical images (se disponíveis)
+    var hasRealRefs = window.ANA_REF_IMGS && ANA_REF_IMGS.some(function(r){return r.b64 && r.b64.length >= 10;});
+    if(hasRealRefs) {
+      getAnaRefBlocks().forEach(function(b){ phase1Content.push(b); });
+    }
+    // As imagens do exame
+    batch.imgs.forEach(function(b64){
+      phase1Content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
+    });
+    phase1Content.push({type:'text', text: buildPhase1Prompt(batch.imgs, batch.names, info)});
+
+    function attempt() {
+      model = C.MODELS[mIdx]||C.MODELS[0];
+
+      streamCall(model, sysVal, [{role:'user', content:phase1Content}],
+        function(partial) {
+          // Fase 1 progress: conta linhas IMG
+          var lines = (partial.match(/^IMG\d+/mg)||[]).length;
+          if (streamEl) streamEl.innerHTML = '👁 Fase 1/2 — inventário visual… <strong>'+lines+'/'+batch.imgs.length+'</strong>';
+          var pct = Math.round(lines / batch.imgs.length * 40);
+          var f=document.getElementById('pfill'), pc=document.getElementById('ppct');
+          if(f) f.style.width=pct+'%';
+          if(pc) pc.textContent=pct+'%';
         },
-        body: JSON.stringify({
-          model: model,
-          max_tokens: getDynamicTokens(batch.length),
-          stream: true,
-          system: sysVal,
-          messages: [{role:'user', content: msgContent}]
-        })
-      })
-      .then(function(resp) {
-        if (resp.status === 401) { reject(new Error('API Key inválida (401)')); return; }
-        if (resp.status === 429) {
-          if(++_retryCount > MAX_RETRIES){ mIdx++; _retryCount=0; attempt(); return; }
-          setTimeout(attempt, 8000 * _retryCount); return;
-        }
-        if (resp.status === 529) {
-          if(++_retryCount > MAX_RETRIES){ mIdx++; _retryCount=0; attempt(); return; }
+        300000 // 5 min para Fase 1
+      )
+      .then(function(phase1Text) {
+        if (!phase1Text || phase1Text.trim().length < 20) {
+          if(++_retryCount > MAX_RETRIES) { reject(new Error('Fase 1 falhou após retries')); return; }
           setTimeout(attempt, 5000 * _retryCount); return;
         }
-        if (!resp.ok) { mIdx++; attempt(); return; }
+        console.log('[EQ] Fase 1 concluída — '+phase1Text.split('\n').filter(Boolean).length+' linhas de inventário');
+        if (streamEl) streamEl.innerHTML = '🧠 Fase 2/2 — a elaborar relatório clínico completo…';
+        var f=document.getElementById('pfill'), pc=document.getElementById('ppct');
+        if(f) f.style.width='45%'; if(pc) pc.textContent='45%';
 
-        var reader = resp.body.getReader();
-        var decoder = new TextDecoder();
-        var buf = '';
+        // ── FASE 2: relatório JSON — sem imagens, com memória da Fase 1 ──────
+        // Conversa multi-turn: Fase 1 fica no histórico como assistant turn
+        var phase2Messages = [
+          {role:'user',    content: phase1Content},
+          {role:'assistant', content: phase1Text},   // ← memória explícita da Fase 1
+          {role:'user',    content: [{type:'text', text: buildPhase2Prompt(phase1Text, batch.names, info, calibBlock, fbBlock)}]}
+        ];
 
-        function pump() {
-          reader.read().then(function(result) {
-            if (result.done) {
-              clearTimeout(_streamTimeout);
-              finalize(streamText);
-              return;
+        var imgsFound = 0;
+        streamCall(model, sysVal, phase2Messages,
+          function(partial) {
+            var matches = (partial.match(/"n"\s*:\s*"IMG/g)||[]).length;
+            if (matches > imgsFound) {
+              imgsFound = matches;
+              if (streamEl) streamEl.innerHTML = '🧠 Fase 2/2 — relatório… <strong>'+imgsFound+'/'+batch.imgs.length+'</strong> estruturas';
             }
-            buf += decoder.decode(result.value, {stream: true});
-            var lines = buf.split('\n');
-            buf = lines.pop(); // keep incomplete line
-
-            lines.forEach(function(line) {
-              if (!line.startsWith('data: ')) return;
-              var data = line.slice(6).trim();
-              if (data === '[DONE]') return;
-              try {
-                var evt = JSON.parse(data);
-                if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
-                  streamText += evt.delta.text;
-                  // Update live progress: count IMG references found
-                  var matches = streamText.match(/"n"\s*:\s*"IMG/g);
-                  var newCount = matches ? matches.length : 0;
-                  if (newCount > imgsFound) {
-                    imgsFound = newCount;
-                    if (streamEl) {
-                      streamEl.innerHTML = '🔍 A analisar… <strong>' + imgsFound + '/' + batch.imgs.length + '</strong> imagens processadas';
-                    }
-                    // Update progress bar
-                    var pct = Math.round(imgsFound / batch.imgs.length * 90);
-                    var f = document.getElementById('pfill'), pc = document.getElementById('ppct');
-                    if (f) f.style.width = pct + '%';
-                    if (pc) pc.textContent = pct + '%';
-                  }
-                }
-                if (evt.type === 'message_delta' && evt.usage) {
-                  console.log('[EQ] STREAM tokens — input:', evt.usage.input_tokens, 'output:', evt.usage.output_tokens);
-                }
-              } catch(e) {}
-            });
-            pump();
-          }).catch(function(e) { clearTimeout(_streamTimeout); mIdx++; attempt(); });
-        }
-        pump();
-      })
-      .catch(function(e) {
-        clearTimeout(_streamTimeout);
-        // Fallback to XHR if fetch/streaming not available
-        console.warn('[EQ] Streaming failed, falling back to XHR:', e);
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST','/api/claude',true);
-        xhr.setRequestHeader('Content-Type','application/json');
-        xhr.setRequestHeader('x-session-token', (AUTH && AUTH.token) || '');
-        xhr.timeout = C.TIMEOUT;
-        xhr.onload = function() {
-          if (xhr.status === 401) { reject(new Error('API Key inválida (401)')); return; }
-          if (xhr.status === 429) {
-            if(++_retryCount > MAX_RETRIES){ mIdx++; _retryCount=0; attempt(); return; }
+            var pct = 45 + Math.round(imgsFound / batch.imgs.length * 50);
+            var f=document.getElementById('pfill'), pc=document.getElementById('ppct');
+            if(f) f.style.width=pct+'%'; if(pc) pc.textContent=pct+'%';
+          },
+          360000 // 6 min para Fase 2 (JSON é mais longo)
+        )
+        .then(function(phase2Text) {
+          if (!phase2Text || phase2Text.trim().length < 50) {
+            if(++_retryCount > MAX_RETRIES) { reject(new Error('Fase 2 falhou após retries')); return; }
+            setTimeout(attempt, 5000 * _retryCount); return;
+          }
+          if (streamEl) streamEl.innerHTML = '✅ Análise concluída — a compilar relatório…';
+          var f=document.getElementById('pfill'), pc=document.getElementById('ppct');
+          if(f) f.style.width='95%'; if(pc) pc.textContent='95%';
+          finalize(phase2Text);
+        })
+        .catch(function(e) {
+          var msg = e.message||'';
+          if (msg.indexOf('RATE_LIMIT') >= 0) {
+            if(++_retryCount > MAX_RETRIES) { mIdx++; _retryCount=0; }
+            if(mIdx>=C.MODELS.length) { reject(new Error('Rate limit — todos os modelos falharam')); return; }
             setTimeout(attempt, 8000 * _retryCount); return;
           }
-          if (xhr.status !== 200) { mIdx++; attempt(); return; }
-          try {
-            var data = JSON.parse(xhr.responseText);
-            var text = (data.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('');
-            finalize(text);
-          } catch(e) { mIdx++; attempt(); }
-        };
-        xhr.onerror = function() { mIdx++; attempt(); };
-        xhr.ontimeout = function() { mIdx++; attempt(); };
-        xhr.send(JSON.stringify({model:model,max_tokens:getDynamicTokens(batch.length),system:sysVal,messages:[{role:'user',content:msgContent}]}));
+          mIdx++;
+          if(mIdx>=C.MODELS.length) { reject(e); return; }
+          attempt();
+        });
+      })
+      .catch(function(e) {
+        var msg = e.message||'';
+        if (msg.indexOf('RATE_LIMIT') >= 0) {
+          if(++_retryCount > MAX_RETRIES) { mIdx++; _retryCount=0; }
+          if(mIdx>=C.MODELS.length) { reject(new Error('Rate limit — todos os modelos falharam')); return; }
+          setTimeout(attempt, 8000 * _retryCount); return;
+        }
+        mIdx++;
+        if(mIdx>=C.MODELS.length) { reject(e); return; }
+        attempt();
       });
-
-      function finalize(text) {
-        console.log('[EQ] Response length:', text.length);
-        // Guard: if stream was cut short (Railway timeout), retry
-        if (!text || text.trim().length < 50) {
-          console.warn('[EQ] Stream response too short — likely Railway timeout, retrying…');
-          mIdx++; attempt(); return;
-        }
-        if (streamEl) streamEl.innerHTML = '✅ Análise concluída — a compilar relatório…';
-        var f = document.getElementById('pfill'), pc = document.getElementById('ppct');
-        if (f) f.style.width = '95%';
-        if (pc) pc.textContent = '95%';
-
-        // Extract JSON
-        var clean = text;
-        var js = clean.indexOf('{');
-        if (js > 0) clean = clean.slice(js);
-        var je = clean.lastIndexOf('}');
-        if (je >= 0) clean = clean.slice(0, je + 1);
-        clean = clean.replace(/```json|```/g, '').trim();
-        console.log('[EQ] JSON first 100:', clean.slice(0,100));
-        console.log('[EQ] JSON last 100:', clean.slice(-100));
-        clean = clean.replace(/,\s*([}\]])/g,'$1');
-        clean = clean.replace(/[\x00-\x1F\x7F]/g,' ');
-
-        function repairJSON(s){
-          s=s.trimEnd();
-          var last=s[s.length-1];
-          if(last!=='}'&&last!==']'&&last!=='"'&&last!=='e'&&last!=='l'){
-            var p=Math.max(s.lastIndexOf('"}'),s.lastIndexOf('"]'));
-            if(p>s.length-200&&p>0) s=s.slice(0,p+2);
-          }
-          s=s.replace(/,(\s*[}\]])/g,'$1');
-          var stack=[],inStr=false,esc=false;
-          for(var i=0;i<s.length;i++){
-            var c=s[i];
-            if(esc){esc=false;continue;}
-            if(c==='\\'){esc=true;continue;}
-            if(c==='"'){inStr=!inStr;continue;}
-            if(inStr)continue;
-            if(c==='{')stack.push('}');
-            else if(c==='[')stack.push(']');
-            else if(c==='}'||c===']')stack.pop();
-          }
-          while(stack.length)s+=stack.pop();
-          return s;
-        }
-
-        var result;
-        try { result = JSON.parse(clean); }
-        catch(pe) {
-          try { result = JSON.parse(repairJSON(clean)); console.log('[EQ] JSON repaired'); }
-          catch(pe2) {
-            showErr('JSON inválido', 'O modelo respondeu mas o JSON ficou incompleto.', 'Tenta novamente.');
-            resetBtn(); return;
-          }
-        }
-        result._model = model;
-        result._info = info;
-        console.log('[EQ] Success! Keys:', Object.keys(result).join(','));
-        resolve(result);
-      }
     }
+
+    function finalize(text) {
+      var clean = text;
+      var js = clean.indexOf('{');
+      if (js > 0) clean = clean.slice(js);
+      var je = clean.lastIndexOf('}');
+      if (je >= 0) clean = clean.slice(0, je + 1);
+      clean = clean.replace(/```json|```/g, '').trim();
+      clean = clean.replace(/,\s*([}\]])/g,'$1');
+      clean = clean.replace(/[\x00-\x1F\x7F]/g,' ');
+      console.log('[EQ] Phase2 JSON first 100:', clean.slice(0,100));
+      console.log('[EQ] Phase2 JSON last 100:', clean.slice(-100));
+
+      function repairJSON(s){
+        s=s.trimEnd();
+        var last=s[s.length-1];
+        if(last!=='}'&&last!==']'&&last!=='"'&&last!=='e'&&last!=='l'){
+          var p=Math.max(s.lastIndexOf('"}'),s.lastIndexOf('"]'));
+          if(p>s.length-200&&p>0) s=s.slice(0,p+2);
+        }
+        s=s.replace(/,(\s*[}\]])/g,'$1');
+        var stack=[],inStr=false,esc=false;
+        for(var i=0;i<s.length;i++){
+          var c=s[i];
+          if(esc){esc=false;continue;}
+          if(c==='\\'){esc=true;continue;}
+          if(c==='"'){inStr=!inStr;continue;}
+          if(inStr)continue;
+          if(c==='{')stack.push('}');
+          else if(c==='[')stack.push(']');
+          else if(c==='}'||c===']')stack.pop();
+        }
+        while(stack.length)s+=stack.pop();
+        return s;
+      }
+
+      var result;
+      try { result = JSON.parse(clean); }
+      catch(pe) {
+        try { result = JSON.parse(repairJSON(clean)); console.log('[EQ] JSON repaired'); }
+        catch(pe2) {
+          showErr('JSON inválido', 'O modelo respondeu mas o JSON ficou incompleto.', 'Tenta novamente.');
+          resetBtn(); return;
+        }
+      }
+      result._model = model;
+      result._info = info;
+      console.log('[EQ] Success! Keys:', Object.keys(result).join(','));
+      resolve(result);
+    }
+
     attempt();
   });
   }); // end Promise.all callApi
@@ -5867,7 +6170,21 @@ function buildInventarioReport(r, sc, sc_col, info) {
 
   var html = '<div style="padding:4px 0">';
 
-  // ── Header badge ─────────────────────────────────────────────────────
+  // ── Banner projecções em falta — PROEMINENTE NO TOPO ────────────────
+  var projFaltamTop = (r.qualidade||{}).projeccoes_faltam || [];
+  if(projFaltamTop.length) {
+    var pillsText = projFaltamTop.map(function(p){ return typeof p==='object'?(p.estrutura||'')+(p.projecao?' — '+p.projecao:' — '+(p.motivo||'')):p; }).join(' | ');
+    html += '<div class="missing-banner">';
+    html += '<div class="missing-banner-title">⚠ Exame Incompleto — Projecções em Falta</div>';
+    html += '<div class="missing-banner-pills">';
+    projFaltamTop.forEach(function(p){
+      var label = typeof p==='object' ? ((p.estrutura||'')+(p.membro?' '+p.membro:'')+(p.projecao?' · '+p.projecao:'')) : p;
+      html += '<span class="missing-pill">'+X2(label)+'</span>';
+    });
+    html += '</div>';
+    html += '<button class="missing-banner-copy" onclick="copyMissingProjections(this)" data-text="'+X2('Para completar este exame: '+pillsText)+'">📋 Copiar lista para técnico de radiologia</button>';
+    html += '</div>';
+  }
   html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:rgba(74,201,201,.05);border:1px solid rgba(74,201,201,.15);border-radius:8px">';
   html += '<div style="flex:1">';
   html += '<div style="font-family:'+mono+';font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.12em;margin-bottom:3px">🔬 Inventário Radiográfico</div>';
@@ -5927,9 +6244,14 @@ function buildInventarioReport(r, sc, sc_col, info) {
 
         html += '<div style="padding:10px 12px;margin-bottom:6px;background:var(--ink2);border:1px solid '+borderCol+';border-left:3px solid '+gcol+';border-radius:0 6px 6px 0">';
 
-        // Linha 1: estrutura + grau
+        // Linha 1: estrutura + confiança dot + grau
+        var nProj = item.num_projeccoes_confirmadas || 0;
+        var confClass = !avaliavel ? 'uneval' : nProj >= 2 ? 'confirmed' : nProj === 1 ? 'suspect' : 'uneval';
+        var confLabel = !avaliavel ? '— n/a' : nProj >= 2 ? '● ' + nProj + ' proj.' : nProj === 1 ? '◐ 1 proj.' : '○ —';
+        var confTitle = !avaliavel ? 'Não avaliável' : nProj >= 2 ? 'Confirmado em ' + nProj + ' projecções' : nProj === 1 ? 'Visível em 1 projecção — confirmar' : 'Projecções não quantificadas';
         html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
         html += '<span style="font-size:12px;font-weight:600;color:var(--t1)">'+X2(item.estrutura||'')+'</span>';
+        html += '<span class="conf-dot sem-dot '+confClass+'" title="'+confTitle+'">'+confLabel+'</span>';
         html += '<span style="font-family:'+mono+';font-size:9px;color:'+gcol+';border:1px solid '+gcol+'40;padding:1px 8px;border-radius:2px;margin-left:auto">'+X2(grau)+'</span>';
         html += '</div>';
 
@@ -7891,6 +8213,36 @@ function renderReport(r,info){
   buildFeedbackPanel(r, ref)+
 
   '</div>';
+
+  // ── Chat pós-relatório ─────────────────────────────────────────────
+  (function(){
+    var existing = document.getElementById('chatPostReport');
+    if(existing) existing.remove();
+    var chatEl = document.createElement('div');
+    chatEl.id = 'chatPostReport';
+    chatEl.className = 'chat-panel no-print';
+    chatEl.innerHTML =
+      '<div class="chat-header" onclick="toggleChatPanel()">' +
+        '<span class="chat-header-icon">💬</span>' +
+        '<span class="chat-header-title">Assistente Clínico</span>' +
+        '<span class="chat-header-sub">Perguntas sobre este relatório · Clica para abrir</span>' +
+        '<span id="chatChevron" style="font-size:10px;color:var(--t3);margin-left:8px;transition:transform .2s">▾</span>' +
+      '</div>' +
+      '<div id="chatBody" class="chat-body"></div>' +
+      '<div id="chatQuick" class="chat-quick" style="display:none">' +
+        '<button class="chat-quick-btn" onclick="sendChatQuick(this)">Resumir para proprietário</button>' +
+        '<button class="chat-quick-btn" onclick="sendChatQuick(this)">Explicar risco para pré-compra</button>' +
+        '<button class="chat-quick-btn" onclick="sendChatQuick(this)">Quais exames urgentes?</button>' +
+        '<button class="chat-quick-btn" onclick="sendChatQuick(this)">Preparar nota para seguradora</button>' +
+        '<button class="chat-quick-btn" onclick="sendChatQuick(this)">Traduzir achados para inglês</button>' +
+      '</div>' +
+      '<div id="chatInputRow" class="chat-input-row" style="display:none">' +
+        '<textarea id="chatInput" class="chat-input" rows="1" placeholder="Ex: Explica o navicular ao proprietário, Qual o risco para saltos?…" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>' +
+        '<button id="chatSendBtn" class="chat-send" onclick="sendChat()">Enviar</button>' +
+      '</div>';
+    var mainEl = document.getElementById('main');
+    if(mainEl) mainEl.appendChild(chatEl);
+  })();
 
   // Default to Inventário tab after render, reset any prior mode
   setTimeout(function(){ setReportMode('inv'); }, 0);
@@ -13256,6 +13608,713 @@ function renderCavDetail(horseId) {
       '<button onclick="document.getElementById(\'cavaiosPanel\').remove();openEditHorseModal(\''+horseId+'\')" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:9px 16px;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);border-radius:5px;color:var(--ice);cursor:pointer">✏ Editar</button>' +
       '<button onclick="document.getElementById(\'cavaiosPanel\').remove();onHorseSelect(\''+horseId+'\')" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:9px 16px;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);border-radius:5px;color:var(--green);cursor:pointer">✓ Seleccionar para análise</button>' +
     '</div>';
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE: CHAT PÓS-RELATÓRIO
+// ══════════════════════════════════════════════════════════════════════════════
+
+var _chatOpen = false;
+var _chatHistory = []; // {role, content}
+
+function toggleChatPanel() {
+  _chatOpen = !_chatOpen;
+  var body = document.getElementById('chatBody');
+  var quick = document.getElementById('chatQuick');
+  var inputRow = document.getElementById('chatInputRow');
+  var chevron = document.getElementById('chatChevron');
+  if(!body) return;
+  if(_chatOpen) {
+    body.classList.add('open');
+    if(quick) quick.style.display = 'flex';
+    if(inputRow) inputRow.style.display = 'flex';
+    if(chevron) chevron.style.transform = 'rotate(180deg)';
+    // First-time greeting
+    if(_chatHistory.length === 0) {
+      _appendChatMsg('ai', 'Olá! Tenho acesso ao relatório completo desta análise. Posso explicar achados ao proprietário, avaliar risco para pré-compra, preparar notas para seguradoras ou responder a qualquer questão clínica. Como posso ajudar?');
+    }
+    setTimeout(function(){ var i=document.getElementById('chatInput'); if(i) i.focus(); }, 100);
+  } else {
+    body.classList.remove('open');
+    if(quick) quick.style.display = 'none';
+    if(inputRow) inputRow.style.display = 'none';
+    if(chevron) chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function _appendChatMsg(role, text) {
+  var body = document.getElementById('chatBody');
+  if(!body) return;
+  var isUser = role === 'user';
+  var div = document.createElement('div');
+  div.className = 'chat-msg' + (isUser ? ' user' : '');
+  div.innerHTML =
+    '<div class="chat-avatar ' + (isUser ? 'user' : 'ai') + '">' + (isUser ? '👨‍⚕️' : '🤖') + '</div>' +
+    '<div class="chat-bubble ' + role + '">' + (text || '').replace(/\n/g, '<br>') + '</div>';
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  return div;
+}
+
+function sendChatQuick(btn) {
+  if(btn && btn.textContent) {
+    var inp = document.getElementById('chatInput');
+    if(inp) inp.value = btn.textContent;
+    sendChat();
+  }
+}
+
+async function sendChat() {
+  var inp = document.getElementById('chatInput');
+  var btn = document.getElementById('chatSendBtn');
+  if(!inp || !S.lastResult) return;
+  var text = inp.value.trim();
+  if(!text) return;
+
+  inp.value = '';
+  if(btn) btn.disabled = true;
+
+  _chatHistory.push({ role: 'user', content: text });
+  _appendChatMsg('user', text);
+
+  // Loading placeholder
+  var loadDiv = _appendChatMsg('ai', '<em style="color:var(--t3)">A analisar…</em>');
+  var loadBubble = loadDiv ? loadDiv.querySelector('.chat-bubble') : null;
+
+  // Build system with report context
+  var rptCtx = '';
+  try {
+    rptCtx = 'RELATÓRIO JSON:\n' + JSON.stringify(S.lastResult).slice(0, 6000);
+  } catch(e) {}
+  var info = S._lastInfo || {};
+  var infoCtx = 'Cavalo: ' + (info.horse||'—') + ' | Raça: ' + (info.breed||'—') + ' | Idade: ' + (info.age||'—') + ' | Disciplina: ' + (info.disc||'—') + ' | Veterinário: ' + (info.vet||'—');
+
+  var sysPrompt = 'És o Assistente Clínico do EquiScan Pro, especialista em radiologia equina. Tens acesso ao relatório radiológico completo abaixo e respondes exclusivamente com base nesse contexto. Responde sempre em português de Portugal. Sê preciso, clínico e conciso. Quando adequado, usa bullet points.\n\n' + infoCtx + '\n\n' + rptCtx;
+
+  var apiKey = (document.getElementById('fKey') && document.getElementById('fKey').value) || '';
+  var messages = _chatHistory.slice(-10); // keep last 10 turns
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        system: sysPrompt,
+        messages: messages
+      })
+    });
+    var data = await res.json();
+    var reply = (data.content && data.content[0] && data.content[0].text) || 'Sem resposta.';
+    _chatHistory.push({ role: 'assistant', content: reply });
+    if(loadBubble) {
+      loadBubble.innerHTML = reply.replace(/\n/g, '<br>');
+    }
+  } catch(e) {
+    if(loadBubble) loadBubble.innerHTML = '<em style="color:var(--red)">Erro de ligação. Verifica a chave API.</em>';
+  }
+
+  if(btn) btn.disabled = false;
+  var body = document.getElementById('chatBody');
+  if(body) body.scrollTop = body.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE: COPIAR PROJECÇÕES EM FALTA
+// ══════════════════════════════════════════════════════════════════════════════
+
+function copyMissingProjections(btn) {
+  var text = btn && btn.getAttribute('data-text');
+  if(!text) return;
+  var horse = (S._lastInfo && S._lastInfo.horse) ? 'Cavalo: ' + S._lastInfo.horse + '\n' : '';
+  var full = horse + text + '\nGerado por EquiScan Pro · ' + new Date().toLocaleDateString('pt-PT');
+  try {
+    navigator.clipboard.writeText(full).then(function() {
+      var orig = btn.textContent;
+      btn.textContent = '✓ Copiado!';
+      btn.style.color = 'var(--green)';
+      setTimeout(function(){ btn.textContent = orig; btn.style.color = ''; }, 2000);
+    });
+  } catch(e) {
+    showToast('Não foi possível copiar automaticamente — selecciona manualmente.');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE: MODAL COMPARAÇÃO LADO A LADO
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openCompareModal() {
+  var existing = document.getElementById('compareModal');
+  if(existing) existing.remove();
+
+  var horseId = window._selectedHorseId;
+  var exams = horseId ? loadExams().filter(function(e){ return e.horse_id === horseId; }) : loadExams();
+  exams = exams.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+
+  if(exams.length < 1) {
+    showAlert('Sem exames anteriores para comparar. Selecciona um cavalo com histórico.');
+    return;
+  }
+
+  var examOpts = exams.map(function(e, i){
+    var d = (e.date||'').slice(0,10);
+    var sc = e.score ? ' · ' + e.score + '/100' : '';
+    return '<option value="'+i+'">'+d+sc+' — '+(e.classe||'—')+'</option>';
+  }).join('');
+
+  // Current exam
+  var curScore = S.lastResult ? (S.lastResult.score || 0) : 0;
+  var curClasse = S.lastResult ? (S.lastResult.classe || S.lastResult.classe_risco || '—') : '—';
+  var curDate = new Date().toLocaleDateString('pt-PT');
+
+  var overlay = document.createElement('div');
+  overlay.className = 'cmp-overlay';
+  overlay.id = 'compareModal';
+  overlay.innerHTML =
+    '<div class="cmp-modal">' +
+      '<div class="cmp-header">' +
+        '<span class="cmp-title">⇄ Comparação de Exames</span>' +
+        '<button onclick="document.getElementById(\'compareModal\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;line-height:1">×</button>' +
+      '</div>' +
+      '<div class="cmp-select-row">' +
+        '<div style="flex:1">' +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Exame A — Actual</div>' +
+          '<div style="font-size:11px;color:var(--t1);padding:7px 10px;background:var(--ink3);border:1px solid rgba(201,168,76,.3);border-radius:5px">'+curDate+' · '+curClasse+(curScore?' · '+curScore+'/100':'')+'</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:flex-end;padding-bottom:2px;font-size:18px;color:var(--t3)">⇄</div>' +
+        '<div style="flex:1">' +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Exame B — Histórico</div>' +
+          '<select id="cmpExamSelect" onchange="renderCompareBody()" style="width:100%;background:var(--ink3);border:1px solid rgba(74,201,201,.3);border-radius:5px;padding:7px 10px;color:var(--t1);font-size:11px;font-family:JetBrains Mono,monospace;outline:none">' +
+            examOpts +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cmp-body" id="cmpBody">' +
+        '<div class="cmp-col" id="cmpColA"></div>' +
+        '<div class="cmp-col" id="cmpColB"></div>' +
+      '</div>' +
+    '</div>';
+
+  // Store exams for later use by renderCompareBody
+  overlay._exams = exams;
+  document.body.appendChild(overlay);
+
+  // Close on overlay click (not modal)
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
+
+  // Initial render
+  window._cmpExams = exams;
+  renderCompareBody();
+}
+
+function renderCompareBody() {
+  var sel = document.getElementById('cmpExamSelect');
+  if(!sel || !window._cmpExams) return;
+  var idx = parseInt(sel.value) || 0;
+  var examB = window._cmpExams[idx];
+  var examA = S.lastResult; // current
+  if(!examA || !examB) return;
+
+  var colA = document.getElementById('cmpColA');
+  var colB = document.getElementById('cmpColB');
+  if(!colA || !colB) return;
+
+  var scA = examA.score || 0;
+  var scB = examB.score || 0;
+  var diff = scA - scB;
+  var diffStr = diff > 0 ? '+'+diff : ''+diff;
+  var diffCol = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--t3)';
+  var diffIcon = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+
+  var achdA = (examA.achados || []).filter(function(a){ return a.sev && a.sev !== 'Normal'; });
+  var achdB = (examB.achados_detalhe || []);
+
+  // Build sets keyed by estrutura+membro
+  function keyOf(a) { return ((a.estrutura||a.estrutura||'')+'|'+(a.membro||'')).toLowerCase(); }
+  var mapB = {};
+  achdB.forEach(function(a){ mapB[keyOf(a)] = a; });
+  var mapA = {};
+  achdA.forEach(function(a){ mapA[keyOf(a)] = a; });
+
+  var sevOrder = {Severo:3, Moderado:2, Leve:1, Normal:0};
+  function sevVal(s) { return sevOrder[s] || 0; }
+
+  // Classify changes
+  var rows = [];
+  // From A: new or changed
+  achdA.forEach(function(a) {
+    var k = keyOf(a);
+    var b = mapB[k];
+    if(!b) {
+      rows.push({ type:'new', a:a, b:null, key:k });
+    } else {
+      var sv = sevVal(a.sev) - sevVal(b.sev||'Normal');
+      rows.push({ type: sv>0?'progress':sv<0?'regress':'stable', a:a, b:b, key:k });
+    }
+  });
+  // From B: resolved (in B but not A)
+  achdB.forEach(function(b) {
+    var k = keyOf(b);
+    if(!mapA[k]) {
+      rows.push({ type:'regress', a:null, b:b, key:k, resolved:true });
+    }
+  });
+
+  function achRow(r) {
+    var labels = {progress:'📈 Agravamento', regress:'📉 Melhoria', stable:'→ Estável', new:'🆕 Novo achado'};
+    var title = r.resolved ? '✓ Resolvido' : labels[r.type] || '';
+    var a = r.a; var b = r.b;
+    var struct = (a&&(a.estrutura||a.membro)) || (b&&(b.estrutura||b.membro)) || '—';
+    var sevA = a ? (a.sev||'Normal') : '—';
+    var sevB = b ? (b.sev||'Normal') : '—';
+    var sevCol = {Severo:'var(--red)',Moderado:'var(--amber)',Leve:'#60a5fa',Normal:'var(--green)'};
+    return '<div class="cmp-achado '+r.type+'">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+        '<span style="font-size:11px;font-weight:600;color:var(--t1)">'+X(struct)+'</span>' +
+        '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3);margin-left:auto">'+title+'</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:12px;font-family:JetBrains Mono,monospace;font-size:9px">' +
+        (a?'<span>Actual: <span style="color:'+(sevCol[sevA]||'var(--t2)')+'">'+sevA+'</span></span>':'') +
+        (b&&!r.resolved?'<span>Anterior: <span style="color:'+(sevCol[sevB]||'var(--t2)')+'">'+sevB+'</span></span>':'') +
+        (r.resolved?'<span style="color:var(--green)">Não presente no exame actual</span>':'') +
+      '</div>' +
+      ((a&&a.lesao)||b?'<div style="font-size:10px;color:var(--t3);margin-top:3px">'+(a&&a.lesao?X(a.lesao):'')+'</div>':'') +
+    '</div>';
+  }
+
+  var scColA = scA>=70?'var(--green)':scA>=50?'var(--amber)':'var(--red)';
+  var scColB = scB>=70?'var(--green)':scB>=50?'var(--amber)':'var(--red)';
+
+  function scoreBar(sc, col) {
+    return '<div class="cmp-prog-bar"><div class="cmp-prog-fill" style="width:'+sc+'%;background:'+col+'"></div></div>';
+  }
+
+  var legend = '<div class="cmp-diff-legend">' +
+    '<span style="color:var(--red)">📈 Agravamento</span>' +
+    '<span style="color:var(--green)">📉 Melhoria</span>' +
+    '<span style="color:var(--amber)">🆕 Novo</span>' +
+    '<span style="color:var(--t3)">→ Estável</span>' +
+  '</div>';
+
+  var summaryHtml = '<div style="padding:10px 14px;background:rgba(74,201,201,.05);border:1px solid rgba(74,201,201,.15);border-radius:8px;margin-bottom:14px">' +
+    '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Variação do Score</div>' +
+    '<div style="display:flex;align-items:center;gap:16px">' +
+      '<div style="text-align:center">' +
+        '<div style="font-size:28px;font-weight:700;color:'+scColA+'">'+scA+'</div>' +
+        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3)">Actual</div>' +
+        scoreBar(scA, scColA) +
+      '</div>' +
+      '<div style="text-align:center;flex:1">' +
+        '<div style="font-size:22px;font-weight:700;color:'+diffCol+'">'+diffIcon+' '+diffStr+'</div>' +
+        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3)">variação</div>' +
+      '</div>' +
+      '<div style="text-align:center">' +
+        '<div style="font-size:28px;font-weight:700;color:'+scColB+'">'+scB+'</div>' +
+        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--t3)">Anterior</div>' +
+        scoreBar(scB, scColB) +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  var rowsHtml = rows.length ? rows.map(achRow).join('') :
+    '<div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Sem achados comparáveis encontrados.</div>';
+
+  var dateB = (examB.date||'').slice(0,10);
+  var dateA = new Date().toLocaleDateString('pt-PT');
+
+  colA.innerHTML =
+    '<div class="cmp-col-header"><span class="cmp-col-title">Exame Actual</span><span class="cmp-col-date">'+dateA+'</span></div>' +
+    summaryHtml +
+    legend +
+    rowsHtml;
+
+  colB.innerHTML =
+    '<div class="cmp-col-header"><span class="cmp-col-title">Exame Anterior</span><span class="cmp-col-date">'+dateB+'</span></div>' +
+    '<div style="padding:10px 14px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;margin-bottom:14px">' +
+      '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">Achados Anteriores</div>' +
+      (achdB.length ? achdB.map(function(b){
+        var sc2 = {Severo:'var(--red)',Moderado:'var(--amber)',Leve:'#60a5fa',Normal:'var(--green)'};
+        var sv = b.sev||'Normal';
+        return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--wire);align-items:baseline">' +
+          '<span style="font-size:11px;color:var(--t1);font-weight:600">'+X(b.estrutura||'—')+'</span>' +
+          '<span style="font-size:10px;color:var(--t3)">'+X(b.membro||'')+'</span>' +
+          '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:'+(sc2[sv]||'var(--t2)')+';margin-left:auto">'+sv+'</span>' +
+        '</div>';
+      }).join('') : '<div style="font-size:11px;color:var(--t3)">Sem achados registados.</div>') +
+    '</div>' +
+    '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Resumo</div>' +
+    '<div style="font-size:11px;color:var(--t2);line-height:1.7">' +
+      (examB.classe ? '<div>Classe: <strong style="color:var(--t1)">'+X(examB.classe)+'</strong></div>' : '') +
+      (examB.achados ? '<div>Achados: '+examB.achados+' registados</div>' : '') +
+      (examB.vet ? '<div>Veterinário: '+X(examB.vet)+'</div>' : '') +
+    '</div>';
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE: PARECER PPE — PRÉ-COMPRA
+// ══════════════════════════════════════════════════════════════════════════════
+
+var _ppeLang = 'pt'; // 'pt' | 'en'
+var _ppeResult = null;
+
+function openPPEModal() {
+  if(!S.lastResult) { showToast('Faz primeiro uma análise'); return; }
+
+  var existing = document.getElementById('ppeModal');
+  if(existing) existing.remove();
+
+  var r = S.lastResult;
+  var info = S._lastInfo || {};
+
+  // Pre-fill from existing data
+  var horseName = (info.horse || '');
+  var horseAge  = (info.age   || '');
+  var horseBreed = (info.breed || '');
+  var horseDisc  = (info.disc  || '');
+  var vet = (document.getElementById('fVet') && document.getElementById('fVet').value) || '';
+  var clinic = (document.getElementById('fClinic') && document.getElementById('fClinic').value) || '';
+  var sc = r.score || 0;
+  var riskClass = sc >= 70 ? 'low' : sc >= 50 ? 'mod' : 'high';
+  var riskLabel = sc >= 70 ? '🟢 Risco Baixo' : sc >= 50 ? '🟠 Risco Moderado' : '🔴 Risco Alto';
+
+  var overlay = document.createElement('div');
+  overlay.className = 'ppe-overlay';
+  overlay.id = 'ppeModal';
+  overlay.innerHTML =
+    '<div class="ppe-modal">' +
+      '<div class="ppe-header">' +
+        '<div>' +
+          '<div class="ppe-title">🏇 Parecer de Pré-Compra</div>' +
+          '<div class="ppe-title-sub">PPE · Pre-Purchase Examination Report</div>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'ppeModal\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;line-height:1">×</button>' +
+      '</div>' +
+
+      '<div class="ppe-body" id="ppeBody">' +
+
+        // Input form (shown initially)
+        '<div id="ppeForm">' +
+          '<div class="ppe-section-title">Dados do Exame</div>' +
+          '<div class="ppe-grid">' +
+            '<div class="ppe-field"><label>Cavalo</label><input id="ppeHorse" value="'+_esc(horseName)+'" placeholder="Nome do cavalo"></div>' +
+            '<div class="ppe-field"><label>Raça</label><input id="ppeBreed" value="'+_esc(horseBreed)+'" placeholder="ex: Lusitano, KWPN"></div>' +
+            '<div class="ppe-field"><label>Idade</label><input id="ppeAge" value="'+_esc(horseAge)+'" placeholder="ex: 7" type="number" min="1" max="35"></div>' +
+            '<div class="ppe-field"><label>Disciplina</label><input id="ppeDisc" value="'+_esc(horseDisc)+'" placeholder="ex: Saltos, Dressage"></div>' +
+          '</div>' +
+          '<div class="ppe-grid">' +
+            '<div class="ppe-field"><label>Veterinário</label><input id="ppeVet" value="'+_esc(vet)+'" placeholder="ex: Dr. João Silva ECVDI"></div>' +
+            '<div class="ppe-field"><label>Clínica / Instituição</label><input id="ppeClinic" value="'+_esc(clinic)+'" placeholder="ex: Clínica Equina Lisboa"></div>' +
+          '</div>' +
+          '<div class="ppe-field"><label>Contexto da compra (opcional)</label><textarea id="ppePurpose" rows="2" placeholder="ex: Cavalo para competição nacional de saltos, orçamento 80.000€. Comprador é cavaleiro amateur. Vendedor garante cavalo limpo de claudicação."></textarea></div>' +
+
+          '<div style="margin-bottom:14px">' +
+            '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Idioma do Parecer</div>' +
+            '<div class="ppe-lang-toggle">' +
+              '<button class="ppe-lang-btn active" id="ppeLangPT" onclick="setPPELang(\'pt\')">🇵🇹 Português</button>' +
+              '<button class="ppe-lang-btn" id="ppeLangEN" onclick="setPPELang(\'en\')">🇬🇧 English</button>' +
+            '</div>' +
+          '</div>' +
+
+          // Risk summary from existing report
+          '<div style="padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--wire);border-radius:8px;margin-bottom:6px">' +
+            '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Resumo do Relatório</div>' +
+            '<div style="display:flex;align-items:center;gap:14px">' +
+              '<span class="ppe-risk-badge ppe-risk-'+riskClass+'">'+riskLabel+' · '+sc+'/100</span>' +
+              '<span style="font-size:11px;color:var(--t2)">'+(r.achados||[]).filter(function(a){return a.sev&&a.sev!=='Normal';}).length+' achado(s) com alteração</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Result (shown after generation)
+        '<div class="ppe-result-wrap" id="ppeResultWrap">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
+            '<div class="ppe-section-title" style="margin-bottom:0">Parecer Gerado</div>' +
+            '<div style="display:flex;gap:8px">' +
+              '<button onclick="copyPPEResult()" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);border-radius:4px;padding:5px 10px;cursor:pointer;transition:all .12s" onmouseover="this.style.background=\'rgba(74,201,201,.18)\'" onmouseout="this.style.background=\'rgba(74,201,201,.08)\'">📋 Copiar</button>' +
+              '<button onclick="printPPEResult()" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.25);border-radius:4px;padding:5px 10px;cursor:pointer;transition:all .12s" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">⎙ Imprimir</button>' +
+              '<button onclick="resetPPEForm()" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid var(--wire);border-radius:4px;padding:5px 10px;cursor:pointer">↩ Editar</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="ppe-result" id="ppeResultContent"></div>' +
+        '</div>' +
+
+      '</div>' +
+
+      '<div class="ppe-footer">' +
+        '<button id="ppeGenBtn" onclick="generatePPE()" style="background:#e05555;color:#fff;border:none;border-radius:6px;padding:9px 22px;font-family:JetBrains Mono,monospace;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.06em;transition:opacity .15s" onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'1\'">🏇 GERAR PARECER PPE</button>' +
+        '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3)">Baseado no relatório já gerado · Sem nova chamada de visão</span>' +
+      '</div>' +
+    '</div>';
+
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  _ppeResult = null;
+}
+
+function _esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setPPELang(lang) {
+  _ppeLang = lang;
+  var ptBtn = document.getElementById('ppeLangPT');
+  var enBtn = document.getElementById('ppeLangEN');
+  if(ptBtn) { ptBtn.classList.toggle('active', lang==='pt'); }
+  if(enBtn) { enBtn.classList.toggle('active', lang==='en'); }
+}
+
+function resetPPEForm() {
+  var form = document.getElementById('ppeForm');
+  var wrap = document.getElementById('ppeResultWrap');
+  var genBtn = document.getElementById('ppeGenBtn');
+  if(form) form.style.display = '';
+  if(wrap) wrap.classList.remove('visible');
+  if(genBtn) { genBtn.textContent = '🏇 GERAR PARECER PPE'; genBtn.disabled = false; }
+  _ppeResult = null;
+}
+
+async function generatePPE() {
+  var r = S.lastResult;
+  var info = S._lastInfo || {};
+  if(!r) { showToast('Sem relatório disponível'); return; }
+
+  var horse   = document.getElementById('ppeHorse')   ? document.getElementById('ppeHorse').value.trim()   : (info.horse||'');
+  var breed   = document.getElementById('ppeBreed')   ? document.getElementById('ppeBreed').value.trim()   : (info.breed||'');
+  var age     = document.getElementById('ppeAge')     ? document.getElementById('ppeAge').value.trim()     : (info.age||'');
+  var disc    = document.getElementById('ppeDisc')    ? document.getElementById('ppeDisc').value.trim()    : (info.disc||'');
+  var vet     = document.getElementById('ppeVet')     ? document.getElementById('ppeVet').value.trim()     : '';
+  var clinic  = document.getElementById('ppeClinic')  ? document.getElementById('ppeClinic').value.trim()  : '';
+  var purpose = document.getElementById('ppePurpose') ? document.getElementById('ppePurpose').value.trim() : '';
+  var lang    = _ppeLang;
+
+  var genBtn = document.getElementById('ppeGenBtn');
+  var ppeBody = document.getElementById('ppeBody');
+  if(genBtn) { genBtn.disabled = true; genBtn.textContent = '⏳ A gerar…'; }
+
+  // Show spinner
+  var form = document.getElementById('ppeForm');
+  var spinner = document.createElement('div');
+  spinner.id = 'ppeSpinner';
+  spinner.className = 'ppe-generating';
+  spinner.innerHTML = '<div class="ppe-generating-spinner"></div><div style="font-family:JetBrains Mono,monospace;font-size:10px">A redigir parecer PPE…</div>';
+  if(form) form.style.display = 'none';
+  ppeBody.appendChild(spinner);
+
+  // Build context from existing report
+  var sc = r.score || 0;
+  var cl = r.classe || r.classe_risco || '';
+  var achs = (r.achados || []).filter(function(a){ return a.sev && a.sev !== 'Normal'; });
+  var sevOrder = {Severo:0, Moderado:1, Leve:2};
+  achs = achs.slice().sort(function(a,b){ return (sevOrder[a.sev]||2)-(sevOrder[b.sev]||2); });
+
+  var achadosSummary = achs.map(function(a){
+    return '- ' + (a.estrutura||'') + (a.membro?' ('+a.membro+')':'') + ': ' + (a.sev||'') + (a.grading?' · '+a.grading:'') + (a.lesao?' — '+a.lesao.split(/[.;]/)[0]:'');
+  }).join('\n') || (lang==='en' ? '- No significant findings.' : '- Sem achados com alteração.');
+
+  var projFaltam = (r.qualidade||{}).projeccoes_faltam||[];
+  var incompleteNote = projFaltam.length
+    ? (lang==='en' ? '\n⚠ INCOMPLETE EXAMINATION: missing projections — ' : '\n⚠ EXAME INCOMPLETO: projecções em falta — ') + projFaltam.join(', ')
+    : '';
+
+  var recs = (r.recomendacoes||r.plano_accao||[]).slice(0,3).map(function(rec){
+    return '- ' + (rec.descricao||rec.acao||rec.texto||'');
+  }).join('\n');
+
+  var today = new Date().toLocaleDateString(lang==='en'?'en-GB':'pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+  var ref = r.ref || ('PPE-'+Date.now().toString(36).toUpperCase().slice(0,6));
+
+  var isEn = lang === 'en';
+
+  var systemPrompt = isEn
+    ? 'You are an equine radiologist writing a formal Pre-Purchase Examination (PPE) report for a horse buyer. You write concise, professional, legally precise English. Never invent findings. Always base your assessment strictly on the data provided. Format with clear sections. Use plain language for the buyer summary, clinical language for the findings section.'
+    : 'És um radiologista equino a redigir um parecer formal de pré-compra (PPE) para um comprador de cavalo. Escreves em português de Portugal, de forma concisa, profissional e clinicamente precisa. Nunca inventas achados. Baseia-te estritamente nos dados fornecidos. Usa linguagem clara para o comprador e linguagem clínica para os achados.';
+
+  var userPrompt = isEn
+    ? [
+        '=== PRE-PURCHASE EXAMINATION REPORT ===',
+        'Horse: ' + (horse||'Not specified'),
+        'Breed: ' + (breed||'Not specified'),
+        'Age: ' + (age ? age + ' years' : 'Not specified'),
+        'Discipline: ' + (disc||'Not specified'),
+        'Examining Vet: ' + (vet||'Not specified'),
+        'Clinic: ' + (clinic||'Not specified'),
+        'Purchase context: ' + (purpose||'General pre-purchase'),
+        'Date: ' + today,
+        'Reference: ' + ref,
+        '',
+        '=== RADIOGRAPHIC FINDINGS (from AI-assisted analysis) ===',
+        'EquiScan Score: ' + sc + '/100',
+        'Classification: ' + cl,
+        '',
+        'Findings:',
+        achadosSummary,
+        incompleteNote,
+        '',
+        'Clinical recommendations:',
+        recs || 'See full veterinary report.',
+        '',
+        '=== TASK ===',
+        'Write a complete PPE radiographic opinion with these sections:',
+        '1. HEADER — horse ID, vet, date, reference number',
+        '2. EXAMINATION SUMMARY — one paragraph, plain English, suitable for buyer',
+        '3. RADIOGRAPHIC FINDINGS — structured list of findings with clinical significance',
+        '4. RISK CLASSIFICATION — use LOW / MODERATE / HIGH for the intended discipline, with brief justification',
+        '5. VETERINARY OPINION — professional assessment including limitations, missing projections if any',
+        '6. RECOMMENDATIONS — concrete next steps',
+        '7. DISCLAIMER — standard legal disclaimer',
+        '',
+        'Keep it under 600 words. Be direct. Do not add findings not listed above.',
+      ].join('\n')
+    : [
+        '=== PARECER RADIOGRÁFICO DE PRÉ-COMPRA ===',
+        'Cavalo: ' + (horse||'Não especificado'),
+        'Raça: ' + (breed||'Não especificada'),
+        'Idade: ' + (age ? age + ' anos' : 'Não especificada'),
+        'Disciplina: ' + (disc||'Não especificada'),
+        'Médico Veterinário: ' + (vet||'Não especificado'),
+        'Clínica: ' + (clinic||'Não especificada'),
+        'Contexto da compra: ' + (purpose||'Pré-compra geral'),
+        'Data: ' + today,
+        'Referência: ' + ref,
+        '',
+        '=== ACHADOS RADIOGRÁFICOS (análise com assistência IA) ===',
+        'Score EquiScan: ' + sc + '/100',
+        'Classificação: ' + cl,
+        '',
+        'Achados:',
+        achadosSummary,
+        incompleteNote,
+        '',
+        'Recomendações clínicas:',
+        recs || 'Ver relatório veterinário completo.',
+        '',
+        '=== TAREFA ===',
+        'Redige um parecer PPE completo com as seguintes secções:',
+        '1. CABEÇALHO — identificação do cavalo, veterinário, data, referência',
+        '2. SUMÁRIO DO EXAME — um parágrafo, linguagem clara, adequado ao comprador',
+        '3. ACHADOS RADIOGRÁFICOS — lista estruturada com significado clínico de cada achado',
+        '4. CLASSIFICAÇÃO DE RISCO — usa BAIXO / MODERADO / ALTO para a disciplina pretendida, com justificação breve',
+        '5. PARECER VETERINÁRIO — avaliação profissional incluindo limitações e projecções em falta se aplicável',
+        '6. RECOMENDAÇÕES — próximos passos concretos',
+        '7. AVISO LEGAL — disclaimer standard',
+        '',
+        'Máximo 600 palavras. Sê directo. Não acrescentes achados não listados acima.',
+      ].join('\n');
+
+  var apiKey = (document.getElementById('fKey') && document.getElementById('fKey').value) || '';
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    var data = await res.json();
+    var text = (data.content && data.content[0] && data.content[0].text) || '';
+    if(!text) throw new Error(data.error ? data.error.message : 'Resposta vazia');
+
+    _ppeResult = text;
+
+    // Remove spinner, show result
+    var sp = document.getElementById('ppeSpinner');
+    if(sp) sp.remove();
+
+    var resultContent = document.getElementById('ppeResultContent');
+    var resultWrap = document.getElementById('ppeResultWrap');
+    if(resultContent) resultContent.textContent = text;
+    if(resultWrap) resultWrap.classList.add('visible');
+    if(genBtn) { genBtn.textContent = '↺ Regenerar'; genBtn.disabled = false; }
+
+    // Log to history for audit
+    if(S.lastResult && S.lastResult.ref) {
+      try {
+        var clinicId = (AUTH && AUTH.clinic_id) || 'default';
+        queueWrite('ppe_reports', {
+          client_id:   'ppe_' + Date.now(),
+          clinic_id:   clinicId,
+          exam_ref:    S.lastResult.ref,
+          horse:       horse,
+          score:       sc,
+          lang:        lang,
+          user_name:   (AUTH && AUTH.user) || 'unknown',
+          date:        new Date().toISOString()
+        });
+      } catch(e) {}
+    }
+
+  } catch(e) {
+    var sp2 = document.getElementById('ppeSpinner');
+    if(sp2) sp2.remove();
+    if(form) form.style.display = '';
+    if(genBtn) { genBtn.textContent = '🏇 GERAR PARECER PPE'; genBtn.disabled = false; }
+    showToast('❌ Erro ao gerar parecer: ' + (e.message||'falha de ligação'));
+  }
+}
+
+function copyPPEResult() {
+  if(!_ppeResult) return;
+  try {
+    navigator.clipboard.writeText(_ppeResult).then(function(){
+      showToast('✓ Parecer copiado para o clipboard');
+    });
+  } catch(e) { showToast('Não foi possível copiar automaticamente'); }
+}
+
+function printPPEResult() {
+  if(!_ppeResult) return;
+  var r = S.lastResult || {};
+  var horse = (document.getElementById('ppeHorse') && document.getElementById('ppeHorse').value) || (S._lastInfo && S._lastInfo.horse) || '';
+  var vet   = (document.getElementById('ppeVet')   && document.getElementById('ppeVet').value)   || '';
+  var clinic= (document.getElementById('ppeClinic')&& document.getElementById('ppeClinic').value) || '';
+  var today = new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+
+  var win = window.open('','_blank','width=800,height=900');
+  if(!win) { showToast('Activa pop-ups para imprimir'); return; }
+  win.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>PPE · '+horse+'</title>'+
+    '<style>'+
+      'body{font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#111;max-width:680px;margin:40px auto;padding:0 20px}'+
+      'h1{font-size:18px;border-bottom:2px solid #8B6914;padding-bottom:8px;margin-bottom:6px;color:#000}'+
+      '.meta{font-size:10px;color:#555;font-family:monospace;margin-bottom:24px;letter-spacing:.05em}'+
+      'pre{white-space:pre-wrap;font-family:Georgia,serif;font-size:13px;line-height:1.8;margin:0}'+
+      '.footer{margin-top:40px;padding-top:12px;border-top:1px solid #ccc;font-size:10px;color:#888;font-family:monospace}'+
+      '@media print{body{margin:20px}button{display:none}}'+
+    '</style></head><body>'+
+    '<h1>🏇 Parecer Radiográfico · Pré-Compra</h1>'+
+    '<div class="meta">'+
+      (clinic?clinic+' · ':'')+
+      (vet?vet+' · ':'')+
+      today+
+    '</div>'+
+    '<pre>'+_ppeResult.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>'+
+    '<div class="footer">Gerado por EquiScan Pro · Assistência IA · REF '+((r.ref||'—'))+'</div>'+
+    '<script>window.onload=function(){window.print();}<\/script>'+
+    '</body></html>'
+  );
+  win.document.close();
 }
 </script>
 

@@ -12693,6 +12693,48 @@ function startVoiceInput(targetId, btnId) {
   _voiceRecognition.start();
 }
 
+// ── mergeAnnotationsIntoImage — global (usada por spotAIQuery e run()) ───────
+function mergeAnnotationsIntoImage(imgUrl, imgName) {
+  return new Promise(function(resolve) {
+    var ann = (_annotations || {})[imgName] || [];
+    var pm  = (_reviewPermanentMarks || {})[imgName] || [];
+    var fp  = (window._freeDrawPaths || {})[imgName] || [];
+    if (!ann.length && !pm.length && !fp.length) { resolve(imgUrl); return; }
+    var img = new Image();
+    img.onload = function() {
+      var cv = document.createElement('canvas');
+      cv.width  = img.naturalWidth  || img.width;
+      cv.height = img.naturalHeight || img.height;
+      var ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      var W = cv.width, H = cv.height;
+      ctx.lineWidth = Math.max(2, W * 0.006);
+      pm.forEach(function(m) {
+        ctx.beginPath();
+        ctx.arc(m.x * W, m.y * H, m.r * Math.min(W, H), 0, Math.PI * 2);
+        ctx.strokeStyle = m.color || 'rgba(201,168,76,0.9)';
+        ctx.lineWidth = Math.max(2, W * 0.005);
+        ctx.stroke();
+      });
+      if (fp.length) {
+        fp.forEach(function(path) {
+          if (!path || path.length < 2) return;
+          ctx.beginPath();
+          ctx.moveTo(path[0].x * W, path[0].y * H);
+          for (var i = 1; i < path.length; i++) ctx.lineTo(path[i].x * W, path[i].y * H);
+          ctx.strokeStyle = window._reviewColor || '#C9A84C';
+          ctx.lineWidth = Math.max(2, W * 0.004);
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.stroke();
+        });
+      }
+      resolve(cv.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = function() { resolve(imgUrl); };
+    img.src = imgUrl;
+  });
+}
+
 // ── SpotAI — pergunta à IA sobre zona marcada ──────────────────────
 function spotAIQuery() {
   var img = S.imgs[S.idx];

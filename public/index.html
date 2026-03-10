@@ -2037,7 +2037,7 @@ window.addEventListener('DOMContentLoaded', function() {
       <div style="margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
           <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em">Sinais Clínicos</label>
-          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 voz</button>
+          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 Ditar</button>
         </div>
         <textarea id="fSymp" rows="3" placeholder="ex: claudicação 2/5 MAD, flexões distais +, testador de cascos positivo..."
           style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:9px 10px;font-family:'Syne',sans-serif;font-size:14px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .15s"
@@ -2062,7 +2062,7 @@ window.addEventListener('DOMContentLoaded', function() {
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em">História Clínica</label>
-              <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 voz</button>
+              <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 Ditar</button>
             </div>
             <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nervação digital..."
               style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:8px 10px;font-family:'Syne',sans-serif;font-size:14px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .15s"
@@ -2894,8 +2894,10 @@ function clearImages(){
   var brm=document.getElementById('btnReviewMode');if(brm)brm.remove();
 
   document.getElementById('runBtn').disabled=true;
-  document.getElementById('hint').textContent='Carregue imagens radiográficas.';
+  // Reset horse context (não apagar selecção, só limpar campo)
+  window._selectedHorseName = null;
   ui();
+  updateReadinessBar();
 }
 
 function saveClinic(){
@@ -3922,8 +3924,7 @@ function toggleKey(){var i=document.getElementById('fKey');i.type=i.type==='pass
 // UI STATE
 // ═══════════════════════════════════════════════════════
 function ui(){
-  var hasHorse = !!(window._selectedHorseId);
-  var ok = S.imgs.length > 0 && hasHorse;
+  var ok = S.imgs.length > 0;  // só precisa de imagens; cavalo é recomendado mas não obrigatório
   document.getElementById('runBtn').disabled=!ok;
   // Show vet opinion panel when images are loaded
   var opWrap = document.getElementById('vetOpinionWrap');
@@ -4375,9 +4376,12 @@ async function run(){
   }
 
   document.getElementById('runBtn').disabled=true;
-  document.getElementById('runBtn').innerHTML='⏳ A verificar…';
+  document.getElementById('runBtn').innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 11-6.22-8.56"/></svg> A analisar…';
   var bp=document.getElementById('btnPrint');if(bp)bp.style.display='none';
   var rmw=document.getElementById('reportMenuWrap');if(rmw)rmw.style.display='none';
+
+  // Forçar repaint antes de qualquer operação pesada
+  await new Promise(function(resolve){ requestAnimationFrame(function(){ setTimeout(resolve, 10); }); });
 
   // Show initial loading state
   showLoading(1, S.imgs.length);
@@ -13640,71 +13644,193 @@ function appendChip(fieldId, text) {
 var _voiceRecognition = null;
 var _voiceActive = false;
 
+function _voiceResetBtn(btn) {
+  if (!btn) return;
+  btn.style.color = '';
+  btn.style.animation = '';
+  btn.style.background = '';
+  btn.style.borderColor = '';
+  // Restaurar label original guardada no dataset
+  btn.textContent = btn.dataset.origLabel || '🎙 Ditar';
+}
+
 function startVoiceInput(targetId, btnId) {
-  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    showToast('⚠ Ditado não disponível neste browser. Usa Chrome ou Safari no iOS.', 'warning');
-    return;
-  }
   var btn = document.getElementById(btnId);
   var el  = document.getElementById(targetId);
   if (!el) return;
 
+  // Guardar label original para restaurar depois
+  if (btn && !btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
+
+  // Toggle: se já está activo, parar
   if (_voiceActive && _voiceRecognition) {
     _voiceRecognition.stop();
     return;
   }
 
-  _voiceRecognition = new SpeechRecognition();
-  _voiceRecognition.lang = 'pt-PT';
-  _voiceRecognition.continuous = false;
-  _voiceRecognition.interimResults = true;
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    // Fallback: abrir modal de digitação rápida com foco imediato
+    _voiceFallbackModal(el, btn);
+    return;
+  }
 
-  var originalVal = el.value;
-  var listening = false;
+  // Verificar se estamos em contexto que bloqueia microfone (iframe sem permissão)
+  // Tentar arrancar e capturar erro not-allowed rapidamente
+  _voiceRecognition = new SpeechRecognition();
+
+  // Língua: pt-PT com fallback para pt ou navigator.language
+  var lang = 'pt-PT';
+  try {
+    var nl = navigator.language || navigator.userLanguage || '';
+    if (nl.toLowerCase().startsWith('pt')) lang = nl;
+  } catch(e2) {}
+  _voiceRecognition.lang = lang;
+
+  // CONTÍNUO = true → essencial para ditado clínico no PC
+  // O vet dita uma frase completa, faz pausa, continua; com false parava na 1ª pausa
+  _voiceRecognition.continuous = true;
+  _voiceRecognition.interimResults = true;
+  _voiceRecognition.maxAlternatives = 1;
+
+  var baseVal = el.value.trim();
+  var interimText = '';
 
   _voiceRecognition.onstart = function() {
     _voiceActive = true;
-    listening = true;
-    hapticFeedback('medium');
+    try { hapticFeedback('medium'); } catch(e2) {}
     if (btn) {
       btn.style.color = 'var(--red)';
+      btn.style.background = 'rgba(224,85,85,.1)';
+      btn.style.borderColor = 'rgba(224,85,85,.4)';
       btn.style.animation = 'blink 1s ease-in-out infinite';
-      btn.textContent = '⏹ Parar';
+      btn.textContent = '⏹ Parar ditado';
     }
-    showToast('🎙 A ouvir… (fala agora)', 'success');
+    // Scroll para o campo e dar foco visual
+    try { el.scrollIntoView({block:'nearest', behavior:'smooth'}); } catch(e2) {}
+    showToast('🎙 A ouvir… clica "Parar ditado" quando terminares', 'success');
   };
 
   _voiceRecognition.onresult = function(e) {
-    var transcript = '';
-    for (var i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
+    var finalText = '';
+    interimText = '';
+    for (var i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalText += e.results[i][0].transcript;
+      } else {
+        interimText += e.results[i][0].transcript;
+      }
     }
-    var cur = originalVal.trim();
-    el.value = cur ? cur + '. ' + transcript : transcript;
+    // Mostrar texto final + interim em tempo real
+    var combined = baseVal;
+    if (finalText.trim()) {
+      combined = combined ? combined + ' ' + finalText.trim() : finalText.trim();
+      baseVal = combined; // actualizar base com o que já está confirmado
+    }
+    el.value = combined + (interimText ? ' ' + interimText : '');
+
+    // Disparar evento input para que o app saiba que o valor mudou
+    try { el.dispatchEvent(new Event('input', {bubbles:true})); } catch(e2) {}
   };
 
   _voiceRecognition.onend = function() {
     _voiceActive = false;
-    listening = false;
-    hapticFeedback('success');
-    if (btn) {
-      btn.style.color = '';
-      btn.style.animation = '';
-      btn.textContent = btn.id === 'reviewVoiceBtn' ? '🎙' : '🎙 Ditar';
+    try { hapticFeedback('success'); } catch(e2) {}
+    _voiceResetBtn(btn);
+    // Limpar texto interim residual — ficar só com o texto final
+    if (interimText) {
+      el.value = baseVal;
     }
-    showToast('✓ Ditado concluído', 'success');
+    if (baseVal.trim()) {
+      showToast('✓ Ditado guardado', 'success');
+    }
   };
 
   _voiceRecognition.onerror = function(e) {
     _voiceActive = false;
-    hapticFeedback('error');
-    if (btn) { btn.style.color = ''; btn.style.animation = ''; btn.textContent = btn.id === 'reviewVoiceBtn' ? '🎙' : '🎙 Ditar'; }
-    if (e.error === 'not-allowed') showToast('⚠ Microfone bloqueado — activa nas definições do browser.', 'error');
-    else if (e.error !== 'no-speech') showToast('⚠ Erro de reconhecimento: ' + e.error, 'error');
+    try { hapticFeedback('error'); } catch(e2) {}
+    _voiceResetBtn(btn);
+
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      // Micro bloqueado (comum em iframes) → oferecer fallback
+      showToast('⚠ Microfone não acessível — a usar modo de digitação rápida', 'warning');
+      setTimeout(function(){ _voiceFallbackModal(el, btn); }, 400);
+    } else if (e.error === 'no-speech') {
+      showToast('⚠ Não dectei voz — tenta falar mais perto do microfone', 'warning');
+    } else if (e.error === 'network') {
+      showToast('⚠ Sem ligação para reconhecimento de voz', 'warning');
+    } else if (e.error !== 'aborted') {
+      showToast('⚠ Erro de ditado: ' + e.error, 'warning');
+    }
   };
 
-  _voiceRecognition.start();
+  try {
+    _voiceRecognition.start();
+  } catch(e) {
+    _voiceActive = false;
+    _voiceResetBtn(btn);
+    showToast('⚠ Não foi possível iniciar o microfone', 'warning');
+    _voiceFallbackModal(el, btn);
+  }
+}
+
+// Fallback: modal de digitação rápida com foco imediato
+function _voiceFallbackModal(targetEl, triggerBtn) {
+  var existing = document.getElementById('_voiceFallbackOv');
+  if (existing) { existing.remove(); return; }
+
+  var currentVal = targetEl ? targetEl.value.trim() : '';
+  var ov = document.createElement('div');
+  ov.id = '_voiceFallbackOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var mono = "'JetBrains Mono',monospace";
+  ov.innerHTML = '<div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:10px;padding:22px 20px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.7)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+      '<div style="font-family:'+mono+';font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em">✏ Digitação rápida</div>' +
+      '<button id="_vfClose" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0 4px">✕</button>' +
+    '</div>' +
+    '<textarea id="_vfText" rows="6" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid rgba(201,168,76,.3);border-radius:6px;padding:12px;font-family:Syne,sans-serif;font-size:15px;color:var(--t1);resize:vertical;outline:none;line-height:1.6">' + (currentVal ? currentVal.replace(/</g,'&lt;') : '') + '</textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:12px">' +
+      '<button id="_vfCancel" style="flex:1;padding:10px;background:transparent;border:1px solid var(--wire);border-radius:6px;color:var(--t3);font-family:'+mono+';font-size:10px;cursor:pointer">Cancelar</button>' +
+      '<button id="_vfOk" style="flex:2;padding:10px;background:var(--gold);border:none;border-radius:6px;color:#000;font-family:'+mono+';font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.05em">✓ Guardar</button>' +
+    '</div>' +
+    '<div style="margin-top:8px;font-family:'+mono+';font-size:8px;color:rgba(255,255,255,.2);text-align:center">Dica: o ditado do sistema operativo funciona sempre (Win+H no Windows, Fn+D no Mac)</div>' +
+  '</div>';
+
+  document.body.appendChild(ov);
+
+  // Foco imediato no textarea
+  setTimeout(function(){
+    var ta = document.getElementById('_vfText');
+    if (ta) {
+      ta.focus();
+      // Cursor no fim
+      ta.selectionStart = ta.selectionEnd = ta.value.length;
+    }
+  }, 60);
+
+  function _vfClose() {
+    ov.remove();
+  }
+  function _vfSave() {
+    var ta = document.getElementById('_vfText');
+    if (ta && targetEl) {
+      targetEl.value = ta.value;
+      try { targetEl.dispatchEvent(new Event('input', {bubbles:true})); } catch(e2) {}
+    }
+    ov.remove();
+    showToast('✓ Texto guardado', 'success');
+  }
+
+  document.getElementById('_vfClose').onclick = _vfClose;
+  document.getElementById('_vfCancel').onclick = _vfClose;
+  document.getElementById('_vfOk').onclick = _vfSave;
+  ov.addEventListener('click', function(e){ if (e.target === ov) _vfClose(); });
+  // Enter (sem shift) não submete — é textarea multilinha
+  document.getElementById('_vfText').addEventListener('keydown', function(e){
+    if (e.key === 'Escape') _vfClose();
+  });
 }
 
 // ── mergeAnnotationsIntoImage — global (usada por spotAIQuery e run()) ───────

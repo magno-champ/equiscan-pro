@@ -1153,16 +1153,14 @@ if ('serviceWorker' in navigator) {
       <div style="font-family:'Lora',serif;font-size:22px;font-style:italic;color:var(--t1)"><b style="font-style:normal">Equi</b>Scan</div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:4px;letter-spacing:.1em">RADIOLOGIA EQUINA &middot; IA</div>
     </div>
-    <!-- Tabs -->
-    <div style="display:flex;gap:0;border:1px solid var(--wire);border-radius:6px;margin-bottom:20px;overflow:hidden">
-      <button id="tabEmailBtn" onclick="loginSwitchTab('email')" style="flex:1;padding:8px;background:var(--gold);color:#000;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.05em">EMAIL</button>
-      <button id="tabClinicBtn" onclick="loginSwitchTab('clinic')" style="flex:1;padding:8px;background:transparent;color:var(--t3);border:none;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:.05em">CL&Iacute;NICA</button>
-    </div>
+    <!-- Tab CLÍNICA escondida — acesso via link discreto -->
+    <div id="tabEmailBtn" style="display:none"></div>
+    <div id="tabClinicBtn" style="display:none"></div>
     <!-- Painel Email -->
     <div id="loginPanelEmail">
-      <div style="display:flex;gap:6px;margin-bottom:16px">
-        <button id="subTabLoginBtn" onclick="loginEmailSubTab('login')" style="flex:1;padding:7px;background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;font-weight:700">ENTRAR</button>
-        <button id="subTabRegBtn" onclick="loginEmailSubTab('register')" style="flex:1;padding:7px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">REGISTAR</button>
+      <div style="display:flex;gap:0;border:1px solid var(--wire2);border-radius:7px;margin-bottom:18px;overflow:hidden">
+        <button id="subTabLoginBtn" onclick="loginEmailSubTab('login')" style="flex:1;padding:10px;background:var(--gold);color:#000;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.05em">ENTRAR</button>
+        <button id="subTabRegBtn" onclick="loginEmailSubTab('register')" style="flex:1;padding:10px;background:transparent;color:var(--t3);border:none;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:.05em">REGISTAR</button>
       </div>
       <div id="emailLoginForm">
         <div style="margin-bottom:12px">
@@ -1216,6 +1214,9 @@ if ('serviceWorker' in navigator) {
         <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-align:center">5 an&aacute;lises gratis &middot; sem cart&atilde;o</div>
       </div>
       <div id="loginErrEmail" style="display:none;margin-top:12px;text-align:center;font-size:11px;color:var(--red);font-family:'JetBrains Mono',monospace"></div>
+      <div style="text-align:center;margin-top:14px">
+        <button onclick="loginSwitchTab('clinic')" style="background:none;border:none;color:rgba(255,255,255,.2);font-family:'JetBrains Mono',monospace;font-size:8px;cursor:pointer;letter-spacing:.04em">Login com c&oacute;digo de cl&iacute;nica</button>
+      </div>
     </div>
     <!-- Painel Reset -->
     <div id="loginPanelReset" style="display:none">
@@ -1231,6 +1232,9 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- Painel Cl&iacute;nica (legado) -->
     <div id="loginPanelClinic" style="display:none">
+      <div style="margin-bottom:12px">
+        <button onclick="loginSwitchTab('email')" style="background:none;border:none;color:rgba(255,255,255,.25);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;padding:0;letter-spacing:.04em">&larr; Voltar ao login por email</button>
+      </div>
       <div id="loginStep1">
         <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:12px;text-align:center">Login com c&oacute;digo de cl&iacute;nica</div>
         <div style="margin-bottom:12px">
@@ -1265,68 +1269,77 @@ if ('serviceWorker' in navigator) {
 var AUTH = { token: null, user: null, clinic_id: null, clinic_nome: null, role: null, plan: 'free', user_id: null };
 var _loginClinicId = null;
 
-// Restore session from localStorage
-try {
-  var _lembrar = localStorage.getItem('eq_lembrar_sessao');
-  // Se o utilizador não escolheu "manter sessão" E é uma nova janela (sem sessionStorage temp)
-  // não restaurar a sessão
-  var _isNewWindow = !sessionStorage.getItem('eq_session_temp');
-  var _shouldRestore = (_lembrar !== '0') || !_isNewWindow;
-  if (_shouldRestore) {
-    var _tok = localStorage.getItem('eq_session_token');
-    var _usr = localStorage.getItem('eq_session_user');
-    var _cid = localStorage.getItem('eq_session_clinic');
-    var _cnm = localStorage.getItem('eq_session_clinic_nome');
-    var _rol = localStorage.getItem('eq_session_role');
-    var _pln = localStorage.getItem('eq_session_plan');
-    var _uid = localStorage.getItem('eq_session_uid');
-    if (_tok && _usr) {
-      AUTH.token=_tok; AUTH.user=_usr; AUTH.clinic_id=_cid||'default';
-      AUTH.clinic_nome=_cnm||''; AUTH.role=_rol||'vet';
-      AUTH.plan=_pln||'free'; AUTH.user_id=_uid||null;
-    }
-  }
-} catch(e) {}
+// ── Helpers de storage ────────────────────────────────────────────────────────
+function _ls(k)         { try { return localStorage.getItem(k); }    catch(e) { return null; } }
+function _lsSet(k, v)   { try { localStorage.setItem(k, v); }        catch(e) {} }
+function _lsRm(k)       { try { localStorage.removeItem(k); }        catch(e) {} }
+function _ss(k)         { try { return sessionStorage.getItem(k); }  catch(e) { return null; } }
+function _ssSet(k, v)   { try { sessionStorage.setItem(k, v); }      catch(e) {} }
+function _ssRm(k)       { try { sessionStorage.removeItem(k); }      catch(e) {} }
+
+var _AUTH_KEYS = ['eq_session_token','eq_session_user','eq_session_clinic',
+                  'eq_session_clinic_nome','eq_session_role','eq_session_plan','eq_session_uid'];
 
 function saveAuthLocal() {
-  try {
-    localStorage.setItem('eq_session_token',       AUTH.token||'');
-    localStorage.setItem('eq_session_user',        AUTH.user||'');
-    localStorage.setItem('eq_session_clinic',      AUTH.clinic_id||'');
-    localStorage.setItem('eq_session_clinic_nome', AUTH.clinic_nome||'');
-    localStorage.setItem('eq_session_role',        AUTH.role||'');
-    localStorage.setItem('eq_session_plan',        AUTH.plan||'free');
-    localStorage.setItem('eq_session_uid',         AUTH.user_id||'');
-  } catch(e) {}
-}
-function clearAuthLocal() {
-  try {
-    ['eq_session_token','eq_session_user','eq_session_clinic',
-     'eq_session_clinic_nome','eq_session_role','eq_session_plan','eq_session_uid']
-      .forEach(function(k){ localStorage.removeItem(k); });
-  } catch(e) {}
+  _AUTH_KEYS.forEach(function(k) { _lsRm(k); }); // limpar antes de gravar
+  _lsSet('eq_session_token',       AUTH.token      || '');
+  _lsSet('eq_session_user',        AUTH.user       || '');
+  _lsSet('eq_session_clinic',      AUTH.clinic_id  || '');
+  _lsSet('eq_session_clinic_nome', AUTH.clinic_nome|| '');
+  _lsSet('eq_session_role',        AUTH.role       || '');
+  _lsSet('eq_session_plan',        AUTH.plan       || 'free');
+  _lsSet('eq_session_uid',         AUTH.user_id    || '');
 }
 
-// ── Login screen tab navigation ──────────────────────────────────────────────
+function clearAuthLocal() {
+  _AUTH_KEYS.forEach(function(k) { _lsRm(k); });
+  _lsRm('eq_lembrar_sessao');
+  _ssRm('eq_session_temp');
+}
+
+function _clearAuthObject() {
+  AUTH.token=null; AUTH.user=null; AUTH.clinic_id=null;
+  AUTH.clinic_nome=null; AUTH.role=null; AUTH.plan='free'; AUTH.user_id=null;
+  _loginClinicId = null;
+}
+
+// ── Restore de sessão no arranque ─────────────────────────────────────────────
+// Regra: se lembrar=0 e esta é uma janela nova (sem sessionStorage marcado), não restaurar.
+(function() {
+  try {
+    var lembrar    = _ls('eq_lembrar_sessao');   // '1', '0', ou null (1ª vez)
+    var tempActive = !!_ss('eq_session_temp');    // true = tab já estava activa com sessão temp
+    // Restaurar se: (a) lembrar nunca foi definido, (b) lembrar='1', ou (c) sessão temp ainda activa
+    var shouldRestore = (lembrar !== '0') || tempActive;
+    if (!shouldRestore) return;
+    var tok = _ls('eq_session_token');
+    var usr = _ls('eq_session_user');
+    if (!tok || !usr) return;
+    AUTH.token      = tok;
+    AUTH.user       = usr;
+    AUTH.clinic_id  = _ls('eq_session_clinic')      || 'default';
+    AUTH.clinic_nome= _ls('eq_session_clinic_nome') || '';
+    AUTH.role       = _ls('eq_session_role')        || 'vet';
+    AUTH.plan       = _ls('eq_session_plan')        || 'free';
+    AUTH.user_id    = _ls('eq_session_uid')         || null;
+  } catch(e) {}
+})();
+
+// ── Navegação do ecrã de login ────────────────────────────────────────────────
 function loginSwitchTab(tab) {
-  var panels = { email: 'loginPanelEmail', clinic: 'loginPanelClinic', reset: 'loginPanelReset' };
-  Object.values(panels).forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.style.display = 'none';
+  ['loginPanelEmail','loginPanelClinic','loginPanelReset'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.style.display = 'none';
   });
-  var active = document.getElementById(panels[tab]);
-  if (active) active.style.display = '';
+  var panel = document.getElementById(
+    tab === 'email' || tab === 'reset' ? (tab === 'reset' ? 'loginPanelReset' : 'loginPanelEmail') : 'loginPanelClinic'
+  );
+  if (panel) panel.style.display = '';
 
   var emailBtn  = document.getElementById('tabEmailBtn');
   var clinicBtn = document.getElementById('tabClinicBtn');
-  var gold = 'var(--gold)', dark = '#000', trans = 'transparent', grey = 'var(--t3)';
-  if (tab === 'email' || tab === 'reset') {
-    if (emailBtn)  { emailBtn.style.background=gold;  emailBtn.style.color=dark; }
-    if (clinicBtn) { clinicBtn.style.background=trans; clinicBtn.style.color=grey; }
-  } else if (tab === 'clinic') {
-    if (emailBtn)  { emailBtn.style.background=trans; emailBtn.style.color=grey; }
-    if (clinicBtn) { clinicBtn.style.background=gold; clinicBtn.style.color=dark; }
-  }
+  var isEmail   = (tab === 'email' || tab === 'reset');
+  if (emailBtn)  { emailBtn.style.background  = isEmail ? 'var(--gold)' : 'transparent'; emailBtn.style.color  = isEmail ? '#000' : 'var(--t3)'; }
+  if (clinicBtn) { clinicBtn.style.background = isEmail ? 'transparent' : 'var(--gold)'; clinicBtn.style.color = isEmail ? 'var(--t3)' : '#000'; }
 }
 
 function loginEmailSubTab(sub) {
@@ -1334,35 +1347,40 @@ function loginEmailSubTab(sub) {
   var regForm   = document.getElementById('emailRegisterForm');
   var loginBtn  = document.getElementById('subTabLoginBtn');
   var regBtn    = document.getElementById('subTabRegBtn');
+  var errEl     = document.getElementById('loginErrEmail');
   if (!loginForm || !regForm) return;
-  if (sub === 'login') {
-    loginForm.style.display = '';
-    regForm.style.display   = 'none';
-    if (loginBtn) { loginBtn.style.background='rgba(201,168,76,.15)'; loginBtn.style.color='var(--gold)'; loginBtn.style.borderColor='rgba(201,168,76,.3)'; loginBtn.style.fontWeight='700'; }
-    if (regBtn)   { regBtn.style.background='transparent'; regBtn.style.color='var(--t3)'; regBtn.style.borderColor='var(--wire)'; regBtn.style.fontWeight='normal'; }
-    // Restaurar estado do checkbox "manter sessão"
-    var cbLembrar = document.getElementById('loginLembrar');
-    if (cbLembrar) { try { cbLembrar.checked = (localStorage.getItem('eq_lembrar_sessao') !== '0'); } catch(e){ cbLembrar.checked = true; } }
-    setTimeout(function(){ var el=document.getElementById('loginEmail'); if(el) el.focus(); }, 100);
-  } else {
-    loginForm.style.display = 'none';
-    regForm.style.display   = '';
-    if (regBtn)   { regBtn.style.background='rgba(201,168,76,.15)'; regBtn.style.color='var(--gold)'; regBtn.style.borderColor='rgba(201,168,76,.3)'; regBtn.style.fontWeight='700'; }
-    if (loginBtn) { loginBtn.style.background='transparent'; loginBtn.style.color='var(--t3)'; loginBtn.style.borderColor='var(--wire)'; loginBtn.style.fontWeight='normal'; }
-    setTimeout(function(){ var el=document.getElementById('regNomeProprio'); if(el) el.focus(); }, 100);
-  }
-  var errEl = document.getElementById('loginErrEmail');
   if (errEl) errEl.style.display = 'none';
+
+  var isLogin = (sub === 'login');
+  loginForm.style.display = isLogin ? '' : 'none';
+  regForm.style.display   = isLogin ? 'none' : '';
+
+  function _styleActive(btn)   { if(btn) { btn.style.background='var(--gold)'; btn.style.color='#000'; btn.style.fontWeight='700'; } }
+  function _styleInactive(btn) { if(btn) { btn.style.background='transparent'; btn.style.color='var(--t3)'; btn.style.fontWeight='normal'; } }
+  _styleActive(isLogin ? loginBtn : regBtn);
+  _styleInactive(isLogin ? regBtn : loginBtn);
+
+  if (isLogin) {
+    // Restaurar preferência do checkbox "manter sessão"
+    var cb = document.getElementById('loginLembrar');
+    if (cb) { cb.checked = (_ls('eq_lembrar_sessao') !== '0'); }
+    setTimeout(function(){ var el=document.getElementById('loginEmail'); if(el) el.focus(); }, 80);
+  } else {
+    setTimeout(function(){ var el=document.getElementById('regNomeProprio'); if(el) el.focus(); }, 80);
+  }
 }
 
-// ── Email login ───────────────────────────────────────────────────────────────
+// ── Login por email ───────────────────────────────────────────────────────────
 async function doLoginEmail() {
-  var email = (document.getElementById('loginEmail').value||'').trim();
-  var pass  = document.getElementById('loginEmailPass').value;
-  var lembrar = document.getElementById('loginLembrar') && document.getElementById('loginLembrar').checked;
-  var err   = document.getElementById('loginErrEmail');
-  err.style.display = 'none';
-  if (!email || !pass) { err.style.display='block'; err.textContent='Preenche email e password.'; return; }
+  var email   = (document.getElementById('loginEmail').value||'').trim().toLowerCase();
+  var pass    = document.getElementById('loginEmailPass').value;
+  var cbEl    = document.getElementById('loginLembrar');
+  var lembrar = cbEl ? cbEl.checked : true;
+  var errEl   = document.getElementById('loginErrEmail');
+
+  errEl.style.display = 'none';
+  if (!email) { errEl.style.display='block'; errEl.textContent='Introduz o teu email.'; return; }
+  if (!pass)  { errEl.style.display='block'; errEl.textContent='Introduz a password.'; return; }
 
   var btn = document.querySelector('#emailLoginForm button[onclick="doLoginEmail()"]');
   if (btn) { btn.disabled=true; btn.textContent='A entrar...'; }
@@ -1370,79 +1388,70 @@ async function doLoginEmail() {
   try {
     var r = await fetch('/api/login/email', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, password: pass })
+      body: JSON.stringify({ email: email, password: pass })
     });
     var d = await r.json();
     if (d.ok) {
-      // Guardar preferência de sessão persistente
-      try { localStorage.setItem('eq_lembrar_sessao', lembrar ? '1' : '0'); } catch(e){}
-      if (!lembrar) {
-        // Sessão temporária: apagar token ao fechar o browser (sessionStorage)
-        try {
-          sessionStorage.setItem('eq_session_temp', '1');
-        } catch(e){}
-      }
-      _onLoginSuccess(d);
+      _lsSet('eq_lembrar_sessao', lembrar ? '1' : '0');
+      _onLoginSuccess(d, lembrar);
     } else {
-      err.style.display='block';
-      err.textContent = d.error || 'Email ou password incorrectos.';
+      errEl.style.display='block';
+      errEl.textContent = d.error || 'Email ou password incorrectos.';
+      document.getElementById('loginEmailPass').value = '';
     }
   } catch(e) {
-    err.style.display='block'; err.textContent='Erro de ligação ao servidor.';
+    errEl.style.display='block'; errEl.textContent='Sem ligação ao servidor.';
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='ENTRAR →'; }
   }
 }
 
 // ── Registo ───────────────────────────────────────────────────────────────────
-// Validar nome no blur
 function cmValidateNome(el) {
-  var err = document.getElementById('regNomeErr');
-  var val = (el.value||'').trim();
-  if (!val) return;
-  // Mínimo 2 palavras (nome + apelido)
+  var errEl = document.getElementById('regNomeErr');
+  var val   = (el.value||'').trim();
+  if (errEl) errEl.style.display='none';
+  if (!val) return true;
   var words = val.split(/\s+/).filter(function(w){ return w.length > 0; });
   if (words.length < 2) {
-    if(err){ err.textContent='Indica nome e apelido.'; err.style.display='block'; }
+    if (errEl) { errEl.textContent='Indica nome e apelido.'; errEl.style.display='block'; }
     return false;
   }
-  // Verificar que é texto real (só letras e hífens)
-  if (!/^[a-zA-ZÀ-ÿ\u0100-\u024F\s\-]+$/.test(val)) {
-    if(err){ err.textContent='Apenas letras e hífens são permitidos.'; err.style.display='block'; }
+  if (!/^[a-zA-ZÀ-ÿ\u0100-\u024F\s\-']+$/.test(val)) {
+    if (errEl) { errEl.textContent='Apenas letras, hífens e apóstrofos.'; errEl.style.display='block'; }
     return false;
   }
-  if(err) err.style.display='none';
   return true;
 }
 
 async function doRegister() {
-  // Construir nome completo a partir do título + nome próprio
-  var titulo  = (document.getElementById('regTitulo') && document.getElementById('regTitulo').value||'').trim();
-  var nomeProprio = (document.getElementById('regNomeProprio') && document.getElementById('regNomeProprio').value||'').trim();
-  // Validar nome próprio
-  var nomeErr = document.getElementById('regNomeErr');
-  if (nomeErr) nomeErr.style.display='none';
-  if (!nomeProprio || nomeProprio.split(/\s+/).filter(function(w){return w.length>0;}).length < 2) {
-    if(nomeErr){ nomeErr.textContent='Indica o teu nome e apelido.'; nomeErr.style.display='block'; }
-    document.getElementById('regNomeProprio') && document.getElementById('regNomeProprio').focus();
-    return;
-  }
-  if (!/^[a-zA-ZÀ-ÿ\u0100-\u024F\s\-]+$/.test(nomeProprio)) {
-    if(nomeErr){ nomeErr.textContent='Apenas letras e hífens são permitidos.'; nomeErr.style.display='block'; }
-    return;
-  }
-  var nome = titulo ? titulo + ' ' + nomeProprio : nomeProprio;
-  // Actualizar hidden field para compatibilidade
-  var hiddenNome = document.getElementById('regNome');
-  if(hiddenNome) hiddenNome.value = nome;
+  var titulo      = (document.getElementById('regTitulo').value||'').trim();
+  var nomeProprio = (document.getElementById('regNomeProprio').value||'').trim();
+  var nomeErrEl   = document.getElementById('regNomeErr');
+  var errEl       = document.getElementById('loginErrEmail');
+  if (nomeErrEl) nomeErrEl.style.display='none';
+  errEl.style.display='none';
 
-  var email   = (document.getElementById('regEmail').value||'').trim();
+  // Validar nome
+  if (!nomeProprio || nomeProprio.split(/\s+/).filter(function(w){return w.length>0;}).length < 2) {
+    if (nomeErrEl) { nomeErrEl.textContent='Indica o teu nome e apelido.'; nomeErrEl.style.display='block'; }
+    document.getElementById('regNomeProprio').focus(); return;
+  }
+  if (!/^[a-zA-ZÀ-ÿ\u0100-\u024F\s\-']+$/.test(nomeProprio)) {
+    if (nomeErrEl) { nomeErrEl.textContent='Apenas letras, hífens e apóstrofos.'; nomeErrEl.style.display='block'; }
+    return;
+  }
+  // Construir nome completo (sem espaço inicial se não há título)
+  var nome = titulo ? titulo + ' ' + nomeProprio : nomeProprio;
+  if (document.getElementById('regNome')) document.getElementById('regNome').value = nome;
+
+  var email   = (document.getElementById('regEmail').value||'').trim().toLowerCase();
   var clinica = (document.getElementById('regClinica').value||'').trim();
   var pass    = document.getElementById('regPass').value;
-  var err     = document.getElementById('loginErrEmail');
-  err.style.display = 'none';
-  if (!email || !pass) { err.style.display='block'; err.textContent='Email e password são obrigatórios.'; return; }
-  if (pass.length < 8)  { err.style.display='block'; err.textContent='Password deve ter pelo menos 8 caracteres.'; return; }
+
+  if (!email) { errEl.style.display='block'; errEl.textContent='Introduz o teu email.'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.style.display='block'; errEl.textContent='Email inválido.'; return; }
+  if (!pass || pass.length < 8) { errEl.style.display='block'; errEl.textContent='Password deve ter pelo menos 8 caracteres.'; return; }
 
   var btn = document.querySelector('#emailRegisterForm button[onclick="doRegister()"]');
   if (btn) { btn.disabled=true; btn.textContent='A criar conta...'; }
@@ -1450,18 +1459,19 @@ async function doRegister() {
   try {
     var r = await fetch('/api/register', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, password: pass, nome, clinica })
+      body: JSON.stringify({ email: email, password: pass, nome: nome, clinica: clinica })
     });
     var d = await r.json();
     if (d.ok) {
-      _onLoginSuccess(d);
+      _lsSet('eq_lembrar_sessao', '1'); // registo → sempre persistir por defeito
+      _onLoginSuccess(d, true);
       showToast('✓ Conta criada! Bem-vindo ao EquiScan Pro.');
     } else {
-      err.style.display='block';
-      err.textContent = d.error || 'Erro ao criar conta.';
+      errEl.style.display='block';
+      errEl.textContent = d.error || 'Erro ao criar conta.';
     }
   } catch(e) {
-    err.style.display='block'; err.textContent='Erro de ligação ao servidor.';
+    errEl.style.display='block'; errEl.textContent='Sem ligação ao servidor.';
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='CRIAR CONTA GRÁTIS →'; }
   }
@@ -1469,46 +1479,44 @@ async function doRegister() {
 
 // ── Reset password ────────────────────────────────────────────────────────────
 async function doResetPassword() {
-  var email = (document.getElementById('resetEmail').value||'').trim();
-  var msg   = document.getElementById('resetMsg');
-  msg.style.display='none';
-  if (!email) return;
+  var email = (document.getElementById('resetEmail').value||'').trim().toLowerCase();
+  var msgEl = document.getElementById('resetMsg');
+  msgEl.style.display='none';
+  if (!email) { msgEl.style.display='block'; msgEl.style.color='var(--red)'; msgEl.textContent='Introduz o teu email.'; return; }
   try {
     await fetch('/api/reset-password', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email: email })
     });
-    msg.style.display='block';
-    msg.textContent = '✓ Email enviado! Verifica a tua caixa de entrada.';
+    msgEl.style.display='block'; msgEl.style.color='var(--green)';
+    msgEl.textContent = '✓ Email enviado! Verifica a tua caixa de entrada.';
   } catch(e) {
-    msg.style.display='block'; msg.style.color='var(--red)'; msg.textContent='Erro ao enviar email.';
+    msgEl.style.display='block'; msgEl.style.color='var(--red)'; msgEl.textContent='Sem ligação ao servidor.';
   }
 }
 
-// ── Legacy clinic login ───────────────────────────────────────────────────────
+// ── Login por clínica (legacy) ────────────────────────────────────────────────
 async function doLoginClinic() {
   var clinicId = (document.getElementById('loginClinicId').value||'').trim();
-  var err = document.getElementById('loginErrClinic');
-  err.style.display='none';
-  if (!clinicId) { err.style.display='block'; err.textContent='Introduz o código da clínica.'; return; }
+  var errEl    = document.getElementById('loginErrClinic');
+  errEl.style.display='none';
+  if (!clinicId) { errEl.style.display='block'; errEl.textContent='Introduz o código da clínica.'; return; }
   try {
-    var r = await fetch('/api/login/clinic', {
+    var r    = await fetch('/api/login/clinic', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ clinic_id: clinicId, password: '' })
     });
     _loginClinicId = clinicId;
     var nome = clinicId;
-    if (r.ok) { try { var d = await r.json(); if (d.ok) nome = d.clinic_nome||clinicId; } catch(e) {} }
+    if (r.ok) { try { var d = await r.json(); if (d.ok) nome = d.clinic_nome || clinicId; } catch(e2){} }
     document.getElementById('loginClinicBadge').textContent = 'Clínica: ' + nome;
-    document.getElementById('loginStep1').style.display = 'none';
-    document.getElementById('loginStep2').style.display = '';
-    setTimeout(function(){ document.getElementById('loginUser').focus(); }, 100);
   } catch(e) {
     _loginClinicId = clinicId;
     document.getElementById('loginClinicBadge').textContent = 'Clínica: ' + clinicId;
-    document.getElementById('loginStep1').style.display = 'none';
-    document.getElementById('loginStep2').style.display = '';
   }
+  document.getElementById('loginStep1').style.display='none';
+  document.getElementById('loginStep2').style.display='';
+  setTimeout(function(){ document.getElementById('loginUser').focus(); }, 80);
 }
 
 function goBackToClinic() {
@@ -1518,59 +1526,77 @@ function goBackToClinic() {
 }
 
 async function doLoginUser() {
-  var user = (document.getElementById('loginUser').value||'').trim();
-  var pass = document.getElementById('loginPass').value;
-  var err  = document.getElementById('loginErr');
-  err.style.display='none';
-  if (!user || !pass) { err.style.display='block'; err.textContent='Preenche utilizador e password.'; return; }
+  var user  = (document.getElementById('loginUser').value||'').trim();
+  var pass  = document.getElementById('loginPass').value;
+  var errEl = document.getElementById('loginErr');
+  errEl.style.display='none';
+  if (!user || !pass) { errEl.style.display='block'; errEl.textContent='Preenche utilizador e password.'; return; }
   if (!_loginClinicId) { goBackToClinic(); return; }
   try {
     var r = await fetch('/api/login/user', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ clinic_id: _loginClinicId, user, password: pass })
+      body: JSON.stringify({ clinic_id: _loginClinicId, user: user, password: pass })
     });
     if (r.status === 404 || r.status === 405) {
       r = await fetch('/api/login', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ user, password: pass })
+        body: JSON.stringify({ user: user, password: pass })
       });
     }
     var d = await r.json();
     if (d.ok) {
-      _onLoginSuccess(d);
+      // Login por clínica: respeitar o mesmo checkbox se visível, senão persistir
+      var cb = document.getElementById('loginLembrar');
+      var lembrar = cb ? cb.checked : true;
+      _lsSet('eq_lembrar_sessao', lembrar ? '1' : '0');
+      _onLoginSuccess(d, lembrar);
     } else {
-      err.style.display='block'; err.textContent = d.error || 'Credenciais inválidas.';
+      errEl.style.display='block'; errEl.textContent = d.error || 'Credenciais inválidas.';
     }
   } catch(e) {
-    err.style.display='block'; err.textContent='Erro de ligação ao servidor.';
+    errEl.style.display='block'; errEl.textContent='Sem ligação ao servidor.';
   }
 }
 
 async function doLogin() { doLoginUser(); }
 
-// ── Shared post-login handler ─────────────────────────────────────────────────
-function _onLoginSuccess(d) {
-  AUTH.token     = d.token;
-  AUTH.user      = d.user;
-  AUTH.clinic_id = d.clinic_id || _loginClinicId || 'default';
-  AUTH.clinic_nome = d.clinic_nome || d.clinic_id || 'default';
-  AUTH.role      = d.role  || 'vet';
-  AUTH.plan      = d.plan  || 'free';
-  AUTH.user_id   = d.user_id || d.user;
-  saveAuthLocal();
+// ── Handler pós-login (único ponto de entrada) ────────────────────────────────
+function _onLoginSuccess(d, lembrar) {
+  // lembrar: true = guardar token em localStorage; false = só sessionStorage
+  if (lembrar === undefined) lembrar = true;
+
+  AUTH.token      = d.token;
+  AUTH.user       = d.user;
+  AUTH.clinic_id  = d.clinic_id   || _loginClinicId || 'default';
+  AUTH.clinic_nome= d.clinic_nome || d.clinic_id    || 'default';
+  AUTH.role       = d.role        || 'vet';
+  AUTH.plan       = d.plan        || 'free';
+  AUTH.user_id    = d.user_id     || d.user || null;
+
+  if (lembrar) {
+    // Sessão persistente: guardar em localStorage
+    saveAuthLocal();
+    _ssRm('eq_session_temp');
+  } else {
+    // Sessão temporária: NÃO guardar token em localStorage, marcar sessionStorage
+    // (limpar qualquer token anterior residual)
+    _AUTH_KEYS.forEach(function(k) { _lsRm(k); });
+    _ssSet('eq_session_temp', '1');
+  }
+
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='';
   initAccordions();
   updateTopbarUser();
   bootDataLayer();
-  // Fetch usage stats
   setTimeout(fetchUsageStats, 1500);
-  showToast('✓ Bem-vindo' + (d.user ? ', ' + d.user.split('@')[0] : '') + '!');
-  try { if (!localStorage.getItem('eq_onboarded_v1')) { setTimeout(showOnboarding, 800); } } catch(e) {}
+  showToast('✓ Bem-vindo' + (AUTH.user ? ', ' + AUTH.user.split('@')[0] : '') + '!');
+  try { if (!_ls('eq_onboarded_v1')) { setTimeout(showOnboarding, 800); } } catch(e) {}
 }
 
-// ── Topbar user display ───────────────────────────────────────────────────────
+// ── Topbar: utilizador e plano ────────────────────────────────────────────────
 function updateTopbarUser() {
+  if (!AUTH.token) return; // não actualizar se não há sessão
   var nm = document.getElementById('topbarUserName');
   var rl = document.getElementById('topbarUserRole');
   var ab = document.getElementById('btnAdminPanel');
@@ -1580,45 +1606,42 @@ function updateTopbarUser() {
   if (rl) rl.textContent = (AUTH.clinic_nome||'') + (AUTH.role ? ' · ' + AUTH.role : '');
   if (ab) ab.style.display = (AUTH.role === 'admin') ? '' : 'none';
 
-  // Plan badge
   if (pb) {
-    var planColors = { free: '#555', pro: '#c9a84c', clinic: '#4ac9c9' };
-    var planNames  = { free: 'FREE', pro: 'PRO', clinic: 'CLINIC' };
+    var planColors = { free:'#555', pro:'#c9a84c', clinic:'#4ac9c9' };
+    var planNames  = { free:'FREE', pro:'PRO', clinic:'CLINIC' };
     var plan = AUTH.plan || 'free';
-    pb.textContent = planNames[plan] || plan.toUpperCase();
-    pb.style.background = planColors[plan] || '#555';
-    pb.style.color = plan === 'free' ? '#aaa' : '#000';
-    pb.style.display = '';
-    pb.title = 'Plano: ' + (planNames[plan] || plan);
-    if (plan === 'free') {
-      pb.style.cursor = 'pointer';
-      pb.onclick = function() { showUpgradeModal(); };
-      pb.title = 'FREE — Clica para fazer upgrade';
-    } else {
-      pb.onclick = null;
-    }
+    pb.textContent       = planNames[plan] || plan.toUpperCase();
+    pb.style.background  = planColors[plan] || '#555';
+    pb.style.color       = (plan === 'free') ? '#aaa' : '#000';
+    pb.style.display     = '';
+    pb.title             = 'Plano: ' + (planNames[plan] || plan);
+    pb.onclick           = (plan === 'free') ? function() { showUpgradeModal(); } : null;
+    if (plan === 'free') pb.style.cursor='pointer'; else pb.style.cursor='default';
   }
 }
 
 function showApiError(msg) {
   var friendly = {
-    'Failed to fetch':'Sem ligação ao servidor.',
-    '401':'Sessão expirada. Faz login novamente.',
-    '429':'Limite atingido. Aguarda ou faz upgrade.',
-    '500':'Erro interno do servidor.'
+    'Failed to fetch': 'Sem ligação ao servidor.',
+    '401': 'Sessão expirada — faz login novamente.',
+    '429': 'Limite atingido — aguarda ou faz upgrade.',
+    '500': 'Erro interno do servidor.'
   };
   var text = msg || 'Erro desconhecido.';
   Object.keys(friendly).forEach(function(k){ if (text.indexOf(k) >= 0) text = friendly[k]; });
   showToast('\u274c ' + text);
 }
 
+// ── Logout ────────────────────────────────────────────────────────────────────
+function doLogoutConfirm() {
+  if (!confirm('Terminar sessão e sair do EquiScan?')) return;
+  doLogout();
+}
+
 function doLogout() {
   try { fetch('/api/logout', { method:'POST', headers: getAuthHeaders() }); } catch(e) {}
-  clearAuthLocal();
-  AUTH.token=null; AUTH.user=null; AUTH.clinic_id=null; AUTH.clinic_nome=null;
-  AUTH.role=null; AUTH.plan='free'; AUTH.user_id=null;
-  _loginClinicId=null;
-  // Reset login UI
+  clearAuthLocal();     // limpa localStorage + sessionStorage + eq_lembrar_sessao
+  _clearAuthObject();   // limpa objecto AUTH em memória
   loginSwitchTab('email');
   loginEmailSubTab('login');
   document.getElementById('loginScreen').style.display='flex';
@@ -1629,16 +1652,18 @@ function getAuthHeaders() {
   return AUTH.token ? { 'x-session-token': AUTH.token } : {};
 }
 
-// ── Plan / usage ──────────────────────────────────────────────────────────────
+// ── Plano / uso ───────────────────────────────────────────────────────────────
 var _usageStats = null;
 
 async function fetchUsageStats() {
+  if (!AUTH.token) return;
   try {
     var r = await fetch('/api/usage', { headers: getAuthHeaders() });
     if (r.ok) {
       _usageStats = await r.json();
       AUTH.plan = _usageStats.plan || AUTH.plan;
-      saveAuthLocal();
+      // Actualizar localStorage se sessão persistente
+      if (_ls('eq_session_token')) saveAuthLocal();
       updateTopbarUser();
       updateUsageBadge();
     }
@@ -1649,16 +1674,16 @@ function updateUsageBadge() {
   if (!_usageStats) return;
   var badge = document.getElementById('topbarUsageBadge');
   if (!badge) return;
-  var pct = _usageStats.limit >= 9999 ? 100 : Math.round((_usageStats.used / _usageStats.limit) * 100);
-  var used = _usageStats.used || 0;
-  var lim  = _usageStats.limit >= 9999 ? '∞' : _usageStats.limit;
-  badge.textContent = used + '/' + lim;
-  badge.title = 'Análises hoje: ' + used + ' de ' + lim;
-  badge.style.display = '';
-  badge.style.color = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--amber)' : 'var(--t3)';
+  var used = _usageStats.used  || 0;
+  var lim  = _usageStats.limit || 0;
+  var pct  = lim >= 9999 ? 0 : Math.round((used / lim) * 100);
+  badge.textContent  = used + '/' + (lim >= 9999 ? '\u221e' : lim);
+  badge.title        = 'An\u00e1lises hoje: ' + used + ' de ' + (lim >= 9999 ? 'ilimitadas' : lim);
+  badge.style.display= '';
+  badge.style.color  = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--amber)' : 'var(--t3)';
 }
 
-// ── Upgrade modal ─────────────────────────────────────────────────────────────
+// ── Modal de upgrade ──────────────────────────────────────────────────────────
 function showUpgradeModal() {
   var mono = "'JetBrains Mono',monospace";
   var ov = document.createElement('div');
@@ -1668,18 +1693,18 @@ function showUpgradeModal() {
     '<div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:12px;padding:28px 24px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
       '<div style="font-family:\'Lora\',serif;font-size:18px;font-style:italic">Fazer <b style="font-style:normal">Upgrade</b></div>' +
-      '<button onclick="document.getElementById(\'upgradeModal\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">✕</button>' +
+      '<button onclick="document.getElementById(\'upgradeModal\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">\u2715</button>' +
     '</div>' +
-    _upgradePlanCard('Pro', '49€/mês', ['100 análises/dia','Calibrações avançadas','Multi-dispositivo','Suporte prioritário'], 'pro', false) +
-    _upgradePlanCard('Clínica', '149€/mês', ['Análises ilimitadas','Múltiplos veterinários','Admin dashboard','API access'], 'clinic', true) +
-    '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);text-align:center;margin-top:14px">Cancela a qualquer momento · Faturação mensal · IVA incluído</div>' +
+    _upgradePlanCard('Pro',    '49\u20ac/m\u00eas', ['100 an\u00e1lises/dia','Calibra\u00e7\u00f5es avan\u00e7adas','Multi-dispositivo','Suporte priorit\u00e1rio'], 'pro', false) +
+    _upgradePlanCard('Cl\u00ednica','149\u20ac/m\u00eas', ['An\u00e1lises ilimitadas','M\u00faltiplos veterin\u00e1rios','Admin dashboard','API access'], 'clinic', true) +
+    '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);text-align:center;margin-top:14px">Cancela a qualquer momento \u00b7 Fatura\u00e7\u00e3o mensal \u00b7 IVA inclu\u00eddo</div>' +
     '</div>';
   document.body.appendChild(ov);
   ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
 }
 
 function _upgradePlanCard(name, price, features, planId, highlighted) {
-  var mono = "'JetBrains Mono',monospace";
+  var mono   = "'JetBrains Mono',monospace";
   var border = highlighted ? '2px solid var(--gold)' : '1px solid var(--wire2)';
   var bg     = highlighted ? 'rgba(201,168,76,.04)' : 'var(--ink2)';
   return '<div style="border:'+border+';border-radius:8px;padding:16px 18px;margin-bottom:12px;background:'+bg+'">' +
@@ -1689,9 +1714,9 @@ function _upgradePlanCard(name, price, features, planId, highlighted) {
       '<div style="font-family:'+mono+';font-size:13px;font-weight:700;color:var(--gold)">'+price+'</div>' +
     '</div>' +
     '<div style="margin-bottom:14px">' +
-      features.map(function(f){ return '<div style="font-family:'+mono+';font-size:9px;color:var(--t2);padding:2px 0">✓ '+f+'</div>'; }).join('') +
+      features.map(function(f){ return '<div style="font-family:'+mono+';font-size:9px;color:var(--t2);padding:2px 0">\u2713 '+f+'</div>'; }).join('') +
     '</div>' +
-    '<button onclick="startCheckout(\''+planId+'\')" style="width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:'+mono+';font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">→ SUBSCREVER '+name.toUpperCase()+'</button>' +
+    '<button onclick="startCheckout(\''+planId+'\')" style="width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:'+mono+';font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">\u2192 SUBSCREVER '+name.toUpperCase()+'</button>' +
     '</div>';
 }
 
@@ -1699,18 +1724,14 @@ async function startCheckout(plan) {
   showToast('A preparar pagamento...');
   try {
     var r = await fetch('/api/stripe/checkout', {
-      method: 'POST', headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
-      body: JSON.stringify({ plan, email: AUTH.user })
+      method: 'POST',
+      headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
+      body: JSON.stringify({ plan: plan, email: AUTH.user })
     });
     var d = await r.json();
-    if (d.url) {
-      window.location.href = d.url;
-    } else {
-      showToast('Erro: ' + (d.error || 'Stripe não configurado'));
-    }
-  } catch(e) {
-    showToast('Erro ao iniciar pagamento: ' + e.message);
-  }
+    if (d.url) { window.location.href = d.url; }
+    else { showToast('Erro: ' + (d.error || 'Stripe n\u00e3o configurado')); }
+  } catch(e) { showToast('Erro ao iniciar pagamento: ' + e.message); }
 }
 
 async function openBillingPortal() {
@@ -1718,40 +1739,41 @@ async function openBillingPortal() {
     var r = await fetch('/api/stripe/portal', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()) });
     var d = await r.json();
     if (d.url) window.open(d.url, '_blank');
-    else showToast('Portal não disponível: ' + (d.error||''));
+    else showToast('Portal n\u00e3o dispon\u00edvel: ' + (d.error||''));
   } catch(e) { showToast('Erro: ' + e.message); }
 }
 
-// Detect upgrade success from URL
+// Detectar upgrade por URL param
 (function() {
-  var params = new URLSearchParams(window.location.search);
-  if (params.get('upgrade_success')) {
-    var plan = params.get('plan') || 'pro';
-    AUTH.plan = plan; saveAuthLocal();
-    window.history.replaceState({}, '', '/');
-    setTimeout(function() {
-      showToast('✓ Upgrade para ' + plan.toUpperCase() + ' activado! Obrigado.');
-      fetchUsageStats();
-    }, 1000);
-  }
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('upgrade_success')) {
+      var plan = params.get('plan') || 'pro';
+      AUTH.plan = plan;
+      if (_ls('eq_session_token')) saveAuthLocal();
+      window.history.replaceState({}, '', '/');
+      setTimeout(function() {
+        showToast('\u2713 Upgrade para ' + plan.toUpperCase() + ' activado! Obrigado.');
+        fetchUsageStats();
+      }, 1000);
+    }
+  } catch(e) {}
 })();
 
-// ── Server sync ───────────────────────────────────────────────────────────────
+// ── Sincronização com servidor ────────────────────────────────────────────────
 async function syncAllToServer() {
   if (!AUTH.token) return;
   try {
-    // Sync horses
-    var horses = loadHorsesCache ? loadHorsesCache() : [];
+    var horses = typeof loadHorsesCache === 'function' ? loadHorsesCache() : [];
     if (horses.length) {
       await fetch('/api/sync/horses', {
         method: 'POST',
         headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
-        body: JSON.stringify({ horses })
+        body: JSON.stringify({ horses: horses })
       });
     }
-    // Sync intel memory
     try {
-      var intel = JSON.parse(localStorage.getItem('eq_intel_memory_v1') || 'null');
+      var intel = JSON.parse(_ls('eq_intel_memory_v1') || 'null');
       if (intel) {
         await fetch('/api/sync/intel', {
           method: 'POST',
@@ -1759,54 +1781,54 @@ async function syncAllToServer() {
           body: JSON.stringify({ memory: intel })
         });
       }
-    } catch(e) {}
+    } catch(e2) {}
     console.log('[EQ] Sync completo');
-  } catch(e) {
-    console.warn('[EQ] Sync falhou:', e.message);
-  }
+  } catch(e) { console.warn('[EQ] Sync falhou:', e.message); }
 }
 
-// ── checkSession ──────────────────────────────────────────────────────────────
+// ── Verificação de sessão no arranque ─────────────────────────────────────────
 async function checkSession() {
+  if (!AUTH.token) {
+    // Sem token: mostrar login
+    loginSwitchTab('email');
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('appShell').style.display='none';
+    return;
+  }
   try {
     var r = await fetch('/api/me', { headers: getAuthHeaders() });
     if (r.ok) {
       var d = await r.json();
-      AUTH.user=d.user; AUTH.clinic_id=d.clinic_id||'default';
-      AUTH.clinic_nome=d.clinic_nome||d.clinic_id||'default';
-      AUTH.role=d.role||'vet'; AUTH.plan=d.plan||'free';
-      AUTH.user_id=d.user_id||null;
-      saveAuthLocal();
+      AUTH.user       = d.user;
+      AUTH.clinic_id  = d.clinic_id   || 'default';
+      AUTH.clinic_nome= d.clinic_nome || d.clinic_id || 'default';
+      AUTH.role       = d.role        || 'vet';
+      AUTH.plan       = d.plan        || 'free';
+      AUTH.user_id    = d.user_id     || null;
+      // Actualizar localStorage só se sessão é persistente
+      if (_ls('eq_session_token')) saveAuthLocal();
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('appShell').style.display='';
       updateTopbarUser();
       setTimeout(fetchUsageStats, 2000);
     } else if (r.status === 401) {
-      clearAuthLocal(); AUTH.token=null; AUTH.user=null;
+      // Token inválido ou expirado: limpar tudo e ir para login
+      clearAuthLocal();
+      _clearAuthObject();
       loginSwitchTab('email');
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('appShell').style.display='none';
     } else {
-      if (AUTH.token && AUTH.user) {
-        document.getElementById('loginScreen').style.display='none';
-        document.getElementById('appShell').style.display='';
-        updateTopbarUser();
-      } else {
-        loginSwitchTab('email');
-        document.getElementById('loginScreen').style.display='flex';
-        document.getElementById('appShell').style.display='none';
-      }
-    }
-  } catch(e) {
-    if (AUTH.token && AUTH.user) {
+      // Erro de servidor mas token parece válido: confiar no token local
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('appShell').style.display='';
       updateTopbarUser();
-    } else {
-      loginSwitchTab('email');
-      document.getElementById('loginScreen').style.display='flex';
-      document.getElementById('appShell').style.display='none';
     }
+  } catch(e) {
+    // Sem ligação: confiar no token local se existir
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appShell').style.display='';
+    updateTopbarUser();
   }
 }
 
@@ -1816,6 +1838,7 @@ window.addEventListener('DOMContentLoaded', function() {
   loginSwitchTab('email');
   checkSession();
 });
+
 </script>
 
 
@@ -1866,7 +1889,7 @@ window.addEventListener('DOMContentLoaded', function() {
       <!-- Daily usage counter -->
       <span id="topbarUsageBadge" style="display:none;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3)" title="Análises hoje"></span>
       <button id="btnAdminPanel" onclick="openAdminPanel()" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.3);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;position:relative" title="Painel Admin">👑 ADMIN <span id="adminPendingBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:7px;padding:1px 4px;border-radius:8px;font-weight:700">0</span></button>
-      <button onclick="doLogout()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid var(--wire);padding:4px 8px;border-radius:3px;cursor:pointer;letter-spacing:.05em" title="Sair">⏻</button>
+      <button onclick="doLogoutConfirm()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid var(--wire);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;transition:all .15s" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(224,85,85,.4)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--wire)'" title="Terminar sess&#227;o">⏻ Sair</button>
     </div>
     <span class="pulse"></span>SISTEMA ACTIVO
     <!-- Hamburger mobile — só visível em mobile via JS -->
@@ -1983,7 +2006,7 @@ window.addEventListener('DOMContentLoaded', function() {
           <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:rgba(255,255,255,.7)">3</span>
         </div>
         <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em">Contexto Clínico</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);margin-left:auto">opcional</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(201,168,76,.35);margin-left:auto" title="Melhora significativamente a análise">+ precisão</span>
       </div>
 
       <!-- Região + Disciplina — os 2 mais importantes, em destaque -->
@@ -2175,12 +2198,12 @@ window.addEventListener('DOMContentLoaded', function() {
       <span style="font-size:9px;color:var(--t3)">+20-40s</span>
     </div>
 
-    <div id="readinessBar" style="margin-top:8px;display:none">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Pronto para análise</div>
+    <div id="readinessBar" style="margin-top:8px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Estado</div>
       <div id="readinessList" style="display:flex;flex-direction:column;gap:3px"></div>
     </div>
 
-    <p class="run-hint" id="hint" style="margin-top:6px;margin-bottom:0">Carregue imagens radiográficas.</p>
+    <p class="run-hint" id="hint" style="margin-top:6px;margin-bottom:0;color:rgba(255,255,255,.35)">Come&ccedil;a por seleccionar o paciente.</p>
     <div id="testOut" style="display:none"></div>
   </div>
 </aside>
@@ -3899,7 +3922,8 @@ function toggleKey(){var i=document.getElementById('fKey');i.type=i.type==='pass
 // UI STATE
 // ═══════════════════════════════════════════════════════
 function ui(){
-  var ok=S.imgs.length>0;
+  var hasHorse = !!(window._selectedHorseId);
+  var ok = S.imgs.length > 0 && hasHorse;
   document.getElementById('runBtn').disabled=!ok;
   // Show vet opinion panel when images are loaded
   var opWrap = document.getElementById('vetOpinionWrap');
@@ -13804,50 +13828,70 @@ function showSpotRipple(clientX, clientY) {
 
 // ── Readiness Bar — mostra o que falta antes de gerar ─────────────
 function updateReadinessBar() {
-  var bar = document.getElementById('readinessBar');
+  var bar  = document.getElementById('readinessBar');
   var list = document.getElementById('readinessList');
+  var hint = document.getElementById('hint');
   if (!bar || !list) return;
 
-  var n = S.imgs.length;
+  var n         = S.imgs.length;
+  var hasHorse  = !!(window._selectedHorseId);
   var hasRegion = !!(document.getElementById('fRegion') && document.getElementById('fRegion').value);
-  var hasSymp = !!(document.getElementById('fSymp') && document.getElementById('fSymp').value.trim());
+  var hasSymp   = !!(document.getElementById('fSymp') && document.getElementById('fSymp').value.trim());
   var hasReview = Object.keys(_reviewNotes||{}).length > 0 || Object.keys(_annotations||{}).length > 0;
+
+  var horseName = hasHorse && window._selectedHorseName ? window._selectedHorseName : null;
 
   var checks = [
     {
-      label: n > 0 ? n + ' imagem' + (n > 1 ? 'ns carregadas' : ' carregada') : 'Carregar radiografias',
+      label: hasHorse ? '1 — Paciente: ' + (horseName || 'seleccionado') : '1 — Seleccionar paciente',
+      ok: hasHorse,
+      required: true
+    },
+    {
+      label: n > 0 ? '2 — ' + n + ' radiografi' + (n > 1 ? 'as' : 'a') : '2 — Carregar radiografias',
       ok: n > 0,
       required: true
     },
     {
-      label: hasRegion ? 'Região: ' + document.getElementById('fRegion').value : 'Indicar região anatómica',
+      label: hasRegion ? '3 — Região: ' + document.getElementById('fRegion').value : '3 — Indicar região (recomendado)',
       ok: hasRegion,
       required: false,
-      tip: 'Melhora a precisão'
+      tip: 'melhora a análise'
     },
     {
-      label: hasSymp ? 'Sinais clínicos ✓' : 'Adicionar sinais clínicos',
+      label: hasSymp ? '3 — Sinais clínicos ✓' : '3 — Sinais clínicos (recomendado)',
       ok: hasSymp,
       required: false,
-      tip: 'Muito útil para correlação'
-    },
-    {
-      label: hasReview ? 'Imagens revistas ✓' : 'Rever imagens (opcional)',
-      ok: hasReview,
-      required: false,
-      tip: 'Anota zonas suspeitas'
+      tip: 'correlação mais precisa'
     },
   ];
 
-  bar.style.display = n > 0 ? 'block' : 'none';
+  // Hint dinâmico
+  if (hint) {
+    if (!hasHorse && n === 0) {
+      hint.textContent = 'Começa por seleccionar ou criar o paciente (Step 1).';
+      hint.style.color = 'rgba(255,255,255,.35)';
+    } else if (!hasHorse) {
+      hint.textContent = 'Selecciona o paciente para activar a análise.';
+      hint.style.color = 'var(--amber)';
+    } else if (n === 0) {
+      hint.textContent = 'Carrega as radiografias (Step 2).';
+      hint.style.color = 'rgba(255,255,255,.35)';
+    } else {
+      var estSecs = 30 + n * 2;
+      var estStr  = estSecs < 60 ? '~' + estSecs + 's' : '~' + Math.round(estSecs/60) + 'min';
+      hint.textContent = n + ' imagem' + (n > 1 ? 'ns' : '') + ' • pronto para analisar • ' + estStr;
+      hint.style.color = '#4aaa7a';
+    }
+  }
 
   list.innerHTML = checks.map(function(c) {
-    var col = c.ok ? '#4aaa7a' : c.required ? 'var(--amber)' : 'rgba(255,255,255,.3)';
+    var col  = c.ok ? '#4aaa7a' : c.required ? 'var(--amber)' : 'rgba(255,255,255,.28)';
     var icon = c.ok ? '✓' : c.required ? '○' : '·';
     return '<div style="display:flex;align-items:center;gap:6px;font-family:JetBrains Mono,monospace;font-size:9px;color:' + col + '">' +
       '<span style="flex-shrink:0;width:10px">' + icon + '</span>' +
       '<span>' + c.label + '</span>' +
-      (!c.ok && c.tip ? '<span style="color:rgba(255,255,255,.18);margin-left:auto;font-size:8px">' + c.tip + '</span>' : '') +
+      (!c.ok && c.tip ? '<span style="color:rgba(255,255,255,.16);margin-left:auto;font-size:8px">' + c.tip + '</span>' : '') +
     '</div>';
   }).join('');
 }

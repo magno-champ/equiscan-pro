@@ -1086,99 +1086,330 @@ body.modo-campo .shell {
 .viewer-region-group{padding:4px 5px 2px;font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em;border-top:1px solid rgba(255,255,255,.04);margin-top:2px}
 .viewer-region-group:first-child{border-top:none;margin-top:0}
 </style>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#c9a84c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EquiScan">
+<link rel="apple-touch-icon" href="/icons/icon-192.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('[EQ] SW registado:', reg.scope);
+      // Escuta mensagens do SW (ex: SYNC_REQUESTED)
+      navigator.serviceWorker.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'SYNC_REQUESTED') {
+          if (typeof flushQueue === 'function') flushQueue();
+        }
+      });
+    }).catch(function(err) {
+      console.warn('[EQ] SW falhou:', err.message);
+    });
+  });
+  // Background sync quando volta a ligar
+  window.addEventListener('online', function() {
+    showToast('✓ Ligação restaurada — a sincronizar...');
+    setTimeout(function() {
+      if (typeof flushQueue === 'function') flushQueue();
+      if (typeof syncAllToServer === 'function') syncAllToServer();
+    }, 1000);
+  });
+}
+</script>
 </head>
 <body>
 
 <!-- ── ECRÃ DE LOGIN ───────────────────────────────────────────────────────── -->
-<div id="loginScreen" style="display:none;position:fixed;inset:0;background:var(--ink);z-index:9999;display:flex;align-items:center;justify-content:center">
-  <div style="background:var(--ink2);border:1px solid var(--wire2);border-radius:10px;padding:36px 32px;width:340px;max-width:90vw">
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--gold);color:#000;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:10px">RX</div>
-      <div style="font-family:'Lora',serif;font-size:20px;font-style:italic;color:var(--t1)"><b style="font-style:normal">Equi</b>Scan Pro</div>
+<div id="loginScreen" style="display:none;position:fixed;inset:0;background:var(--ink);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--ink2);border:1px solid var(--wire2);border-radius:12px;padding:32px 28px;width:360px;max-width:100%">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--gold);color:#000;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:8px;letter-spacing:.1em">PRO</div>
+      <div style="font-family:'Lora',serif;font-size:22px;font-style:italic;color:var(--t1)"><b style="font-style:normal">Equi</b>Scan</div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:4px;letter-spacing:.1em">RADIOLOGIA EQUINA &middot; IA</div>
     </div>
-    <div id="loginStep1">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;text-align:center">Passo 1 &mdash; Cl&iacute;nica</div>
-      <div style="margin-bottom:12px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">C&oacute;digo da Cl&iacute;nica</label>
-        <input id="loginClinicId" type="text" autocomplete="organization" placeholder="ex: default" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);color:var(--t1);padding:9px 12px;border-radius:5px;font-size:13px;outline:none;font-family:'JetBrains Mono',monospace" onkeydown="if(event.key==='Enter')doLoginClinic()">
-      </div>
-      <button onclick="doLoginClinic()" style="width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">CONTINUAR &rarr;</button>
-      <div id="loginErrClinic" style="display:none;margin-top:12px;text-align:center;font-size:12px;color:var(--red)"></div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border:1px solid var(--wire);border-radius:6px;margin-bottom:20px;overflow:hidden">
+      <button id="tabEmailBtn" onclick="loginSwitchTab('email')" style="flex:1;padding:8px;background:var(--gold);color:#000;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.05em">EMAIL</button>
+      <button id="tabClinicBtn" onclick="loginSwitchTab('clinic')" style="flex:1;padding:8px;background:transparent;color:var(--t3);border:none;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:.05em">CL&Iacute;NICA</button>
     </div>
-    <div id="loginStep2" style="display:none">
-      <div id="loginClinicBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.1);border:1px solid rgba(74,201,201,.2);border-radius:4px;padding:5px 10px;text-align:center;margin-bottom:14px"></div>
-      <div style="margin-bottom:12px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Utilizador</label>
-        <input id="loginUser" type="text" autocomplete="username" placeholder="nome" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);color:var(--t1);padding:9px 12px;border-radius:5px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    <!-- Painel Email -->
+    <div id="loginPanelEmail">
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        <button id="subTabLoginBtn" onclick="loginEmailSubTab('login')" style="flex:1;padding:7px;background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;font-weight:700">ENTRAR</button>
+        <button id="subTabRegBtn" onclick="loginEmailSubTab('register')" style="flex:1;padding:7px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">REGISTAR</button>
       </div>
-      <div style="margin-bottom:20px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Password</label>
-        <input id="loginPass" type="password" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);color:var(--t1);padding:9px 12px;border-radius:5px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')doLoginUser()">
+      <div id="emailLoginForm">
+        <div style="margin-bottom:12px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px">Email</label>
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="vet@clinica.pt" onkeydown="if(event.key==='Enter')document.getElementById('loginEmailPass').focus()" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:6px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px">Password</label>
+          <input id="loginEmailPass" type="password" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')doLoginEmail()" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
+        </div>
+        <div style="text-align:right;margin-bottom:16px">
+          <button onclick="loginSwitchTab('reset')" style="background:none;border:none;color:var(--t3);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;text-decoration:underline;padding:2px 0">Esqueci a password</button>
+        </div>
+        <button onclick="doLoginEmail()" style="width:100%;padding:11px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">ENTRAR &rarr;</button>
+      </div>
+      <div id="emailRegisterForm" style="display:none">
+        <div style="margin-bottom:11px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px">Nome</label>
+          <input id="regNome" type="text" autocomplete="name" placeholder="Dr. Ana Costa" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:11px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px">Email</label>
+          <input id="regEmail" type="email" autocomplete="email" placeholder="vet@clinica.pt" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:11px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px">Cl&iacute;nica <span style="color:var(--t3);font-weight:normal">(opcional)</span></label>
+          <input id="regClinica" type="text" autocomplete="organization" placeholder="ex: Cl&iacute;nica Equina Norte" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px">Password</label>
+          <input id="regPass" type="password" autocomplete="new-password" placeholder="m&iacute;nimo 8 caracteres" onkeydown="if(event.key==='Enter')doRegister()" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
+        </div>
+        <button onclick="doRegister()" style="width:100%;padding:11px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">CRIAR CONTA GR&Aacute;TIS &rarr;</button>
+        <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-align:center">5 an&aacute;lises gratis &middot; sem cart&atilde;o</div>
+      </div>
+      <div id="loginErrEmail" style="display:none;margin-top:12px;text-align:center;font-size:11px;color:var(--red);font-family:'JetBrains Mono',monospace"></div>
+    </div>
+    <!-- Painel Reset -->
+    <div id="loginPanelReset" style="display:none">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:16px">Introduz o teu email e enviamos um link para repor a password.</div>
+      <div style="margin-bottom:16px">
+        <input id="resetEmail" type="email" placeholder="vet@clinica.pt" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);border-radius:5px;padding:9px 12px;color:var(--t1);font-size:13px;outline:none">
       </div>
       <div style="display:flex;gap:8px">
-        <button onclick="goBackToClinic()" style="padding:10px 14px;background:transparent;color:var(--t3);border:1px solid var(--wire2);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer">&larr; Voltar</button>
-        <button onclick="doLoginUser()" style="flex:1;padding:10px;background:var(--gold);color:#000;border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">ENTRAR</button>
+        <button onclick="loginSwitchTab('email')" style="padding:10px 14px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer">&larr; Voltar</button>
+        <button onclick="doResetPassword()" style="flex:1;padding:10px;background:var(--gold);color:#000;border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer">Enviar link</button>
       </div>
-      <div id="loginErr" style="display:none;margin-top:12px;text-align:center;font-size:12px;color:var(--red)"></div>
+      <div id="resetMsg" style="display:none;margin-top:12px;text-align:center;font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace"></div>
+    </div>
+    <!-- Painel Cl&iacute;nica (legado) -->
+    <div id="loginPanelClinic" style="display:none">
+      <div id="loginStep1">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:12px;text-align:center">Login com c&oacute;digo de cl&iacute;nica</div>
+        <div style="margin-bottom:12px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">C&oacute;digo da Cl&iacute;nica</label>
+          <input id="loginClinicId" type="text" autocomplete="organization" placeholder="ex: default" onkeydown="if(event.key==='Enter')doLoginClinic()" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);color:var(--t1);padding:9px 12px;border-radius:5px;font-size:13px;outline:none">
+        </div>
+        <button onclick="doLoginClinic()" style="width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">CONTINUAR &rarr;</button>
+        <div id="loginErrClinic" style="display:none;margin-top:12px;text-align:center;font-size:12px;color:var(--red)"></div>
+      </div>
+      <div id="loginStep2" style="display:none">
+        <div id="loginClinicBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.1);border:1px solid rgba(74,201,201,.2);border-radius:4px;padding:5px 10px;text-align:center;margin-bottom:14px"></div>
+        <div style="margin-bottom:12px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Utilizador</label>
+          <input id="loginUser" type="text" autocomplete="username" placeholder="nome" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);color:var(--t1);padding:9px 12px;border-radius:5px;font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Password</label>
+          <input id="loginPass" type="password" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')doLoginUser()" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--wire2);color:var(--t1);padding:9px 12px;border-radius:5px;font-size:13px;outline:none">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="goBackToClinic()" style="padding:10px 14px;background:transparent;color:var(--t3);border:1px solid var(--wire2);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer">&larr; Voltar</button>
+          <button onclick="doLoginUser()" style="flex:1;padding:10px;background:var(--gold);color:#000;border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">ENTRAR</button>
+        </div>
+        <div id="loginErr" style="display:none;margin-top:12px;text-align:center;font-size:12px;color:var(--red)"></div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-// AUTH multi-clinica
-var AUTH = { token: null, user: null, clinic_id: null, clinic_nome: null, role: null };
+// ── AUTH ────────────────────────────────────────────────────────────────────
+var AUTH = { token: null, user: null, clinic_id: null, clinic_nome: null, role: null, plan: 'free', user_id: null };
 var _loginClinicId = null;
 
+// Restore session from localStorage
 try {
   var _tok = localStorage.getItem('eq_session_token');
   var _usr = localStorage.getItem('eq_session_user');
   var _cid = localStorage.getItem('eq_session_clinic');
   var _cnm = localStorage.getItem('eq_session_clinic_nome');
   var _rol = localStorage.getItem('eq_session_role');
-  if (_tok && _usr) { AUTH.token=_tok; AUTH.user=_usr; AUTH.clinic_id=_cid||'default'; AUTH.clinic_nome=_cnm||''; AUTH.role=_rol||'vet'; }
+  var _pln = localStorage.getItem('eq_session_plan');
+  var _uid = localStorage.getItem('eq_session_uid');
+  if (_tok && _usr) {
+    AUTH.token=_tok; AUTH.user=_usr; AUTH.clinic_id=_cid||'default';
+    AUTH.clinic_nome=_cnm||''; AUTH.role=_rol||'vet';
+    AUTH.plan=_pln||'free'; AUTH.user_id=_uid||null;
+  }
 } catch(e) {}
 
 function saveAuthLocal() {
   try {
-    localStorage.setItem('eq_session_token', AUTH.token||'');
-    localStorage.setItem('eq_session_user', AUTH.user||'');
-    localStorage.setItem('eq_session_clinic', AUTH.clinic_id||'');
+    localStorage.setItem('eq_session_token',       AUTH.token||'');
+    localStorage.setItem('eq_session_user',        AUTH.user||'');
+    localStorage.setItem('eq_session_clinic',      AUTH.clinic_id||'');
     localStorage.setItem('eq_session_clinic_nome', AUTH.clinic_nome||'');
-    localStorage.setItem('eq_session_role', AUTH.role||'');
+    localStorage.setItem('eq_session_role',        AUTH.role||'');
+    localStorage.setItem('eq_session_plan',        AUTH.plan||'free');
+    localStorage.setItem('eq_session_uid',         AUTH.user_id||'');
   } catch(e) {}
 }
 function clearAuthLocal() {
   try {
-    ['eq_session_token','eq_session_user','eq_session_clinic','eq_session_clinic_nome','eq_session_role']
+    ['eq_session_token','eq_session_user','eq_session_clinic',
+     'eq_session_clinic_nome','eq_session_role','eq_session_plan','eq_session_uid']
       .forEach(function(k){ localStorage.removeItem(k); });
   } catch(e) {}
 }
 
+// ── Login screen tab navigation ──────────────────────────────────────────────
+function loginSwitchTab(tab) {
+  var panels = { email: 'loginPanelEmail', clinic: 'loginPanelClinic', reset: 'loginPanelReset' };
+  Object.values(panels).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var active = document.getElementById(panels[tab]);
+  if (active) active.style.display = '';
+
+  var emailBtn  = document.getElementById('tabEmailBtn');
+  var clinicBtn = document.getElementById('tabClinicBtn');
+  var gold = 'var(--gold)', dark = '#000', trans = 'transparent', grey = 'var(--t3)';
+  if (tab === 'email' || tab === 'reset') {
+    if (emailBtn)  { emailBtn.style.background=gold;  emailBtn.style.color=dark; }
+    if (clinicBtn) { clinicBtn.style.background=trans; clinicBtn.style.color=grey; }
+  } else if (tab === 'clinic') {
+    if (emailBtn)  { emailBtn.style.background=trans; emailBtn.style.color=grey; }
+    if (clinicBtn) { clinicBtn.style.background=gold; clinicBtn.style.color=dark; }
+  }
+}
+
+function loginEmailSubTab(sub) {
+  var loginForm = document.getElementById('emailLoginForm');
+  var regForm   = document.getElementById('emailRegisterForm');
+  var loginBtn  = document.getElementById('subTabLoginBtn');
+  var regBtn    = document.getElementById('subTabRegBtn');
+  if (!loginForm || !regForm) return;
+  if (sub === 'login') {
+    loginForm.style.display = '';
+    regForm.style.display   = 'none';
+    if (loginBtn) { loginBtn.style.background='rgba(201,168,76,.15)'; loginBtn.style.color='var(--gold)'; loginBtn.style.borderColor='rgba(201,168,76,.3)'; loginBtn.style.fontWeight='700'; }
+    if (regBtn)   { regBtn.style.background='transparent'; regBtn.style.color='var(--t3)'; regBtn.style.borderColor='var(--wire)'; regBtn.style.fontWeight='normal'; }
+    setTimeout(function(){ var el=document.getElementById('loginEmail'); if(el) el.focus(); }, 100);
+  } else {
+    loginForm.style.display = 'none';
+    regForm.style.display   = '';
+    if (regBtn)   { regBtn.style.background='rgba(201,168,76,.15)'; regBtn.style.color='var(--gold)'; regBtn.style.borderColor='rgba(201,168,76,.3)'; regBtn.style.fontWeight='700'; }
+    if (loginBtn) { loginBtn.style.background='transparent'; loginBtn.style.color='var(--t3)'; loginBtn.style.borderColor='var(--wire)'; loginBtn.style.fontWeight='normal'; }
+    setTimeout(function(){ var el=document.getElementById('regNome'); if(el) el.focus(); }, 100);
+  }
+  var errEl = document.getElementById('loginErrEmail');
+  if (errEl) errEl.style.display = 'none';
+}
+
+// ── Email login ───────────────────────────────────────────────────────────────
+async function doLoginEmail() {
+  var email = (document.getElementById('loginEmail').value||'').trim();
+  var pass  = document.getElementById('loginEmailPass').value;
+  var err   = document.getElementById('loginErrEmail');
+  err.style.display = 'none';
+  if (!email || !pass) { err.style.display='block'; err.textContent='Preenche email e password.'; return; }
+
+  var btn = document.querySelector('#emailLoginForm button[onclick="doLoginEmail()"]');
+  if (btn) { btn.disabled=true; btn.textContent='A entrar...'; }
+
+  try {
+    var r = await fetch('/api/login/email', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pass })
+    });
+    var d = await r.json();
+    if (d.ok) {
+      _onLoginSuccess(d);
+    } else {
+      err.style.display='block';
+      err.textContent = d.error || 'Email ou password incorrectos.';
+    }
+  } catch(e) {
+    err.style.display='block'; err.textContent='Erro de ligação ao servidor.';
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='ENTRAR →'; }
+  }
+}
+
+// ── Registo ───────────────────────────────────────────────────────────────────
+async function doRegister() {
+  var nome    = (document.getElementById('regNome').value||'').trim();
+  var email   = (document.getElementById('regEmail').value||'').trim();
+  var clinica = (document.getElementById('regClinica').value||'').trim();
+  var pass    = document.getElementById('regPass').value;
+  var err     = document.getElementById('loginErrEmail');
+  err.style.display = 'none';
+  if (!email || !pass) { err.style.display='block'; err.textContent='Email e password são obrigatórios.'; return; }
+  if (pass.length < 8)  { err.style.display='block'; err.textContent='Password deve ter pelo menos 8 caracteres.'; return; }
+
+  var btn = document.querySelector('#emailRegisterForm button[onclick="doRegister()"]');
+  if (btn) { btn.disabled=true; btn.textContent='A criar conta...'; }
+
+  try {
+    var r = await fetch('/api/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pass, nome, clinica })
+    });
+    var d = await r.json();
+    if (d.ok) {
+      _onLoginSuccess(d);
+      showToast('✓ Conta criada! Bem-vindo ao EquiScan Pro.');
+    } else {
+      err.style.display='block';
+      err.textContent = d.error || 'Erro ao criar conta.';
+    }
+  } catch(e) {
+    err.style.display='block'; err.textContent='Erro de ligação ao servidor.';
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='CRIAR CONTA GRÁTIS →'; }
+  }
+}
+
+// ── Reset password ────────────────────────────────────────────────────────────
+async function doResetPassword() {
+  var email = (document.getElementById('resetEmail').value||'').trim();
+  var msg   = document.getElementById('resetMsg');
+  msg.style.display='none';
+  if (!email) return;
+  try {
+    await fetch('/api/reset-password', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email })
+    });
+    msg.style.display='block';
+    msg.textContent = '✓ Email enviado! Verifica a tua caixa de entrada.';
+  } catch(e) {
+    msg.style.display='block'; msg.style.color='var(--red)'; msg.textContent='Erro ao enviar email.';
+  }
+}
+
+// ── Legacy clinic login ───────────────────────────────────────────────────────
 async function doLoginClinic() {
   var clinicId = (document.getElementById('loginClinicId').value||'').trim();
   var err = document.getElementById('loginErrClinic');
   err.style.display='none';
-  if (!clinicId) { err.style.display='block'; err.textContent='Introduz o codigo da clinica.'; return; }
+  if (!clinicId) { err.style.display='block'; err.textContent='Introduz o código da clínica.'; return; }
   try {
     var r = await fetch('/api/login/clinic', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ clinic_id: clinicId, password: '' })
     });
-    // Servidor antigo nao tem este endpoint -- aceitar e avancar sempre
     _loginClinicId = clinicId;
     var nome = clinicId;
     if (r.ok) { try { var d = await r.json(); if (d.ok) nome = d.clinic_nome||clinicId; } catch(e) {} }
-    document.getElementById('loginClinicBadge').textContent = 'Clinica: ' + nome;
+    document.getElementById('loginClinicBadge').textContent = 'Clínica: ' + nome;
     document.getElementById('loginStep1').style.display = 'none';
     document.getElementById('loginStep2').style.display = '';
     setTimeout(function(){ document.getElementById('loginUser').focus(); }, 100);
   } catch(e) {
     _loginClinicId = clinicId;
-    document.getElementById('loginClinicBadge').textContent = 'Clinica: ' + clinicId;
+    document.getElementById('loginClinicBadge').textContent = 'Clínica: ' + clinicId;
     document.getElementById('loginStep1').style.display = 'none';
     document.getElementById('loginStep2').style.display = '';
-    setTimeout(function(){ document.getElementById('loginUser').focus(); }, 100);
   }
 }
 
@@ -1196,57 +1427,86 @@ async function doLoginUser() {
   if (!user || !pass) { err.style.display='block'; err.textContent='Preenche utilizador e password.'; return; }
   if (!_loginClinicId) { goBackToClinic(); return; }
   try {
-    // Tenta endpoint novo primeiro
     var r = await fetch('/api/login/user', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ clinic_id: _loginClinicId, user: user, password: pass })
+      body: JSON.stringify({ clinic_id: _loginClinicId, user, password: pass })
     });
     if (r.status === 404 || r.status === 405) {
-      // Servidor antigo: usa /api/login directo
       r = await fetch('/api/login', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ user: user, password: pass })
+        body: JSON.stringify({ user, password: pass })
       });
     }
     var d = await r.json();
     if (d.ok) {
-      AUTH.token=d.token; AUTH.user=d.user;
-      AUTH.clinic_id=d.clinic_id||_loginClinicId||'default';
-      AUTH.clinic_nome=d.clinic_nome||_loginClinicId||'default';
-      AUTH.role=d.role||'vet';
-      saveAuthLocal();
-      document.getElementById('loginScreen').style.display='none';
-      document.getElementById('appShell').style.display='';
-      initAccordions();
-      updateTopbarUser();
-      bootDataLayer();
-      showToast('Bem-vindo, ' + d.user + '!');
-      try { if (!localStorage.getItem('eq_onboarded_v1')) { setTimeout(showOnboarding, 600); } } catch(e) {}
+      _onLoginSuccess(d);
     } else {
-      err.style.display='block';
-      err.textContent = d.error || 'Credenciais invalidas.';
+      err.style.display='block'; err.textContent = d.error || 'Credenciais inválidas.';
     }
   } catch(e) {
-    err.style.display='block'; err.textContent='Erro de ligacao ao servidor.';
+    err.style.display='block'; err.textContent='Erro de ligação ao servidor.';
   }
 }
 
 async function doLogin() { doLoginUser(); }
 
+// ── Shared post-login handler ─────────────────────────────────────────────────
+function _onLoginSuccess(d) {
+  AUTH.token     = d.token;
+  AUTH.user      = d.user;
+  AUTH.clinic_id = d.clinic_id || _loginClinicId || 'default';
+  AUTH.clinic_nome = d.clinic_nome || d.clinic_id || 'default';
+  AUTH.role      = d.role  || 'vet';
+  AUTH.plan      = d.plan  || 'free';
+  AUTH.user_id   = d.user_id || d.user;
+  saveAuthLocal();
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='';
+  initAccordions();
+  updateTopbarUser();
+  bootDataLayer();
+  // Fetch usage stats
+  setTimeout(fetchUsageStats, 1500);
+  showToast('✓ Bem-vindo' + (d.user ? ', ' + d.user.split('@')[0] : '') + '!');
+  try { if (!localStorage.getItem('eq_onboarded_v1')) { setTimeout(showOnboarding, 800); } } catch(e) {}
+}
+
+// ── Topbar user display ───────────────────────────────────────────────────────
 function updateTopbarUser() {
   var nm = document.getElementById('topbarUserName');
   var rl = document.getElementById('topbarUserRole');
   var ab = document.getElementById('btnAdminPanel');
-  if (nm) nm.textContent = AUTH.user || '';
-  if (rl) rl.textContent = (AUTH.clinic_nome||'') + (AUTH.role ? ' - ' + AUTH.role : '');
+  var pb = document.getElementById('topbarPlanBadge');
+
+  if (nm) nm.textContent = (AUTH.user||'').split('@')[0] || AUTH.user || '';
+  if (rl) rl.textContent = (AUTH.clinic_nome||'') + (AUTH.role ? ' · ' + AUTH.role : '');
   if (ab) ab.style.display = (AUTH.role === 'admin') ? '' : 'none';
+
+  // Plan badge
+  if (pb) {
+    var planColors = { free: '#555', pro: '#c9a84c', clinic: '#4ac9c9' };
+    var planNames  = { free: 'FREE', pro: 'PRO', clinic: 'CLINIC' };
+    var plan = AUTH.plan || 'free';
+    pb.textContent = planNames[plan] || plan.toUpperCase();
+    pb.style.background = planColors[plan] || '#555';
+    pb.style.color = plan === 'free' ? '#aaa' : '#000';
+    pb.style.display = '';
+    pb.title = 'Plano: ' + (planNames[plan] || plan);
+    if (plan === 'free') {
+      pb.style.cursor = 'pointer';
+      pb.onclick = function() { showUpgradeModal(); };
+      pb.title = 'FREE — Clica para fazer upgrade';
+    } else {
+      pb.onclick = null;
+    }
+  }
 }
 
 function showApiError(msg) {
   var friendly = {
-    'Failed to fetch':'Sem ligacao ao servidor.',
-    '401':'Sessao expirada. Faz login novamente.',
-    '429':'Demasiados pedidos. Aguarda um momento.',
+    'Failed to fetch':'Sem ligação ao servidor.',
+    '401':'Sessão expirada. Faz login novamente.',
+    '429':'Limite atingido. Aguarda ou faz upgrade.',
     '500':'Erro interno do servidor.'
   };
   var text = msg || 'Erro desconhecido.';
@@ -1255,12 +1515,14 @@ function showApiError(msg) {
 }
 
 function doLogout() {
+  try { fetch('/api/logout', { method:'POST', headers: getAuthHeaders() }); } catch(e) {}
   clearAuthLocal();
-  AUTH.token=null; AUTH.user=null; AUTH.clinic_id=null; AUTH.clinic_nome=null; AUTH.role=null;
+  AUTH.token=null; AUTH.user=null; AUTH.clinic_id=null; AUTH.clinic_nome=null;
+  AUTH.role=null; AUTH.plan='free'; AUTH.user_id=null;
   _loginClinicId=null;
-  document.getElementById('loginStep1').style.display='';
-  document.getElementById('loginStep2').style.display='none';
-  try { document.getElementById('loginClinicId').value=''; document.getElementById('loginUser').value=''; document.getElementById('loginPass').value=''; } catch(e){}
+  // Reset login UI
+  loginSwitchTab('email');
+  loginEmailSubTab('login');
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').style.display='none';
 }
@@ -1269,19 +1531,161 @@ function getAuthHeaders() {
   return AUTH.token ? { 'x-session-token': AUTH.token } : {};
 }
 
+// ── Plan / usage ──────────────────────────────────────────────────────────────
+var _usageStats = null;
+
+async function fetchUsageStats() {
+  try {
+    var r = await fetch('/api/usage', { headers: getAuthHeaders() });
+    if (r.ok) {
+      _usageStats = await r.json();
+      AUTH.plan = _usageStats.plan || AUTH.plan;
+      saveAuthLocal();
+      updateTopbarUser();
+      updateUsageBadge();
+    }
+  } catch(e) {}
+}
+
+function updateUsageBadge() {
+  if (!_usageStats) return;
+  var badge = document.getElementById('topbarUsageBadge');
+  if (!badge) return;
+  var pct = _usageStats.limit >= 9999 ? 100 : Math.round((_usageStats.used / _usageStats.limit) * 100);
+  var used = _usageStats.used || 0;
+  var lim  = _usageStats.limit >= 9999 ? '∞' : _usageStats.limit;
+  badge.textContent = used + '/' + lim;
+  badge.title = 'Análises hoje: ' + used + ' de ' + lim;
+  badge.style.display = '';
+  badge.style.color = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--amber)' : 'var(--t3)';
+}
+
+// ── Upgrade modal ─────────────────────────────────────────────────────────────
+function showUpgradeModal() {
+  var mono = "'JetBrains Mono',monospace";
+  var ov = document.createElement('div');
+  ov.id = 'upgradeModal';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML =
+    '<div style="background:var(--ink1);border:1px solid var(--wire2);border-radius:12px;padding:28px 24px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
+      '<div style="font-family:\'Lora\',serif;font-size:18px;font-style:italic">Fazer <b style="font-style:normal">Upgrade</b></div>' +
+      '<button onclick="document.getElementById(\'upgradeModal\').remove()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer">✕</button>' +
+    '</div>' +
+    _upgradePlanCard('Pro', '49€/mês', ['100 análises/dia','Calibrações avançadas','Multi-dispositivo','Suporte prioritário'], 'pro', false) +
+    _upgradePlanCard('Clínica', '149€/mês', ['Análises ilimitadas','Múltiplos veterinários','Admin dashboard','API access'], 'clinic', true) +
+    '<div style="font-family:'+mono+';font-size:9px;color:var(--t3);text-align:center;margin-top:14px">Cancela a qualquer momento · Faturação mensal · IVA incluído</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+}
+
+function _upgradePlanCard(name, price, features, planId, highlighted) {
+  var mono = "'JetBrains Mono',monospace";
+  var border = highlighted ? '2px solid var(--gold)' : '1px solid var(--wire2)';
+  var bg     = highlighted ? 'rgba(201,168,76,.04)' : 'var(--ink2)';
+  return '<div style="border:'+border+';border-radius:8px;padding:16px 18px;margin-bottom:12px;background:'+bg+'">' +
+    (highlighted ? '<div style="font-family:'+mono+';font-size:8px;background:var(--gold);color:#000;padding:2px 8px;border-radius:3px;display:inline-block;margin-bottom:8px;letter-spacing:.1em">RECOMENDADO</div>' : '') +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+      '<div style="font-size:16px;font-weight:700;color:var(--t1)">'+name+'</div>' +
+      '<div style="font-family:'+mono+';font-size:13px;font-weight:700;color:var(--gold)">'+price+'</div>' +
+    '</div>' +
+    '<div style="margin-bottom:14px">' +
+      features.map(function(f){ return '<div style="font-family:'+mono+';font-size:9px;color:var(--t2);padding:2px 0">✓ '+f+'</div>'; }).join('') +
+    '</div>' +
+    '<button onclick="startCheckout(\''+planId+'\')" style="width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:'+mono+';font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em">→ SUBSCREVER '+name.toUpperCase()+'</button>' +
+    '</div>';
+}
+
+async function startCheckout(plan) {
+  showToast('A preparar pagamento...');
+  try {
+    var r = await fetch('/api/stripe/checkout', {
+      method: 'POST', headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
+      body: JSON.stringify({ plan, email: AUTH.user })
+    });
+    var d = await r.json();
+    if (d.url) {
+      window.location.href = d.url;
+    } else {
+      showToast('Erro: ' + (d.error || 'Stripe não configurado'));
+    }
+  } catch(e) {
+    showToast('Erro ao iniciar pagamento: ' + e.message);
+  }
+}
+
+async function openBillingPortal() {
+  try {
+    var r = await fetch('/api/stripe/portal', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()) });
+    var d = await r.json();
+    if (d.url) window.open(d.url, '_blank');
+    else showToast('Portal não disponível: ' + (d.error||''));
+  } catch(e) { showToast('Erro: ' + e.message); }
+}
+
+// Detect upgrade success from URL
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('upgrade_success')) {
+    var plan = params.get('plan') || 'pro';
+    AUTH.plan = plan; saveAuthLocal();
+    window.history.replaceState({}, '', '/');
+    setTimeout(function() {
+      showToast('✓ Upgrade para ' + plan.toUpperCase() + ' activado! Obrigado.');
+      fetchUsageStats();
+    }, 1000);
+  }
+})();
+
+// ── Server sync ───────────────────────────────────────────────────────────────
+async function syncAllToServer() {
+  if (!AUTH.token) return;
+  try {
+    // Sync horses
+    var horses = loadHorsesCache ? loadHorsesCache() : [];
+    if (horses.length) {
+      await fetch('/api/sync/horses', {
+        method: 'POST',
+        headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
+        body: JSON.stringify({ horses })
+      });
+    }
+    // Sync intel memory
+    try {
+      var intel = JSON.parse(localStorage.getItem('eq_intel_memory_v1') || 'null');
+      if (intel) {
+        await fetch('/api/sync/intel', {
+          method: 'POST',
+          headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
+          body: JSON.stringify({ memory: intel })
+        });
+      }
+    } catch(e) {}
+    console.log('[EQ] Sync completo');
+  } catch(e) {
+    console.warn('[EQ] Sync falhou:', e.message);
+  }
+}
+
+// ── checkSession ──────────────────────────────────────────────────────────────
 async function checkSession() {
   try {
     var r = await fetch('/api/me', { headers: getAuthHeaders() });
     if (r.ok) {
       var d = await r.json();
       AUTH.user=d.user; AUTH.clinic_id=d.clinic_id||'default';
-      AUTH.clinic_nome=d.clinic_nome||d.clinic_id||'default'; AUTH.role=d.role||'vet';
+      AUTH.clinic_nome=d.clinic_nome||d.clinic_id||'default';
+      AUTH.role=d.role||'vet'; AUTH.plan=d.plan||'free';
+      AUTH.user_id=d.user_id||null;
       saveAuthLocal();
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('appShell').style.display='';
       updateTopbarUser();
+      setTimeout(fetchUsageStats, 2000);
     } else if (r.status === 401) {
       clearAuthLocal(); AUTH.token=null; AUTH.user=null;
+      loginSwitchTab('email');
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('appShell').style.display='none';
     } else {
@@ -1290,6 +1694,7 @@ async function checkSession() {
         document.getElementById('appShell').style.display='';
         updateTopbarUser();
       } else {
+        loginSwitchTab('email');
         document.getElementById('loginScreen').style.display='flex';
         document.getElementById('appShell').style.display='none';
       }
@@ -1300,6 +1705,7 @@ async function checkSession() {
       document.getElementById('appShell').style.display='';
       updateTopbarUser();
     } else {
+      loginSwitchTab('email');
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('appShell').style.display='none';
     }
@@ -1309,9 +1715,11 @@ async function checkSession() {
 window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('appShell').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
+  loginSwitchTab('email');
   checkSession();
 });
 </script>
+
 
 
 <!-- ── APP PRINCIPAL ──────────────────────────────────────────────────────── -->
@@ -1354,6 +1762,10 @@ window.addEventListener('DOMContentLoaded', function() {
         <div id="topbarUserName" style="color:var(--t1)"></div>
         <div id="topbarUserRole" style="color:var(--t3)"></div>
       </div>
+      <!-- Plan badge -->
+      <span id="topbarPlanBadge" style="display:none;font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:.05em;background:#555;color:#aaa"></span>
+      <!-- Daily usage counter -->
+      <span id="topbarUsageBadge" style="display:none;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3)" title="Análises hoje"></span>
       <button id="btnAdminPanel" onclick="openAdminPanel()" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.3);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;position:relative" title="Painel Admin">👑 ADMIN <span id="adminPendingBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:7px;padding:1px 4px;border-radius:8px;font-weight:700">0</span></button>
       <button onclick="doLogout()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid var(--wire);padding:4px 8px;border-radius:3px;cursor:pointer;letter-spacing:.05em" title="Sair">⏻</button>
     </div>
@@ -8469,6 +8881,8 @@ function closeReviewMode(generateReport) {
 function showFinalReportBtn() {
   var rmw = document.getElementById('reportMenuWrap');
   if (rmw) rmw.style.display = 'block';
+  // Update usage counter after analysis
+  setTimeout(function(){ if(typeof fetchUsageStats==='function') fetchUsageStats(); }, 1500);
 }
 
 // Add review notes to final report generation context
@@ -13549,6 +13963,14 @@ function loadHorses() {
 }
 function saveHorses(horses) {
   try { localStorage.setItem(HORSES_KEY, JSON.stringify(horses)); } catch(e) {}
+  // Sync to server silently
+  if (AUTH && AUTH.token) {
+    fetch('/api/sync/horses', {
+      method: 'POST',
+      headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()),
+      body: JSON.stringify({ horses: horses })
+    }).catch(function(){});
+  }
 }
 
 function loadExamsCache() {

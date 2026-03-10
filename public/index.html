@@ -1875,6 +1875,11 @@ window.addEventListener('DOMContentLoaded', function() {
     <button id="btnExport" style="display:none"></button>
     <button id="btnHistory" style="display:none"></button>
     <button id="btnSecondOp" style="display:none"></button>
+    <!-- Toggle PT/EN — muda relatorio + ditado em simultâneo -->
+    <div style="display:flex;border:1px solid var(--wire2);border-radius:4px;overflow:hidden;margin-right:2px" title="Idioma do relatório e ditado">
+      <button id="topLangPT" onclick="setAppLang('pt')" style="padding:4px 9px;font-family:'JetBrains Mono',monospace;font-size:9px;border:none;cursor:pointer;background:var(--gold);color:#000;font-weight:700;transition:all .15s">PT</button>
+      <button id="topLangEN" onclick="setAppLang('en')" style="padding:4px 9px;font-family:'JetBrains Mono',monospace;font-size:9px;border:none;cursor:pointer;background:transparent;color:var(--t3);border-left:1px solid var(--wire2);transition:all .15s">EN</button>
+    </div>
     <button onclick="openCavalosPanel()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#4ac9c9;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.25);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">🐴 CAVALOS</button>
     <button onclick="showCalibrationsPanel()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t2);background:transparent;border:1px solid var(--wire);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em">⚙ Calibrações</button>
     <button id="btnIntelligence" onclick="openIntelligencePanel()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#a78bfa;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.3);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;transition:all .15s;position:relative" title="Painel de Inteligência Adaptativa">🧠 INTELIGÊNCIA <span id="intelBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#a78bfa;color:#000;font-size:7px;padding:1px 4px;border-radius:8px;font-weight:700">0</span></button>
@@ -2037,7 +2042,10 @@ window.addEventListener('DOMContentLoaded', function() {
       <div style="margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
           <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em">Sinais Clínicos</label>
-          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 Ditar</button>
+          <div style="display:flex;gap:3px;align-items:center">
+          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar sinais clinicos" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px 0 0 3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">&#127908; Ditar</button>
+          <button onclick="toggleVoiceLang()" title="Mudar idioma do ditado" style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.4);border-left:none;border-radius:0 3px 3px 0;padding:2px 6px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;cursor:pointer;transition:all .15s" class="voice-lang-badge">PT</button>
+        </div>
         </div>
         <textarea id="fSymp" rows="3" placeholder="ex: claudicação 2/5 MAD, flexões distais +, testador de cascos positivo..."
           style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:9px 10px;font-family:'Syne',sans-serif;font-size:14px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .15s"
@@ -2689,7 +2697,7 @@ window.addEventListener('DOMContentLoaded', function() {
     <!-- Image area — ocupa tudo -->
     <div id="mainImgArea" style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0">
       <img id="viewImg" alt="" onclick="if(S.imgs.length)openReviewMode(S.idx)" title="Duplo clique — ecrã inteiro"
-        style="max-width:100%;max-height:100%;object-fit:contain;display:block;cursor:zoom-in;transition:filter .15s">
+        style="max-width:100%;max-height:100%;object-fit:contain;display:block;cursor:zoom-in;transition:filter .15s" ondblclick="openReviewMode(S.idx)">
       <!-- Tag e controlos de imagem -->
       <div id="viewTag" style="position:absolute;top:10px;left:12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);background:rgba(0,0,0,.6);padding:3px 7px;border-radius:3px;pointer-events:none"></div>
       <!-- W/L e ferramentas inline — canto superior direito -->
@@ -2700,7 +2708,7 @@ window.addEventListener('DOMContentLoaded', function() {
         <button class="vbtn" onclick="fa(0,-.15)" title="Contraste -">◐</button>
         <button class="vbtn" onclick="fi()" title="Inverter">⊙</button>
         <button class="vbtn" onclick="fr()" title="Reset filtro">↺</button>
-        <button class="vbtn" onclick="openReviewMode(S.idx)" title="Ecrã inteiro — anotações" style="color:var(--gold);font-size:13px">⤢</button>
+        <button class="vbtn" onclick="openReviewMode(S.idx)" title="Ecrã inteiro — anotações (duplo clique na imagem)" style="color:var(--gold);font-size:13px">⤢</button>
       </div>
       <!-- Nav arrows — esquerda/direita — GRANDES e visíveis -->
       <button id="mainImgPrev" onclick="if(S.idx>0){setImg(S.idx-1)}" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.65);border:2px solid rgba(255,255,255,.25);border-radius:50%;width:48px;height:48px;color:rgba(255,255,255,.9);font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 12px rgba(0,0,0,.5)" onmouseover="this.style.background='rgba(201,168,76,.3)';this.style.borderColor='var(--gold)';this.style.color='#fff'" onmouseout="this.style.background='rgba(0,0,0,.65)';this.style.borderColor='rgba(255,255,255,.25)';this.style.color='rgba(255,255,255,.9)'">‹</button>
@@ -7342,6 +7350,14 @@ function buildPhase2Prompt(phase1Text, allNames, info, calibBlock, fbBlock) {
   ].join('\n');
 }
 
+// Injectar instrucao de lingua no prompt fase 2
+function injectLangInstruction(promptArr) {
+  if (_reportLang === 'en') {
+    promptArr = ['LANGUAGE INSTRUCTION: Write ALL free-text fields in English. This includes: narrativa, resumo_interpretacao, resumo_cliente, implicacao_clinica, prognostico_desportivo, achados_visuais items, rec acao fields, prog desp/trabalho/rec fields, dds justificacao. Keep JSON keys in Portuguese as-is. Severity values (sev field): use Mild/Moderate/Severe instead of Leve/Moderado/Severo. Priority values (pri): Urgent/High/Medium/Low. Fitness values: Sound/With Restrictions/Conditional/Not Recommended.'].concat(promptArr);
+  }
+  return promptArr;
+}
+
 // ═══════════════════════════════════════════════════════
 // STREAM HELPER — reutilizado em ambas as fases
 // ═══════════════════════════════════════════════════════
@@ -7464,7 +7480,7 @@ function callApi(key,batch,info,bNum,bTotal){
         var phase2Messages = [
           {role:'user',    content: phase1Content},
           {role:'assistant', content: phase1Text},   // ← memória explícita da Fase 1
-          {role:'user',    content: [{type:'text', text: buildPhase2Prompt(phase1Text, batch.names, info, calibBlock, fbBlock)}]}
+          {role:'user',    content: [{type:'text', text: (function(){var _p2=buildPhase2Prompt(phase1Text, batch.names, info, calibBlock, fbBlock); return (_reportLang==='en')?'LANGUAGE INSTRUCTION: Write ALL free-text fields in English (narrativa, resumo_interpretacao, resumo_cliente, implicacao_clinica, prognostico_desportivo, rec acao, prog fields, dds justificacao). Keep JSON keys in Portuguese. Sev values: use Mild/Moderate/Severe. Pri: Urgent/High/Medium/Low. Fitness: Sound/With Restrictions/Conditional/Not Recommended.\n\n'+_p2:_p2; })()}]}
         ];
 
         var imgsFound = 0;
@@ -8978,7 +8994,9 @@ function openReviewMode(startFromIdx) {
           '<span id="reviewProgress" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.25);flex-shrink:0;padding:2px 6px;background:rgba(255,255,255,.04);border-radius:3px"></span>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
-          '<span id="reviewZoomBadge" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.25);min-width:36px;text-align:right">100%</span>' +
+          '<button onclick="if(window._reviewResetView)window._reviewResetView()" title="Fit (0)" style="font-family:JetBrains Mono,monospace;font-size:8px;padding:3px 6px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.3);cursor:pointer;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,.3)\'">FIT</button>' +
+          '<button onclick="if(window._reviewSetZoom)window._reviewSetZoom(1)" title="100% (1)" style="font-family:JetBrains Mono,monospace;font-size:8px;padding:3px 6px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.3);cursor:pointer;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,.3)\'">1:1</button>' +
+          '<span id="reviewZoomBadge" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.25);min-width:36px;text-align:right">FIT</span>' +
           '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:12px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s" onmouseover="this.style.background=\'rgba(255,80,80,.15)\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(255,255,255,.06)\';this.style.color=\'rgba(255,255,255,.5)\'">✕</button>' +
         '</div>' +
       '</div>' +
@@ -9028,8 +9046,12 @@ function openReviewMode(startFromIdx) {
             'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.9)\'" onmouseout="this.style.color=\'rgba(255,255,255,.5)\'">↻</button>' +
 
           // Reset imagem
-          '<button onclick="window._reviewRotation=0;window._reviewInverted=false;document.getElementById(\'reviewBtnInvert\').style.background=\'transparent\';document.getElementById(\'reviewBtnInvert\').style.borderColor=\'transparent\';document.getElementById(\'reviewBtnInvert\').style.color=\'rgba(255,255,255,.5)\';if(window._reviewResetWL)window._reviewResetWL()" title="Reset imagem" '+
+          '<button onclick="window._reviewRotation=0;window._reviewFlipped=false;window._reviewInverted=false;document.getElementById(\'reviewBtnInvert\').style.background=\'transparent\';document.getElementById(\'reviewBtnInvert\').style.borderColor=\'transparent\';document.getElementById(\'reviewBtnInvert\').style.color=\'rgba(255,255,255,.5)\';if(window._reviewResetWL)window._reviewResetWL()" title="Reset tudo (↺)" '+
             'style="font-size:13px;width:28px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:4px;color:rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,.3)\'">↺</button>' +
+
+          // Flip horizontal (F)
+          '<button id="reviewBtnFlip" onclick="window._reviewFlipped=!window._reviewFlipped;if(window.applyReviewWL)window.applyReviewWL()" title="Espelhar horizontal (F)" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s">↔</button>' +
 
         '</div>' +
 
@@ -9080,6 +9102,11 @@ function openReviewMode(startFromIdx) {
           '<button id="btnSpotAIToolbar" onclick="window._reviewAnalyzeMode=true;setReviewTool(\'circle\');showToast(\'Desenha um círculo na zona a analisar — IA analisa automaticamente\',\'info\')" title="Marcar zona para análise IA — a IA analisa automaticamente ao desenhar o círculo" '+
             'style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:5px 11px;height:30px;display:flex;align-items:center;gap:5px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);border-radius:5px;color:var(--gold);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap;letter-spacing:.04em" '+
             'onmouseover="this.style.background=\'rgba(201,168,76,.2)\';this.style.borderColor=\'rgba(201,168,76,.6)\'" onmouseout="this.style.background=\'rgba(201,168,76,.1)\';this.style.borderColor=\'rgba(201,168,76,.35)\'">✦ Analisar zona</button>' +
+
+          // Lupa / Loupe (L)
+          '<button id="reviewBtnLoupe" onclick="if(window._toggleLoupe)window._toggleLoupe()" title="Lupa — zoom local (L)" '+
+            'style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:5px 10px;height:30px;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:5px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap" '+
+            'onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.color=\'rgba(255,255,255,.5)\'">🔍 Lupa</button>' +
 
           // Comparar
           '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar duas imagens" '+
@@ -9201,6 +9228,92 @@ function openReviewMode(startFromIdx) {
     }
   };
 
+  // ── LUPA / LOUPE ──────────────────────────────────────────────
+  var _loupeActive = false;
+  var _loupeEl = null;
+  var _loupeSize = 180; // px diâmetro
+  var _loupeMag = 3;   // magnificação
+
+  function createLoupe() {
+    var lp = document.createElement('div');
+    lp.id = 'reviewLoupeEl';
+    lp.style.cssText = 'position:absolute;width:'+_loupeSize+'px;height:'+_loupeSize+'px;border-radius:50%;border:2px solid rgba(201,168,76,.8);box-shadow:0 4px 24px rgba(0,0,0,.8),0 0 0 1px rgba(201,168,76,.3);pointer-events:none;overflow:hidden;display:none;z-index:100;background:#000';
+    // Canvas interno para renderizar o crop amplificado
+    var lc = document.createElement('canvas');
+    lc.id = 'reviewLoupeCanvas';
+    lc.width = _loupeSize; lc.height = _loupeSize;
+    lc.style.cssText = 'width:100%;height:100%;display:block';
+    lp.appendChild(lc);
+    // Cruz central
+    var cross = document.createElement('div');
+    cross.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+    cross.innerHTML = '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(201,168,76,.4);transform:translateX(-50%)"></div><div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(201,168,76,.4);transform:translateY(-50%)"></div>';
+    lp.appendChild(cross);
+    wrap.appendChild(lp);
+    return lp;
+  }
+
+  window._toggleLoupe = function() {
+    _loupeActive = !_loupeActive;
+    var btn = document.getElementById('reviewBtnLoupe');
+    if (!_loupeEl) _loupeEl = createLoupe();
+    if (_loupeActive) {
+      wrap.style.cursor = 'none';
+      _loupeEl.style.display = 'block';
+      if (btn) { btn.style.background = 'rgba(201,168,76,.15)'; btn.style.borderColor = 'rgba(201,168,76,.5)'; btn.style.color = 'var(--gold)'; }
+      showToast('🔍 Lupa activa — move o rato (L para desactivar)', 'info');
+    } else {
+      wrap.style.cursor = 'crosshair';
+      _loupeEl.style.display = 'none';
+      if (btn) { btn.style.background = 'rgba(255,255,255,.04)'; btn.style.borderColor = 'rgba(255,255,255,.12)'; btn.style.color = 'rgba(255,255,255,.5)'; }
+    }
+  };
+
+  wrap.addEventListener('mousemove', function(e) {
+    if (!_loupeActive || !_loupeEl) return;
+    var rect = wrap.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
+    // Posicionar lupa com offset para nao tapar o cursor
+    var lx = mx + 20;
+    var ly = my - _loupeSize / 2;
+    // Manter dentro dos limites
+    if (lx + _loupeSize > rect.width)  lx = mx - _loupeSize - 20;
+    if (ly < 0) ly = 0;
+    if (ly + _loupeSize > rect.height) ly = rect.height - _loupeSize;
+    _loupeEl.style.left = lx + 'px';
+    _loupeEl.style.top  = ly + 'px';
+
+    // Renderizar crop da imagem no canvas da lupa
+    var reviewImg = document.getElementById('reviewImg');
+    if (!reviewImg || !reviewImg.complete) return;
+    var lc = document.getElementById('reviewLoupeCanvas');
+    if (!lc) return;
+    var ctx = lc.getContext('2d');
+    var iRect = reviewImg.getBoundingClientRect();
+    // Posicao do rato relativa à imagem renderizada
+    var ix = (e.clientX - iRect.left) / iRect.width  * reviewImg.naturalWidth;
+    var iy = (e.clientY - iRect.top)  / iRect.height * reviewImg.naturalHeight;
+    // Tamanho do crop (em px da imagem original) = loupe / mag
+    var cropW = _loupeSize / _loupeMag;
+    var cropH = _loupeSize / _loupeMag;
+    var sx = Math.max(0, ix - cropW/2);
+    var sy = Math.max(0, iy - cropH/2);
+    ctx.clearRect(0, 0, _loupeSize, _loupeSize);
+    // Aplicar filtros da imagem principal
+    ctx.filter = reviewImg.style.filter || 'none';
+    try {
+      ctx.drawImage(reviewImg, sx, sy, cropW, cropH, 0, 0, _loupeSize, _loupeSize);
+    } catch(e2) {}
+  });
+
+  wrap.addEventListener('mouseleave', function() {
+    if (_loupeEl) _loupeEl.style.display = 'none';
+  });
+  wrap.addEventListener('mouseenter', function() {
+    if (_loupeActive && _loupeEl) _loupeEl.style.display = 'block';
+  });
+
   // Wire W/L sliders
   window.applyReviewWL = function() {
     var img = document.getElementById('reviewImg');
@@ -9211,11 +9324,24 @@ function openReviewMode(startFromIdx) {
     var contrast   = 0.5 + (w / 100) * 1.8;
     var inv = window._reviewInverted ? ' invert(1)' : '';
     img.style.filter = 'brightness(' + brightness + ') contrast(' + contrast + ')' + inv;
-    // Rotation stored in data, applied via rotate on the wrap (doesn't conflict with zoom)
+    // Rotation + flip via transform
     var rot = window._reviewRotation || 0;
+    var flip = window._reviewFlipped ? ' scaleX(-1)' : '';
+    // Combinar com pan/zoom existente via CSS var (não interfere com applyTransform)
     img.dataset.rotation = rot;
-    if (rot) img.style.rotate = rot + 'deg';
-    else img.style.rotate = '';
+    img.style.rotate = rot ? rot + 'deg' : '';
+    if (flip) {
+      img.style.transform = (img.style.transform || '').replace(/ scaleX\(-?1\)/g, '') + flip;
+    } else {
+      img.style.transform = (img.style.transform || '').replace(/ scaleX\(-?1\)/g, '');
+    }
+    // Actualizar badge de flip no botão
+    var flipBtn = document.getElementById('reviewBtnFlip');
+    if (flipBtn) {
+      flipBtn.style.background = window._reviewFlipped ? 'rgba(74,201,201,.2)' : 'transparent';
+      flipBtn.style.borderColor = window._reviewFlipped ? 'rgba(74,201,201,.5)' : 'transparent';
+      flipBtn.style.color = window._reviewFlipped ? 'var(--ice)' : 'rgba(255,255,255,.5)';
+    }
   };
   window._reviewResetWL = function() {
     var ws = document.getElementById('reviewWSlider');
@@ -9226,6 +9352,7 @@ function openReviewMode(startFromIdx) {
     if (ls) ls.value = 50; if (cv) cv.textContent = '50';
     window._reviewInverted = false;
     window._reviewRotation = 0;
+    window._reviewFlipped  = false;
     window.applyReviewWL();
   };
   var ws = document.getElementById('reviewWSlider');
@@ -9236,10 +9363,79 @@ function openReviewMode(startFromIdx) {
   // Keyboard nav
   document._reviewKeyHandler = function(e) {
     if (!_reviewMode) return;
-    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); reviewNext(); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); reviewPrev(); }
-    if (e.key === 'Escape') closeReviewMode();
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) reviewConfirm();
+    // Não interceptar quando o utilizador está a escrever numa textarea/input
+    var tag = (e.target||{}).tagName;
+    var inText = tag === 'TEXTAREA' || tag === 'INPUT';
+
+    // Navegação — sempre activa
+    if (e.key === 'ArrowRight' || (e.key === ' ' && !inText)) { e.preventDefault(); reviewNext(); return; }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); reviewPrev(); return; }
+    if (e.key === 'Escape')     { closeReviewMode(); return; }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { reviewConfirm(); return; }
+
+    // Ferramentas — só quando não está a escrever
+    if (inText) return;
+    var k = e.key.toLowerCase();
+    if (k === 'v' || k === 'n') setReviewTool('nav');        // V = navigate/pan
+    if (k === 'p' || k === 'd') setReviewTool('freedraw');   // P = pencil/draw
+    if (k === 'c')              setReviewTool('circle');      // C = circle
+    if (k === 'a')              setReviewTool('arrow');       // A = arrow
+    if (k === 'e')              setReviewTool('eraser');      // E = eraser
+    if (k === 'i') {                                          // I = invert
+      var btn = document.getElementById('reviewBtnInvert');
+      if (btn) btn.click();
+    }
+    if (k === 'r') {                                          // R = rotate 90°
+      window._reviewRotation = ((window._reviewRotation||0) + 90) % 360;
+      if (window.applyReviewWL) window.applyReviewWL();
+    }
+    if (k === 'f') {                                          // F = flip horizontal
+      window._reviewFlipped = !window._reviewFlipped;
+      if (window.applyReviewWL) window.applyReviewWL();
+      var zb = document.getElementById('reviewZoomBadge');
+      if (zb) showToast(window._reviewFlipped ? '↔ Espelhado' : '↔ Normal', 'info');
+    }
+    if (k === '0' || k === 'z') {                             // 0/Z = reset zoom
+      if (window._reviewResetView) window._reviewResetView();
+    }
+    if (k === '1') {                                          // 1 = zoom 1:1 (100%)
+      if (window._reviewSetZoom) window._reviewSetZoom(1);
+    }
+    if (k === '2') {                                          // 2 = zoom 200%
+      if (window._reviewSetZoom) window._reviewSetZoom(2);
+    }
+    if (k === 'l') {                                          // L = lupa toggle
+      if (window._toggleLoupe) window._toggleLoupe();
+    }
+    if (k === 'b') {                                          // B = brilho popover
+      if (window.toggleReviewSlider) window.toggleReviewSlider('bright');
+    }
+    if (k === 'k') {                                          // K = kontraste
+      if (window.toggleReviewSlider) window.toggleReviewSlider('contrast');
+    }
+    if (k === 'x') {                                          // X = SpotAI
+      var spotBtn = document.getElementById('btnSpotAIToolbar');
+      if (spotBtn) spotBtn.click();
+    }
+    if (k === '?' || k === 'h') {                             // H/? = atalhos
+      var hov = document.getElementById('reviewHelpOverlay');
+      if (hov) { hov.remove(); return; }
+      var ho = document.createElement('div');
+      ho.id = 'reviewHelpOverlay';
+      ho.style.cssText = 'position:absolute;bottom:80px;right:16px;background:rgba(10,13,20,.96);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:16px 18px;z-index:200;min-width:220px;backdrop-filter:blur(8px)';
+      var m = 'JetBrains Mono,monospace';
+      var row = function(k,l) { return '<div style="display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-family:'+m+';font-size:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:3px;padding:1px 5px;color:#fff;letter-spacing:.06em">'+k+'</span><span style="font-family:'+m+';font-size:9px;color:rgba(255,255,255,.45)">'+l+'</span></div>'; };
+      ho.innerHTML = '<div style="font-family:'+m+';font-size:8px;color:rgba(255,255,255,.25);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">Atalhos</div>' +
+        row('← →','Navegar imagens') + row('V','Navegar/Pan') + row('C','Círculo') +
+        row('D','Traço livre') + row('A','Seta') + row('E','Apagar') +
+        row('I','Inverter') + row('R','Rodar 90°') + row('F','Flip horizontal') +
+        row('L','Lupa') + row('B','Brilho') + row('K','Contraste') +
+        row('0 / Z','Fit') + row('1','Zoom 100%') + row('2','Zoom 200%') +
+        row('X','SpotAI') + row('Ctrl+↵','Confirmar') + row('Esc','Fechar') +
+        '<div id="reviewHelpClose" style="margin-top:10px;text-align:center;font-family:'+m+';font-size:9px;color:rgba(255,255,255,.2);cursor:pointer">fechar ✕</div>';
+      document.getElementById('reviewOverlay').appendChild(ho);
+      setTimeout(function(){ document.addEventListener('click', function _hc(ev){ if(!ev.target.closest || !ev.target.closest('#reviewHelpOverlay')){ ho.remove(); document.removeEventListener('click',_hc); } }); }, 100);
+    }
   };
   document.addEventListener('keydown', document._reviewKeyHandler);
 }
@@ -9325,6 +9521,22 @@ function renderReviewFrame(direction) {
         var lbl = document.createElement('div');
         lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-family:JetBrains Mono,monospace;font-size:7px;color:' + (isActive ? 'var(--gold)' : 'rgba(255,255,255,.4)') + ';text-align:center;padding:2px 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
         lbl.textContent = (im.name || ('IMG'+(i+1))).slice(0,9);
+
+        // Badges de estado: nota escrita, marcação, suspeito
+        var imgNameI = im.name || ('IMG'+(i+1));
+        var hasNote  = !!(_reviewNotes[imgNameI] && _reviewNotes[imgNameI].text);
+        var hasMark  = !!((_annotations[imgNameI]||[]).length || (_reviewPermanentMarks[imgNameI]||[]).length || ((window._freeDrawPaths||{})[imgNameI]||[]).length);
+        var isSusp   = _reviewNotes[imgNameI] && (_reviewNotes[imgNameI].suspicion === true);
+
+        if (hasNote || hasMark || isSusp) {
+          var badges = document.createElement('div');
+          badges.style.cssText = 'position:absolute;top:2px;right:2px;display:flex;gap:2px;align-items:center';
+          if (hasNote)  { var b = document.createElement('div'); b.style.cssText = 'width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.9;box-shadow:0 0 4px rgba(201,168,76,.6)'; badges.appendChild(b); }
+          if (hasMark)  { var b2 = document.createElement('div'); b2.style.cssText = 'width:6px;height:6px;border-radius:50%;background:#4ac9c9;opacity:.9'; badges.appendChild(b2); }
+          if (isSusp)   { var b3 = document.createElement('div'); b3.style.cssText = 'width:6px;height:6px;border-radius:50%;background:var(--red);opacity:.9;box-shadow:0 0 4px rgba(224,85,85,.5)'; badges.appendChild(b3); }
+          thumb.appendChild(badges);
+        }
+
         thumb.appendChild(imgEl); thumb.appendChild(lbl);
         thumb.onclick = (function(idx){ return function(){ S.idx = idx; if(window._reviewResetView) window._reviewResetView(); renderReviewFrame(); }; })(i);
         strip.appendChild(thumb);
@@ -9533,6 +9745,13 @@ function setupReviewInteraction() {
 
   function resetView() { _vZoom = 1; _vPanX = 0; _vPanY = 0; applyTransform(); }
   window._reviewResetView = resetView;
+
+  // Zoom para nível específico centrado
+  window._reviewSetZoom = function(level) {
+    _vZoom = Math.min(8, Math.max(0.5, level));
+    if (_vZoom <= 1) { _vPanX = 0; _vPanY = 0; }
+    applyTransform();
+  };
 
   // ── MOUSE WHEEL ZOOM ──
   wrap.addEventListener('wheel', function(e) {
@@ -9960,7 +10179,202 @@ function showReviewBtn() {
   if (topbarR) topbarR.insertBefore(btn, topbarR.firstChild);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// i18n — DICIONARIO PT/EN DO RELATORIO
+// ═══════════════════════════════════════════════════════════════
+var _i18n = {
+  pt: {
+    // Secções
+    'Qualidade Técnica':'Qualidade Técnica',
+    'Inventário Radiográfico':'Inventário Radiográfico',
+    'Achados Radiológicos':'Achados Radiológicos',
+    'Interpretação Clínica':'Interpretação Clínica',
+    'Diagnósticos Diferenciais':'Diagnósticos Diferenciais',
+    'Prognóstico':'Prognóstico',
+    'Recomendações':'Recomendações',
+    'Exames Complementares':'Exames Complementares',
+    'Narrativa Clínica':'Narrativa Clínica',
+    // Labels de tabela
+    'Estrutura':'Estrutura','Membro':'Membro','Grau':'Grau','Confirmação':'Confirmação',
+    'Projecções':'Projecções','Achados Visuais':'Achados Visuais','Critério':'Critério',
+    'Confiança':'Confiança','Implicação Clínica':'Implicação Clínica',
+    'Progn. Desportivo':'Progn. Desportivo','Base de Evidência':'Base de Evidência',
+    'Diagnóstico':'Diagnóstico','Probabilidade':'Probabilidade','Justificação':'Justificação',
+    'Suporte Visual':'Suporte Visual','Prioridade':'Prioridade','Categoria':'Categoria',
+    'Acção':'Acção','Prazo':'Prazo',
+    // Semáforos
+    'Sem Alterações':'Sem Alterações','Alterações Leves':'Alterações Leves',
+    'Alteração Moderada':'Alteração Moderada','Alterações Moderadas':'Alterações Moderadas',
+    'Alterações Severas':'Alterações Severas',
+    'Apto':'Apto','Apto c/ Restrições':'Apto c/ Restrições',
+    'Aptidão Condicionada':'Aptidão Condicionada','Não Recomendado':'Não Recomendado',
+    'Aptidão para Uso':'Aptidão para Uso','Aptidão Saltos':'Aptidão Saltos',
+    'Aptidão Dressage':'Aptidão Dressage','Aptidão Declarada':'Aptidão Declarada',
+    'Uso não declarado':'Uso não declarado',
+    // Badges de achado
+    'Normal':'Normal','Leve':'Leve','Moderado':'Moderado','Severo':'Severo',
+    'Urgente':'Urgente','Alta':'Alta','Média':'Média','Baixa':'Baixa','Informação':'Informação',
+    // Campos info
+    'Paciente':'Paciente','Raça':'Raça','Idade':'Idade','Sexo':'Sexo',
+    'Disciplina':'Disciplina','Região':'Região','Sinais Clínicos':'Sinais Clínicos',
+    'História':'História','Projecções em Falta':'Projecções em Falta',
+    'Classificação Geral':'Classificação Geral','Posicionamento':'Posicionamento',
+    'Completude':'Completude','Não avaliável':'Não avaliável','Confirmado':'Confirmado',
+    // Prognóstico
+    'Desporto':'Desporto','Trabalho':'Trabalho','Reprodução':'Reprodução',
+    'Longo Prazo':'Longo Prazo','Valor Comercial':'Valor Comercial',
+    'Favorável':'Favorável','Desfavorável':'Desfavorável',
+    'Sem Alterações Significativas':'Sem Alterações Significativas',
+    'Alterações Ligeiras a Moderadas':'Alterações Ligeiras a Moderadas',
+    'Alterações Moderadas a Avançadas':'Alterações Moderadas a Avançadas',
+    'Alterações Avançadas':'Alterações Avançadas',
+    // Outros
+    'Examinador':'Examinador','Referência':'Referência','Data':'Data',
+    'Relatório Clínico · Uso Veterinário':'Relatório Clínico · Uso Veterinário',
+    'Não especificada':'Não especificada','Não descritos':'Não descritos',
+    'Sem história':'Sem história','—':'—',
+    'Qualidade Técnica':'Qualidade Técnica',
+    'Achados Ósseos':'Achados Ósseos','Espaços Articulares':'Espaços Articulares',
+    'Tecidos Moles':'Tecidos Moles','Correlação Clínica':'Correlação Clínica',
+    'Resumo Executivo':'Resumo Executivo','Resumo para Proprietário':'Resumo para Proprietário',
+  },
+  en: {
+    // Secções
+    'Qualidade Técnica':'Technical Quality',
+    'Inventário Radiográfico':'Radiographic Inventory',
+    'Achados Radiológicos':'Radiological Findings',
+    'Interpretação Clínica':'Clinical Interpretation',
+    'Diagnósticos Diferenciais':'Differential Diagnoses',
+    'Prognóstico':'Prognosis',
+    'Recomendações':'Recommendations',
+    'Exames Complementares':'Further Investigations',
+    'Narrativa Clínica':'Clinical Narrative',
+    // Labels de tabela
+    'Estrutura':'Structure','Membro':'Limb','Grau':'Grade','Confirmação':'Confirmation',
+    'Projecções':'Projections','Achados Visuais':'Visual Findings','Critério':'Criterion',
+    'Confiança':'Confidence','Implicação Clínica':'Clinical Implication',
+    'Progn. Desportivo':'Sport Prognosis','Base de Evidência':'Evidence Base',
+    'Diagnóstico':'Diagnosis','Probabilidade':'Probability','Justificação':'Justification',
+    'Suporte Visual':'Visual Support','Prioridade':'Priority','Categoria':'Category',
+    'Acção':'Action','Prazo':'Timeframe',
+    // Semáforos
+    'Sem Alterações':'No Findings','Alterações Leves':'Mild Findings',
+    'Alteração Moderada':'Moderate Finding','Alterações Moderadas':'Moderate Findings',
+    'Alterações Severas':'Severe Findings',
+    'Apto':'Sound','Apto c/ Restrições':'Sound with Restrictions',
+    'Aptidão Condicionada':'Conditional Fitness','Não Recomendado':'Not Recommended',
+    'Aptidão para Uso':'Fitness for Use','Aptidão Saltos':'Jumping Fitness',
+    'Aptidão Dressage':'Dressage Fitness','Aptidão Declarada':'Declared Fitness',
+    'Uso não declarado':'Use not declared',
+    // Badges de achado
+    'Normal':'Normal','Leve':'Mild','Moderado':'Moderate','Severo':'Severe',
+    'Urgente':'Urgent','Alta':'High','Média':'Medium','Baixa':'Low','Informação':'Info',
+    // Campos info
+    'Paciente':'Patient','Raça':'Breed','Idade':'Age','Sexo':'Sex',
+    'Disciplina':'Discipline','Região':'Region','Sinais Clínicos':'Clinical Signs',
+    'História':'History','Projecções em Falta':'Missing Projections',
+    'Classificação Geral':'Overall Quality','Posicionamento':'Positioning',
+    'Completude':'Study Completeness','Não avaliável':'Not assessable','Confirmado':'Confirmed',
+    // Prognóstico
+    'Desporto':'Sport','Trabalho':'Work','Reprodução':'Reproduction',
+    'Longo Prazo':'Long Term','Valor Comercial':'Commercial Value',
+    'Favorável':'Favourable','Desfavorável':'Unfavourable',
+    'Sem Alterações Significativas':'No Significant Findings',
+    'Alterações Ligeiras a Moderadas':'Mild to Moderate Findings',
+    'Alterações Moderadas a Avançadas':'Moderate to Advanced Findings',
+    'Alterações Avançadas':'Advanced Findings',
+    // Outros
+    'Examinador':'Examiner','Referência':'Reference','Data':'Date',
+    'Relatório Clínico · Uso Veterinário':'Clinical Report · Veterinary Use',
+    'Não especificada':'Not specified','Não descritos':'Not described',
+    'Sem história':'No history','—':'—',
+    'Achados Ósseos':'Bone Findings','Espaços Articulares':'Joint Spaces',
+    'Tecidos Moles':'Soft Tissues','Correlação Clínica':'Clinical Correlation',
+    'Resumo Executivo':'Executive Summary','Resumo para Proprietário':'Owner Summary',
+  }
+};
+
+// L(key) — traduz um label para a língua activa do relatório
+function L(key) {
+  var dict = _i18n[_reportLang] || _i18n['pt'];
+  return (key in dict) ? dict[key] : key;
+}
+
+// Mudar língua do relatório — toggle PT/EN
+// setAppLang — toggle unificado: relatório + ditado
+function setAppLang(lang) {
+  _reportLang = lang;
+  _voiceLang  = lang;
+
+  // Topbar buttons
+  var ptBtn = document.getElementById('topLangPT');
+  var enBtn = document.getElementById('topLangEN');
+  if (ptBtn) { ptBtn.style.background = lang==='pt' ? 'var(--gold)' : 'transparent'; ptBtn.style.color = lang==='pt' ? '#000' : 'var(--t3)'; ptBtn.style.fontWeight = lang==='pt' ? '700' : 'normal'; }
+  if (enBtn) { enBtn.style.background = lang==='en' ? 'var(--gold)' : 'transparent'; enBtn.style.color = lang==='en' ? '#000' : 'var(--t3)'; enBtn.style.fontWeight = lang==='en' ? '700' : 'normal'; }
+
+  // Relatório — badges inline no relatório (se visível)
+  document.querySelectorAll('.report-lang-btn').forEach(function(b) {
+    var a = b.dataset.lang === lang;
+    b.style.background = a ? 'var(--gold)' : 'transparent';
+    b.style.color = a ? '#000' : 'var(--t3)';
+    b.style.fontWeight = a ? '700' : 'normal';
+  });
+
+  // Re-render relatório se já existe resultado
+  if (window.S && S.lastResult && window._lastRenderInfo) {
+    renderReport(S.lastResult, window._lastRenderInfo);
+  }
+
+  // Badges de ditado na sidebar
+  document.querySelectorAll('.voice-lang-badge').forEach(function(b) {
+    b.textContent = lang === 'pt' ? 'PT' : 'EN';
+    b.style.color = lang === 'pt' ? 'var(--gold)' : 'var(--ice)';
+    b.style.borderColor = lang === 'pt' ? 'rgba(201,168,76,.4)' : 'rgba(74,201,201,.4)';
+    b.style.background = lang === 'pt' ? 'rgba(201,168,76,.08)' : 'rgba(74,201,201,.08)';
+  });
+
+  showToast(lang === 'en' ? '🇬🇧 English — report & dictation' : '🇵🇹 Português — relatório e ditado', 'success');
+}
+
+function setReportLang(lang) {
+  if (_reportLang === lang) return;
+  _reportLang = lang;
+  // Actualizar botões toggle
+  document.querySelectorAll('.report-lang-btn').forEach(function(b) {
+    var isActive = b.dataset.lang === lang;
+    b.style.background = isActive ? 'var(--gold)' : 'transparent';
+    b.style.color = isActive ? '#000' : 'var(--t3)';
+    b.style.fontWeight = isActive ? '700' : 'normal';
+  });
+  // Re-render o relatório com a língua nova, se houver resultado
+  if (window.S && S.lastResult && window._lastRenderInfo) {
+    renderReport(S.lastResult, window._lastRenderInfo);
+    showToast(lang === 'en' ? 'Report in English' : 'Relatório em Português', 'success');
+  }
+}
+
+// Toggle PT/EN widget — inserido no topo do relatório
+function buildLangToggle() {
+  var isPT = (_reportLang !== 'en');
+  var m = 'JetBrains Mono,monospace';
+  var bs = function(a) { return 'padding:4px 10px;font-family:'+m+';font-size:9px;border:none;cursor:pointer;transition:all .15s;background:'+(a?'var(--gold)':'transparent')+';color:'+(a?'#000':'var(--t3)')+';font-weight:'+(a?700:400); };
+  var h = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">' +
+    '<span style="font-family:'+m+';font-size:8px;color:var(--t3);letter-spacing:.08em">LANG</span>' +
+    '<div style="display:flex;border:1px solid var(--wire2);border-radius:4px;overflow:hidden">' +
+      '<button class="report-lang-btn" data-lang="pt" style="'+bs(isPT)+'">PT</button>' +
+      '<button class="report-lang-btn" data-lang="en" style="'+bs(!isPT)+';border-left:1px solid var(--wire2)">EN</button>' +
+    '</div></div>';
+  // Ligar eventos depois de inserir no DOM
+  setTimeout(function() {
+    document.querySelectorAll('.report-lang-btn').forEach(function(b) {
+      b.onclick = function() { setReportLang(this.dataset.lang); };
+    });
+  }, 0);
+  return h;
+}
+
 function renderReport(r,info){
+  window._lastRenderInfo = info; // guardar para re-render ao mudar lingua
   // ── normalise field names across schema versions ──
   var sc   = r.score || (r.avaliacao_global||{}).score_aptidao || r.score_aptidao || 0;
   // Sanitise: if model returned grade (1-5) instead of percent, convert
@@ -10056,8 +10470,8 @@ function renderReport(r,info){
   var exames      = r.exames||r.exames_complementares||r.complementares||[];
 
   var now = new Date();
-  var ds  = now.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
-  var ts  = now.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+  var ds  = now.toLocaleDateString(_reportLang==='en'?'en-GB':'pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+  var ts  = now.toLocaleTimeString(_reportLang==='en'?'en-GB':'pt-PT',{hour:'2-digit',minute:'2-digit'});
   var ref = r.ref||r.ref_exame||('EQ-'+Date.now().toString(36).toUpperCase().slice(0,6));
 
   var sc_col = sc>=75?'var(--green)':sc>=50?'var(--amber)':'var(--red)';
@@ -10350,7 +10764,7 @@ function renderReport(r,info){
     '';
 
   // ── NARRATIVA — structured sections ──
-  var labels={'QT':'Qualidade Técnica','OS':'Achados Ósseos','ART':'Espaços Articulares','TM':'Tecidos Moles','CC':'Correlação Clínica'};
+  var labels={'QT':L('Qualidade Técnica'),'OS':L('Achados Ósseos'),'ART':L('Espaços Articulares'),'TM':L('Tecidos Moles'),'CC':L('Correlação Clínica')};
   var narrColors={'QT':'var(--t3)','OS':'var(--gold)','ART':'var(--blue)','TM':'var(--ice)','CC':'var(--green)'};
   // Narrativa parser: handles §XX both at line-start and inline within a single paragraph
   var proseHTML=(function(){
@@ -10733,23 +11147,23 @@ function renderReport(r,info){
     });
 
     // SEMAPHORE 1 — Achados Objectivos
-    var sem1='green', sem1txt='Sem Alterações';
+    var sem1='green', sem1txt=L('Sem Alterações');
     if(hasSev){
-      sem1='red'; sem1txt='Alterações Severas';
+      sem1='red'; sem1txt=L('Alterações Severas');
     } else if(nMod>=2||bilateralCount>=2||(nMod>=1&&hasCorpoLivre)){
-      sem1='orange'; sem1txt='Alterações Moderadas';
+      sem1='orange'; sem1txt=L('Alterações Moderadas');
     } else if(nMod===1){
-      sem1='yellow'; sem1txt='Alteração Moderada';
+      sem1='yellow'; sem1txt=L('Alteração Moderada');
     } else if(nLev>=1){
-      sem1='yellow'; sem1txt='Alterações Leves';
+      sem1='yellow'; sem1txt=L('Alterações Leves');
     }
 
     // SEMAPHORE 2 — Aptidão para Uso Declarado
     // Regra: sem2 parte de sem1 e sobe NO MÁXIMO 1 nível
     // "Não Recomendado" só com Severo OU ≥2 Moderados em articulações críticas
-    var sem2='green', sem2txt='Apto', sem2lbl='Aptidão para Uso';
+    var sem2='green', sem2txt=L('Apto'), sem2lbl='Aptidão para Uso';
     if(disc){
-      sem2lbl = isSaltos?'Aptidão Saltos':isDressage?'Aptidão Dressage':'Aptidão Declarada';
+      sem2lbl = L(isSaltos?'Aptidão Saltos':isDressage?'Aptidão Dressage':'Aptidão Declarada');
       var sem1level = ['green','yellow','orange','red'].indexOf(sem1);
       var sem2level = sem1level;
 
@@ -10773,9 +11187,9 @@ function renderReport(r,info){
 
       sem2=['green','yellow','orange','red'][sem2level];
       var sem2txts={green:'Apto',yellow:'Apto c/ Restrições',orange:'Aptidão Condicionada',red:'Não Recomendado'};
-      sem2txt=sem2txts[sem2];
+      sem2txt=L(sem2txts[sem2]);
     } else {
-      sem2='green'; sem2txt='—'; sem2lbl='Uso não declarado';
+      sem2='green'; sem2txt='—'; sem2lbl=L('Uso não declarado');
     }
 
     // Completude do estudo
@@ -10830,6 +11244,7 @@ function renderReport(r,info){
     '</div>'+
   '</div>'+
 
+  '<div style="display:flex;justify-content:flex-end;padding:0 0 6px">'+buildLangToggle()+'</div>'+
   '<div id="report-inv">'+buildInventarioReport(r,sc,sc_col,info)+'</div>'+
   '<div id="report-cliente" style="display:none">'+buildClienteReport(r,cl,sc,sc_col,info)+'</div>'+
   '<div id="report-vet" style="display:none">'+
@@ -10843,7 +11258,7 @@ function renderReport(r,info){
   '<div style="margin-top:24px;border-top:2px solid var(--wire2);padding-top:20px">'+
   '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px">Relatório Veterinário Completo</div>'+
 
-  (resumo?'<div class="sec" style="margin-bottom:16px">'+secH('01','Resumo Executivo','var(--gold)')+'<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
+  (resumo?'<div class="sec" style="margin-bottom:16px">'+secH('01',L('Resumo Executivo'),'var(--gold)')+'<div style="background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);padding:11px 14px;font-size:11px;color:var(--t2);line-height:1.8">'+
     resumo.split('\n').map(function(line){return line.trim()?'<div style="margin-bottom:4px">'+X(line)+'</div>':'';}).join('')+
   '</div></div>':'')+
 
@@ -10955,17 +11370,17 @@ function renderReport(r,info){
     '</div>';
   })():'')+
 
-  '<div class="sec">'+secH('03','Achados Radiológicos','var(--gold)')+
+  '<div class="sec">'+secH('03',L('Achados Radiológicos'),'var(--gold)')+
     '<table class="tbl"><thead><tr><th>Estrutura</th><th>Lesão</th><th>Grading</th><th>Severidade</th><th>Impacto Desportivo</th><th style="color:var(--gold);font-size:8px">REVISÃO</th></tr></thead><tbody>'+achRows+'</tbody></table>'+
     (mcHTML&&mcHTML.length>10?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Medições Críticas</div>'+mcHTML+'</div>':'')+
   '</div>'+
 
-  (ddHTML?'<div class="sec">'+secH('04','Diagnósticos Diferenciais','var(--t3)')+ddHTML+'</div>':'')+
+  (ddHTML?'<div class="sec">'+secH('04',L('Diagnósticos Diferenciais'),'var(--t3)')+ddHTML+'</div>':'')+
 
   // Conclusão Clínica — only in vet section
   '<div class="sec">'+buildVisaoGeral(r.achados||[], cl)+'</div>'+
 
-  '<div class="sec">'+secH('05','Prognóstico','var(--green)')+progHTML+'</div>'+
+  '<div class="sec">'+secH('05',L('Prognóstico'),'var(--green)')+progHTML+'</div>'+
 
   '<div class="sec">'+secH('06','Plano de Acção','var(--amber)')+'<div class="recs">'+recsHTML+'</div>'+
     (exHTML?'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--wire)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Exames Complementares</div><div style="border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;background:var(--ink2)">'+exHTML+'</div></div>':'')+
@@ -12941,7 +13356,7 @@ function openCaseStudyModal() {
           '<div style="font-family:'+mono+';font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Achado Confirmado</div>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
             '<div>'+lbl('Região')+sel('csRegiao',regOpts)+'</div>' +
-            '<div>'+lbl('Membro')+sel('csMembro',memOpts)+'</div>' +
+            '<div>'+lbl(L('Membro'))+sel('csMembro',memOpts)+'</div>' +
             '<div>'+lbl('Severidade *')+sel('csSev',sevOpts)+'</div>' +
           '</div>' +
           '<div>'+lbl('Descrição do achado *')+'<textarea id="csAchado" rows="2" placeholder="ex: Osteofitose moderada da articulação IFD com esclerose subcondral" style="width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:4px;color:var(--t1);font-size:11px;padding:6px 9px;font-family:inherit;resize:vertical"></textarea></div>' +
@@ -13642,7 +14057,13 @@ function appendChip(fieldId, text) {
 
 // ── Speech-to-text (Web Speech API) ────────────────────────────────
 var _voiceRecognition = null;
+var _voiceLang = 'pt'; // 'pt'=pt-PT | 'en'=en-GB
 var _voiceActive = false;
+
+function toggleVoiceLang() {
+  if (_voiceActive) { showToast('Para o ditado antes de mudar de lingua', 'warning'); return; }
+  setAppLang(_voiceLang === 'pt' ? 'en' : 'pt');
+}
 
 function _voiceResetBtn(btn) {
   if (!btn) return;
@@ -13679,13 +14100,8 @@ function startVoiceInput(targetId, btnId) {
   // Tentar arrancar e capturar erro not-allowed rapidamente
   _voiceRecognition = new SpeechRecognition();
 
-  // Língua: pt-PT com fallback para pt ou navigator.language
-  var lang = 'pt-PT';
-  try {
-    var nl = navigator.language || navigator.userLanguage || '';
-    if (nl.toLowerCase().startsWith('pt')) lang = nl;
-  } catch(e2) {}
-  _voiceRecognition.lang = lang;
+  // Lingua fixa: pt-PT ou en-GB conforme seleccao
+  _voiceRecognition.lang = (window._voiceLang === 'en') ? 'en-GB' : 'pt-PT';
 
   // CONTÍNUO = true → essencial para ditado clínico no PC
   // O vet dita uma frase completa, faz pausa, continua; com false parava na 1ª pausa
@@ -17721,6 +18137,7 @@ function renderCompareBody() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 var _ppeLang = 'pt'; // 'pt' | 'en'
+var _reportLang = 'pt'; // 'pt' | 'en' — lingua do relatorio principal
 var _ppeResult = null;
 
 function openPPEModal() {

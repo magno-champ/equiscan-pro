@@ -87,9 +87,9 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .viewer{display:none;position:relative;background:#000;border-radius:4px;overflow:hidden;margin-top:6px}
 .viewer img{width:100%;max-height:150px;object-fit:contain;display:block}
 .viewer-tag{position:absolute;top:4px;left:4px;font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);background:rgba(0,0,0,.7);padding:2px 5px;border-radius:2px}
-.viewer-ctrls{position:absolute;top:4px;right:4px;display:flex;gap:2px}
-.vbtn{width:19px;height:19px;background:rgba(0,0,0,.85);border:1px solid var(--wire);border-radius:2px;color:var(--t2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;transition:color .15s}
-.vbtn:hover{color:var(--t1)}
+.viewer-ctrls{position:absolute;top:8px;right:10px;display:flex;gap:4px;align-items:center}
+.vbtn{width:32px;height:32px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.18);border-radius:6px;color:rgba(255,255,255,.75);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;backdrop-filter:blur(4px)}
+.vbtn:hover{color:#fff;background:rgba(201,168,76,.3);border-color:rgba(201,168,76,.6)}
 
 /* FIELDS */
 .field{margin-bottom:7px}
@@ -1757,7 +1757,8 @@ window.addEventListener('DOMContentLoaded', function() {
     <div id="reportMenuWrap" style="display:none;position:relative">
       <button onclick="toggleReportMenu()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,168,76,.25);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em;display:flex;align-items:center;gap:5px">📋 Relatório <span id="reportMenuArrow" style="font-size:8px;transition:transform .15s">▾</span></button>
       <div id="reportMenuDropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--ink2);border:1px solid var(--wire2);border-radius:6px;min-width:160px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden">
-        <button onclick="printReport();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⎙ PDF Completo</button>
+        <button onclick="generatePdfVet();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">🩺 PDF Clínico</button>
+        <button onclick="generatePdfCliente();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ice);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">📋 PDF Proprietário</button>
         <button id="btnExportMenu" onclick="exportJSON();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ice);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">⬇ Exportar JSON</button>
         <button id="btnHistoryMenu" onclick="showHistoryPanel(S.lastResult, S._lastInfo||{});toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">📊 Histórico</button>
         <button id="btnSecondOpMenu" onclick="runSecondOpinion();toggleReportMenu()" style="width:100%;text-align:left;padding:9px 14px;background:transparent;border:none;border-bottom:1px solid var(--wire);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber);cursor:pointer;letter-spacing:.04em;transition:background .12s" onmouseover="this.style.background='var(--ink3)'" onmouseout="this.style.background='transparent'">🔄 2ª Opinião</button>
@@ -1798,107 +1799,113 @@ window.addEventListener('DOMContentLoaded', function() {
   <!-- ══ SCROLL AREA ══════════════════════════════════════════ -->
   <div class="sb-scroll">
 
-    <!-- ── CAVALO ─────────────────────────────────────── -->
-    <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">🐴 Cavalo</div>
-      <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+    <!-- ── CAVALO ──────────────────────────────────────────── -->
+    <div style="padding:14px 14px 10px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Cavalo</div>
+      <div style="display:flex;align-items:center;gap:5px">
         <select id="horseSelect" class="horse-select" onchange="onHorseSelect(this.value)"
-          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink2);border:1px solid var(--wire2);border-radius:5px;color:var(--t1);padding:6px 8px;cursor:pointer;height:32px">
-          <option value="">— Seleccionar —</option>
+          style="flex:1;height:34px;font-size:11px">
+          <option value="">— seleccionar —</option>
         </select>
-        <button onclick="openNewHorseModal()" title="Criar novo cavalo"
-          style="font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1;background:rgba(201,168,76,.08);color:var(--gold);border:1px solid rgba(201,168,76,.2);border-radius:5px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+        <button onclick="openNewHorseModal()" title="Novo cavalo"
+          style="width:34px;height:34px;background:rgba(201,168,76,.08);color:var(--gold);border:1px solid rgba(201,168,76,.2);border-radius:5px;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
         <button onclick="openCavalosPanel()" title="Gerir cavalos"
-          style="font-family:'JetBrains Mono',monospace;font-size:13px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">≡</button>
+          style="width:34px;height:34px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center">≡</button>
       </div>
-      <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)"></span>
-      <div class="horse-card" id="horseCard" style="margin-top:6px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-          <div style="display:flex;gap:8px">
+      <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:4px;display:block"></span>
+
+      <!-- Horse card — só aparece quando cavalo seleccionado -->
+      <div class="horse-card" id="horseCard" style="margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:10px">
             <div class="horse-stat"><span class="horse-stat-label">Raça</span><span class="horse-stat-val" id="hcRaca">—</span></div>
             <div class="horse-stat"><span class="horse-stat-label">Idade</span><span class="horse-stat-val" id="hcIdade">—</span></div>
-            <div class="horse-stat"><span class="horse-stat-label">Disc.</span><span class="horse-stat-val" id="hcDisc">—</span></div>
             <div class="horse-stat"><span class="horse-stat-label">Exames</span><span class="horse-stat-val" id="hcExames">0</span></div>
           </div>
           <div style="display:flex;gap:3px">
-            <button onclick="openHorseProfileModal(window._selectedHorseId)" title="Perfil" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;padding:2px 5px">👁</button>
-            <button onclick="openEditHorseModal(window._selectedHorseId)" title="Editar" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;padding:2px 5px">✎</button>
-            <button onclick="deleteHorse(window._selectedHorseId)" title="Apagar" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:3px;color:rgba(255,80,80,.4);cursor:pointer;padding:2px 5px">✕</button>
+            <button onclick="openHorseProfileModal(window._selectedHorseId)" title="Ver perfil" style="width:26px;height:26px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">👁</button>
+            <button onclick="openEditHorseModal(window._selectedHorseId)" title="Editar" style="width:26px;height:26px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">✎</button>
           </div>
         </div>
         <div class="horse-timeline" id="hcTimeline" style="display:none">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Histórico</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:6px 0 3px">Histórico</div>
           <div id="hcTimelineList"></div>
         </div>
       </div>
     </div>
 
-    <!-- ── RADIOGRAFIAS ───────────────────────────────── -->
-    <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">🩻 Radiografias <span id="imgBadge" style="color:var(--gold);margin-left:4px"></span></div>
+    <!-- ── IMAGENS ──────────────────────────────────────────── -->
+    <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.05)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Radiografias <span id="imgBadge" style="color:var(--gold)"></span></div>
       <div class="drop" id="dropzone"
         ondragover="event.preventDefault();event.stopPropagation();this.classList.add('over')"
         ondragleave="event.preventDefault();this.classList.remove('over')"
         ondrop="onDrop(event)">
         <input type="file" id="fileIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" onchange="onFileInput(this)" style="display:none">
-        <svg class="drop-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <svg class="drop-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         <div class="drop-title" id="dropTitle">Clica ou arrasta</div>
         <div class="drop-sub">JPG · PNG · PDF · DICOM</div>
-        <div style="font-size:9px;color:var(--amber);margin-top:3px">⚠ PDFs: clica, não arrastes</div>
-        <div class="drop-hint" id="dropHint" style="font-size:10px;color:var(--amber);margin-top:4px;display:none">⚠ Carrega <strong>toda</strong> a sessão de uma vez</div>
+        <div class="drop-hint" id="dropHint" style="display:none;font-size:9px;color:var(--amber);margin-top:2px">⚠ Carrega toda a sessão de uma vez</div>
       </div>
-      <div id="sbThumbBar" style="display:none;margin-top:6px">
-        <div id="sbThumbCount" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:5px"></div>
-        <div id="sbMiniStrip" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px"></div>
-        <div style="display:flex;gap:4px">
-          <button onclick="document.getElementById('addIn').click()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.2);border-radius:4px;cursor:pointer;padding:5px 4px">+ Adicionar</button>
-          <button onclick="clearImages()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:transparent;border:1px solid rgba(255,80,80,.15);border-radius:4px;cursor:pointer;padding:5px 8px">✕</button>
+
+      <!-- Com imagens — contador limpo + acções -->
+      <div id="sbThumbBar" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--gold)"></div>
+            <span id="sbThumbCount" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t1)"></span>
+          </div>
+          <div style="display:flex;gap:5px">
+            <button onclick="document.getElementById('addIn').click()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.2);border-radius:4px;cursor:pointer;padding:4px 10px">+ Mais</button>
+            <button onclick="clearImages()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:4px;cursor:pointer;padding:4px 8px" title="Limpar tudo">✕</button>
+          </div>
         </div>
+        <!-- Mini strip — scroll horizontal, 1 linha -->
+        <div id="sbMiniStrip" style="display:flex;gap:4px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
       </div>
+
       <input type="file" id="addIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" style="display:none" onchange="onFileInput(this)">
       <div class="thumb-grid" id="grid" style="display:none!important;position:absolute;visibility:hidden"></div>
       <div id="clearRow" style="display:none"></div>
     </div>
 
-    <!-- ── PACIENTE — accordion ───────────────────────── -->
-    <div class="sb sb-accordion" id="sbPaciente">
-      <div class="sb-acc-header" onclick="toggleAccordion('sbPaciente')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em">👤 Paciente</div>
-        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▶</span>
-      </div>
-      <div class="sb-acc-body" style="margin-top:0;display:none;padding:10px 14px">
-        <div class="field"><label>Nome</label><input id="fName" placeholder="ex: Lusitano Prince"></div>
-        <div class="row2">
-          <div class="field"><label>Raça</label>
-            <select id="fBreed">
-              <option value="">—</option>
-              <option>Lusitano</option><option>PSI</option><option>KWPN</option>
-              <option>Hanoveriano</option><option>Westfaliano</option><option>PRE</option>
-              <option>Árabe</option><option>Lipizzaner</option><option>Quarto de Milha</option><option>Outra</option>
-            </select>
-          </div>
-          <div class="field"><label>Idade</label><input id="fAge" type="number" min="1" max="35" placeholder="8"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>Sexo</label>
-            <select id="fSex">
-              <option value="">—</option>
-              <option>Garanhão</option><option>Castrado</option><option>Égua</option>
-            </select>
-          </div>
-          <div class="field"><label>Peso (kg)</label><input id="fWeight" type="number" placeholder="520"></div>
-        </div>
-      </div>
-    </div>
+    <!-- ── DADOS CLÍNICOS ──────────────────────────────────── -->
+    <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.05)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.14em;margin-bottom:10px">Contexto Clínico</div>
 
-    <!-- ── DADOS CLÍNICOS — accordion ────────────────── -->
-    <div class="sb sb-accordion" id="sbClinical">
-      <div class="sb-acc-header" onclick="toggleAccordion('sbClinical')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em">⚕ Dados Clínicos</div>
-        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▶</span>
+      <div class="row2" style="margin-bottom:7px">
+        <div class="field" style="margin-bottom:0">
+          <label>Nome</label>
+          <input id="fName" placeholder="Lusitano Prince">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Idade</label>
+          <input id="fAge" type="number" min="1" max="35" placeholder="8">
+        </div>
       </div>
-      <div class="sb-acc-body" style="margin-top:0;display:none;padding:10px 14px">
-        <div class="field"><label>Disciplina</label>
+
+      <div class="row2" style="margin-bottom:7px">
+        <div class="field" style="margin-bottom:0">
+          <label>Raça</label>
+          <select id="fBreed">
+            <option value="">—</option>
+            <option>Lusitano</option><option>PSI</option><option>KWPN</option>
+            <option>Hanoveriano</option><option>Westfaliano</option><option>PRE</option>
+            <option>Árabe</option><option>Lipizzaner</option><option>Quarto de Milha</option><option>Outra</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Sexo</label>
+          <select id="fSex">
+            <option value="">—</option>
+            <option>Garanhão</option><option>Castrado</option><option>Égua</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2" style="margin-bottom:7px">
+        <div class="field" style="margin-bottom:0">
+          <label>Disciplina</label>
           <select id="fDisc">
             <option value="">—</option>
             <option>Dressage</option><option>Saltos</option><option>CCE</option>
@@ -1906,16 +1913,8 @@ window.addEventListener('DOMContentLoaded', function() {
             <option>Pré-compra</option><option>Outra</option>
           </select>
         </div>
-        <div class="field"><label>Perfil</label>
-          <select id="fPerfil">
-            <option value="">— não especificado —</option>
-            <option value="lazer">🌿 Lazer / Passeio</option>
-            <option value="jovem">🐴 Jovem em formação (≤5 anos)</option>
-            <option value="funcional">🏇 Desporto Funcional</option>
-            <option value="gp">🏆 Alto Nível / GP</option>
-          </select>
-        </div>
-        <div class="field"><label>Região Anatómica</label>
+        <div class="field" style="margin-bottom:0">
+          <label>Região</label>
           <select id="fRegion">
             <option value="">Corpo completo</option>
             <option>Casco / P3</option><option>Quartela</option><option>Boleto</option>
@@ -1925,76 +1924,55 @@ window.addEventListener('DOMContentLoaded', function() {
             <option>Crânio / Dentes</option><option>Outro</option>
           </select>
         </div>
-        <div class="field">
-          <label style="display:flex;align-items:center;justify-content:space-between">
-            Sinais Clínicos
-            <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.5);font-size:14px;cursor:pointer;padding:0">🎙</button>
-          </label>
-          <textarea id="fSymp" rows="3" placeholder="ex: Flexões P/P positivas bilateral, claudicação grau 2/5 MAD..."></textarea>
-          <div id="sympChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
-            <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAD ++')">Flex. distal MAD ++</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAE ++')">Flex. distal MAE ++</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Flexão jarrete MPD ++')">Flex. jarrete MPD ++</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Testador de cascos positivo bilateral')">Testador + bilateral</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Claudicação grau 2/5 MAD')">Claudicação 2/5 MAD</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Bloqueio perineural distal positivo MAD')">Bloqueio peneural +</span>
-          </div>
+      </div>
+
+      <div class="field" style="margin-bottom:7px">
+        <label>Perfil</label>
+        <select id="fPerfil">
+          <option value="">— não especificado —</option>
+          <option value="lazer">🌿 Lazer / Passeio</option>
+          <option value="jovem">🐴 Jovem em formação (≤5 anos)</option>
+          <option value="funcional">🏇 Desporto Funcional</option>
+          <option value="gp">🏆 Alto Nível / GP</option>
+        </select>
+      </div>
+
+      <div class="field" style="margin-bottom:7px">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          Sinais Clínicos
+          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.4);font-size:13px;cursor:pointer;padding:0;line-height:1">🎙</button>
+        </label>
+        <textarea id="fSymp" rows="3" placeholder="ex: Flexões P/P positivas bilateral, claudicação grau 2/5 MAD..."></textarea>
+        <div id="sympChips" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+          <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAD ++')">Flex. distal MAD ++</span>
+          <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAE ++')">Flex. distal MAE ++</span>
+          <span class="symp-chip" onclick="appendChip('fSymp','Flexão jarrete MPD ++')">Flex. jarrete MPD ++</span>
+          <span class="symp-chip" onclick="appendChip('fSymp','Testador de cascos positivo bilateral')">Testador + bilateral</span>
+          <span class="symp-chip" onclick="appendChip('fSymp','Claudicação grau 2/5 MAD')">Claudicação 2/5 MAD</span>
         </div>
-        <div class="field">
-          <label style="display:flex;align-items:center;justify-content:space-between">Flexões Positivas <span style="font-weight:400;color:var(--t3);font-size:8px">(resumo)</span></label>
-          <input id="fFlexoes" type="text" placeholder="ex: distal MAE ++, jarrete MPD +" style="font-size:10px;font-family:'JetBrains Mono',monospace">
-        </div>
-        <div class="field">
-          <label style="display:flex;align-items:center;justify-content:space-between">
-            História
-            <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.5);font-size:14px;cursor:pointer;padding:0">🎙</button>
-          </label>
-          <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nerviação..."></textarea>
-        </div>
-        <div class="field"><label>Clínica</label><input id="fClinic" placeholder="ex: Clínica Equina Lisboa" oninput="saveClinic()"></div>
-        <div class="field"><label>Veterinário</label><input id="fVet" placeholder="ex: Dr. João Silva, ECVDI" oninput="saveClinic()"></div>
+      </div>
+
+      <div class="field" style="margin-bottom:7px">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          História Clínica
+          <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.4);font-size:13px;cursor:pointer;padding:0;line-height:1">🎙</button>
+        </label>
+        <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nerviação..."></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom:0">
+        <label>Flexões +</label>
+        <input id="fFlexoes" type="text" placeholder="ex: distal MAE ++, jarrete MPD +" style="font-size:10px;font-family:'JetBrains Mono',monospace">
       </div>
     </div>
 
-    <!-- ── MEMÓRIA — accordion, fechado ──────────────── -->
-    <div class="sb sb-accordion" id="sbMemoria">
-      <div class="sb-acc-header" onclick="toggleAccordion('sbMemoria')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em">🧠 Memória <span id="calibActiveBadge2" style="display:none;background:var(--gold);color:#000;font-size:7px;padding:1px 4px;border-radius:3px;margin-left:4px"></span></div>
-        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▶</span>
-      </div>
-      <div class="sb-acc-body" style="margin-top:0;display:none;padding:10px 14px">
-        <div id="intelSidebarStatus" onclick="openIntelligencePanel()" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(138,43,226,.06);border:1px solid rgba(138,43,226,.15);border-radius:6px;cursor:pointer;margin-bottom:8px">
-          <span style="font-size:13px">🧠</span>
-          <div style="flex:1">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em">Inteligência</div>
-            <div id="intelSidebarCount" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:1px"></div>
-          </div>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">→</span>
-        </div>
-        <div style="display:flex;gap:5px;margin-bottom:8px">
-          <button onclick="openDistillModal()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(138,43,226,.06);border:1px solid rgba(138,43,226,.2);color:#a78bfa;border-radius:4px;cursor:pointer;padding:5px 4px">🔄 Destilar</button>
-          <button id="btnCalibsActive" onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);color:var(--gold);border-radius:4px;cursor:pointer;padding:5px 4px">📐 CALIBs</button>
-        </div>
-        <div id="confidencePanelWrap" style="margin-bottom:8px;display:none">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Confiança</span>
-            <button onclick="refreshConfidencePanel()" style="background:transparent;border:none;color:var(--t3);font-size:10px;cursor:pointer">↻</button>
-          </div>
-          <div id="confidencePanelBody" style="font-size:9px;line-height:1.8"></div>
-        </div>
-        <button id="btnImportPdf" onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;padding:6px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:5px">
-          📄 Importar Relatório Vet <span id="calibPendingBadge" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 5px;font-size:8px"></span>
-        </button>
-        <button onclick="openCaseStudyModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;padding:6px;margin-bottom:4px">🔬 Registar Caso de Estudo</button>
-        <button onclick="openCaseStudiesListModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;padding:6px;margin-bottom:4px">🧪 Casos de Estudo <span id="caseStudyCount" style="background:rgba(138,43,226,.25);border-radius:10px;padding:0 5px"></span></button>
-        <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="openImportModeModal(this.files[0])">
-        <div id="vetPendingBadge" style="display:none;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber)"></div>
-        <div id="vetImportStatus" style="display:none;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)"></div>
-      </div>
+    <!-- hidden fields sempre presentes -->
+    <div style="display:none">
+      <input type="hidden" id="fKey" value="server-managed">
+      <input id="fClinic" value="">
+      <input id="fVet" value="">
+      <input id="fWeight" type="number" value="">
     </div>
-
-    <!-- API KEY hidden -->
-    <div class="sb" style="display:none"><input type="hidden" id="fKey" value="server-managed"></div>
 
     <!-- DICOM Panel -->
     <div id="wlPanel" style="display:none;margin:0 14px 10px;padding:10px 12px;background:var(--ink3);border:1px solid rgba(74,201,201,.2);border-radius:6px">
@@ -2014,35 +1992,44 @@ window.addEventListener('DOMContentLoaded', function() {
       </div>
       <div id="dicomMeta" style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
     </div>
-  <!-- ══ FIM SCROLL ══════════════════════════════════════════ -->
 
-  <!-- ══ FOOTER FIXO — SEMPRE VISÍVEL ══════════════════════ -->
+    <!-- Memória / Admin — escondido, acessível via painel -->
+    <div style="display:none">
+      <div id="sbMemoria"></div>
+      <div id="sbPaciente"></div>
+      <div id="sbClinical"></div>
+      <span id="calibActiveBadge2"></span>
+      <div id="intelSidebarStatus"></div>
+      <div id="intelSidebarCount"></div>
+      <div id="confidencePanelWrap"></div>
+      <div id="confidencePanelBody"></div>
+      <button id="btnCalibsActive"></button>
+      <button id="btnImportPdf"></button>
+      <span id="calibPendingBadge"></span>
+      <span id="caseStudyCount"></span>
+      <div id="vetPendingBadge"></div>
+      <div id="vetImportStatus"></div>
+      <input type="file" id="vetReportIn" accept=".pdf,application/pdf" onchange="openImportModeModal(this.files[0])">
+    </div>
+
+  </div><!-- fim sb-scroll -->
+
+  <!-- ══ FOOTER — sempre visível ════════════════════════════ -->
   <div class="sb-footer">
 
-    <!-- Opinião clínica do vet — contexto crítico para a IA -->
+    <!-- Opinião clínica — aparece quando imagens carregadas -->
     <div id="vetOpinionWrap" style="margin-bottom:10px;display:none">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-        <span>⚕</span> Opinião Clínica
-        <span style="color:var(--t3);font-size:8px;text-transform:none;letter-spacing:0">(guia o diagnóstico)</span>
-      </div>
-      <!-- Impressão geral — botões rápidos -->
-      <div style="display:flex;gap:5px;margin-bottom:7px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">⚕ Impressão Clínica</div>
+      <div style="display:flex;gap:4px;margin-bottom:6px">
         <button class="vet-imp-btn" data-val="normal" onclick="setVetImpressao(this,'normal')"
-          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(74,170,122,.3);background:rgba(74,170,122,.07);color:#4aaa7a;cursor:pointer;transition:all .15s">
-          ✓ Normal
-        </button>
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(74,170,122,.3);background:rgba(74,170,122,.07);color:#4aaa7a;cursor:pointer;transition:all .15s">✓ Normal</button>
         <button class="vet-imp-btn" data-val="suspeito" onclick="setVetImpressao(this,'suspeito')"
-          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(212,147,58,.3);background:rgba(212,147,58,.07);color:var(--amber);cursor:pointer;transition:all .15s">
-          ⚠ Suspeito
-        </button>
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(212,147,58,.3);background:rgba(212,147,58,.07);color:var(--amber);cursor:pointer;transition:all .15s">⚠ Suspeito</button>
         <button class="vet-imp-btn" data-val="problematico" onclick="setVetImpressao(this,'problematico')"
-          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(224,85,85,.3);background:rgba(224,85,85,.07);color:var(--red);cursor:pointer;transition:all .15s">
-          ✕ Problemático
-        </button>
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 4px;border-radius:5px;border:1px solid rgba(224,85,85,.3);background:rgba(224,85,85,.07);color:var(--red);cursor:pointer;transition:all .15s">✕ Prob.</button>
       </div>
-      <!-- Comentário livre -->
-      <textarea id="fVetOpinion" placeholder="Ex: Animal jovem para uso intensivo. Flexões P/P positivas bilaterais. Suspeita navicular..."
-        rows="2" style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid rgba(201,168,76,.2);border-radius:5px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .2s"
+      <textarea id="fVetOpinion" placeholder="Observação clínica livre..." rows="2"
+        style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid rgba(201,168,76,.2);border-radius:5px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .2s"
         onfocus="this.style.borderColor='rgba(201,168,76,.5)'"
         onblur="this.style.borderColor='rgba(201,168,76,.2)'"></textarea>
     </div>
@@ -2051,22 +2038,23 @@ window.addEventListener('DOMContentLoaded', function() {
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
       Gerar Relatório
     </button>
+
     <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
-      <button id="btnWebSearch" onclick="toggleWebSearch()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:5px 10px;border-radius:4px;cursor:pointer;letter-spacing:.05em;transition:all .2s;flex-shrink:0">🔍 Literatura: OFF</button>
-      <span style="font-size:9px;color:var(--t3)">+20-40s quando ON</span>
+      <button id="btnWebSearch" onclick="toggleWebSearch()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .2s;flex-shrink:0">🔍 Literatura: OFF</button>
+      <span style="font-size:9px;color:var(--t3)">+20-40s</span>
     </div>
-    <div style="display:flex;gap:6px;margin-top:6px">
-      <button class="btn-test" onclick="testApi()" style="flex:1">🔍 Testar Ligação</button>
-      <div id="testOut" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);padding:4px 0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-    </div>
-    <!-- Readiness bar — mostra o que ainda falta antes de gerar -->
-    <div id="readinessBar" style="margin-bottom:8px;display:none">
+
+    <!-- Readiness -->
+    <div id="readinessBar" style="margin-top:8px;display:none">
       <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Pronto para análise</div>
       <div id="readinessList" style="display:flex;flex-direction:column;gap:3px"></div>
     </div>
-    <p class="run-hint" id="hint" style="margin-top:6px;margin-bottom:0">Carregue imagens radiográficas.</p>
-  </div>
 
+    <p class="run-hint" id="hint" style="margin-top:6px;margin-bottom:0">Carregue imagens radiográficas.</p>
+
+    <!-- testOut escondido mas presente para compatibilidade -->
+    <div id="testOut" style="display:none"></div>
+  </div>
 </aside>
 
 <!-- ══ BOTTOM NAV MOBILE ══════════════════════════════════════════ -->
@@ -2252,9 +2240,9 @@ window.addEventListener('DOMContentLoaded', function() {
         <button class="vbtn" onclick="fr()" title="Reset filtro">↺</button>
         <button class="vbtn" onclick="openReviewMode(S.idx)" title="Ecrã inteiro — anotações" style="color:var(--gold);font-size:13px">⤢</button>
       </div>
-      <!-- Nav arrows — esquerda/direita -->
-      <button id="mainImgPrev" onclick="if(S.idx>0){setImg(S.idx-1)}" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:50%;width:36px;height:36px;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(0,0,0,.8)'" onmouseout="this.style.background='rgba(0,0,0,.5)'">‹</button>
-      <button id="mainImgNext" onclick="if(S.idx<S.imgs.length-1){setImg(S.idx+1)}" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:50%;width:36px;height:36px;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(0,0,0,.8)'" onmouseout="this.style.background='rgba(0,0,0,.5)'">›</button>
+      <!-- Nav arrows — esquerda/direita — GRANDES e visíveis -->
+      <button id="mainImgPrev" onclick="if(S.idx>0){setImg(S.idx-1)}" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.65);border:2px solid rgba(255,255,255,.25);border-radius:50%;width:48px;height:48px;color:rgba(255,255,255,.9);font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 12px rgba(0,0,0,.5)" onmouseover="this.style.background='rgba(201,168,76,.3)';this.style.borderColor='var(--gold)';this.style.color='#fff'" onmouseout="this.style.background='rgba(0,0,0,.65)';this.style.borderColor='rgba(255,255,255,.25)';this.style.color='rgba(255,255,255,.9)'">‹</button>
+      <button id="mainImgNext" onclick="if(S.idx<S.imgs.length-1){setImg(S.idx+1)}" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.65);border:2px solid rgba(255,255,255,.25);border-radius:50%;width:48px;height:48px;color:rgba(255,255,255,.9);font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 12px rgba(0,0,0,.5)" onmouseover="this.style.background='rgba(201,168,76,.3)';this.style.borderColor='var(--gold)';this.style.color='#fff'" onmouseout="this.style.background='rgba(0,0,0,.65)';this.style.borderColor='rgba(255,255,255,.25)';this.style.color='rgba(255,255,255,.9)'">›</button>
     </div>
     <!-- Thumb strip — em baixo, horizontal -->
     <div id="mainThumbStrip" style="flex-shrink:0;background:rgba(4,5,7,.95);border-top:1px solid rgba(255,255,255,.06);padding:6px 8px;display:flex;gap:5px;overflow-x:auto;align-items:center;min-height:68px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent">
@@ -2470,54 +2458,419 @@ function buildImgPage(){
   return html;
 }
 
+// ── PDF PICKER ──────────────────────────────────────────────────────
 function printReport(){
-  var vetEl  = document.getElementById('report-vet');
-  var cliEl  = document.getElementById('report-cliente');
-  var invEl  = document.getElementById('report-inv');
-  var sepEl  = document.getElementById('print-owner-sep');
-  var imgEl  = document.getElementById('print-img-page');
+  var ex = document.getElementById('pdfPickerOverlay');
+  if(ex){ ex.remove(); return; }
+  if(!S.lastResult){ showToast('⚠ Gera um relatório primeiro','warning'); return; }
 
-  // Build and inject images page if not yet present
-  if(!imgEl){
-    imgEl = document.createElement('div');
-    imgEl.id = 'print-img-page';
-    imgEl.className = 'no-print';
-    imgEl.innerHTML = buildImgPage();
-    var sepRef = document.getElementById('print-owner-sep');
-    if(sepRef) sepRef.parentNode.insertBefore(imgEl, sepRef);
-  } else {
-    imgEl.innerHTML = buildImgPage();
+  var ov = document.createElement('div');
+  ov.id = 'pdfPickerOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:fadeup .2s ease';
+  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+
+  ov.innerHTML =
+    '<div style="background:#0d0f14;border:1px solid rgba(201,168,76,.3);border-radius:14px;padding:30px 32px;width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.7)">'+
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:rgba(201,168,76,.5);text-transform:uppercase;letter-spacing:.16em;margin-bottom:6px">Exportar Relatório</div>'+
+      '<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:22px">Que documento queres gerar?</div>'+
+
+      // Card 1 — Relatório Clínico
+      '<div onclick="generatePdfVet();document.getElementById(\'pdfPickerOverlay\').remove()"'+
+        ' style="display:flex;gap:16px;padding:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;cursor:pointer;margin-bottom:10px;transition:all .18s"'+
+        ' onmouseover="this.style.borderColor=\'rgba(201,168,76,.5)\';this.style.background=\'rgba(201,168,76,.07)\'"'+
+        ' onmouseout="this.style.borderColor=\'rgba(255,255,255,.09)\';this.style.background=\'rgba(255,255,255,.04)\'">' +
+        '<div style="font-size:30px;flex-shrink:0;line-height:1">🩺</div>'+
+        '<div>'+
+          '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:5px">Relatório Clínico Veterinário</div>'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.7">Inventário completo · Interpretação clínica · Todas as imagens com anotações · Para arquivo, colegas e processo clínico</div>'+
+        '</div>'+
+      '</div>'+
+
+      // Card 2 — Proprietário
+      '<div onclick="generatePdfCliente();document.getElementById(\'pdfPickerOverlay\').remove()"'+
+        ' style="display:flex;gap:16px;padding:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;cursor:pointer;margin-bottom:22px;transition:all .18s"'+
+        ' onmouseover="this.style.borderColor=\'rgba(74,201,201,.45)\';this.style.background=\'rgba(74,201,201,.05)\'"'+
+        ' onmouseout="this.style.borderColor=\'rgba(255,255,255,.09)\';this.style.background=\'rgba(255,255,255,.04)\'">' +
+        '<div style="font-size:30px;flex-shrink:0;line-height:1">📋</div>'+
+        '<div>'+
+          '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:5px">Resumo para o Proprietário</div>'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.7">1 página · Linguagem acessível · Semáforo de gravidade · Recomendações práticas · Para enviar ao cliente</div>'+
+        '</div>'+
+      '</div>'+
+
+      '<button onclick="document.getElementById(\'pdfPickerOverlay\').remove()" style="width:100%;padding:10px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:rgba(255,255,255,.35);font-family:\'JetBrains Mono\',monospace;font-size:10px;cursor:pointer;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.6)\'" onmouseout="this.style.color=\'rgba(255,255,255,.35)\'">Cancelar</button>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+}
+
+// ── HELPERS PDF ─────────────────────────────────────────────────────
+function _pdfClinicHeader(clinic, vet) {
+  if(!clinic && !vet) return '';
+  return '<div style="background:#f7f4ed;padding:9px 16px;border-bottom:1px solid #d9c87a;font-family:monospace;font-size:10px;color:#555;display:flex;justify-content:space-between;align-items:center">' +
+    '<span><strong style="color:#222">'+(clinic||'')+'</strong>'+(clinic&&vet?' &nbsp;·&nbsp; ':'')+escH(vet||'')+'</span>'+
+    '<span style="color:#999">EquiScan Pro</span>'+
+  '</div>';
+}
+function _pdfSevColor(sev){
+  var s=(sev||'').toLowerCase();
+  return s.indexOf('sev')>=0?'#b00020':s.indexOf('mod')>=0?'#b05000':s.indexOf('lev')>=0?'#2060a0':'#1a6a1a';
+}
+function _friendlyEst(est){
+  return (est||'')
+    .replace(/Articulação metatarsofalângica/gi,'Boleto posterior')
+    .replace(/Articulação metacarpofalângica/gi,'Boleto anterior')
+    .replace(/[Aa]rticulação tarsocrural/g,'Curvilhão')
+    .replace(/[Aa]rticulação tarsometatársica/g,'Curvilhão baixo')
+    .replace(/[Aa]rticulação interfalângica distal/g,'Articulação do casco')
+    .replace(/[Nn]avicular/g,'Osso navicular');
+}
+function _friendlyLes(les){
+  return (les||'')
+    .replace(/[Oo]steófito[s]?/g,'depósitos ósseos')
+    .replace(/[Oo]steoartrite/g,'desgaste articular')
+    .replace(/[Ee]sclerose\s+sub[- ]?condral/gi,'endurecimento subcondral')
+    .replace(/[Ee]ffusão articular/gi,'fluido articular aumentado')
+    .replace(/McIlwraith\s+[Gg]rau\s+\d/g,'')
+    .replace(/Oxspring\s+[Gg]rau\s+\d/g,'')
+    .replace(/\s{2,}/g,' ').trim();
+}
+function _openPdfWindow(html, title){
+  var w = window.open('','_blank','width=900,height=700');
+  if(!w){ showToast('⚠ Permite popups para exportar PDF','warning'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── PDF VET — Relatório Clínico completo ────────────────────────────
+function generatePdfVet(){
+  var r    = S.lastResult;
+  var info = S._lastInfo || {};
+  if(!r){ showToast('⚠ Nenhum relatório disponível','warning'); return; }
+
+  var clinic = (document.getElementById('fClinic')&&document.getElementById('fClinic').value.trim()) || '';
+  var vet    = (document.getElementById('fVet')&&document.getElementById('fVet').value.trim()) || '';
+  var horse  = info.name || 'Animal não identificado';
+  var date   = new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'});
+  var ref    = 'EQ-'+Date.now().toString(36).toUpperCase().slice(-6);
+
+  var achados = (r.achados||[]).filter(function(a){ return !isQualidadeAchado(a); });
+  achados = achados.slice().sort(function(a,b){
+    var o={Severo:0,Moderado:1,Leve:2,Normal:3};
+    return (o[a.sev]||4)-(o[b.sev]||4);
+  });
+  var interp = r.interpretacao_clinica || [];
+  var inv    = r.inventario_radiografico || [];
+  var recs   = r.recomendacoes || r.plano_accao || [];
+  if(!Array.isArray(recs)) recs=[];
+
+  var sc = r.score || (r.avaliacao_global||{}).score_aptidao || 0;
+  if(sc>0&&sc<=5) sc=Math.round(sc*20);
+  sc = Math.max(0,Math.min(100,Number(sc)||0));
+  var cl = r.classe || (r.avaliacao_global||{}).classificacao || (sc>=70?'Sem Alterações Significativas':sc>=50?'Alterações Ligeiras a Moderadas':'Alterações Moderadas a Avançadas');
+  var scColor = sc>=70?'#1a6a1a':sc>=50?'#7a5200':'#900020';
+
+  // Images grid
+  var imgsHtml = '';
+  if(S.imgs && S.imgs.length){
+    var cols = S.imgs.length<=4?2:S.imgs.length<=9?3:4;
+    imgsHtml = '<div style="page-break-before:always;padding-top:20px">'+
+      '<div style="font-size:10px;font-weight:700;color:#8B6914;text-transform:uppercase;letter-spacing:.1em;padding-bottom:8px;border-bottom:2px solid #8B6914;margin-bottom:14px">'+
+        'Registo Imagiológico &nbsp;·&nbsp; '+S.imgs.length+' Radiografia'+(S.imgs.length>1?'s':'')+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:10px">';
+    S.imgs.forEach(function(im,i){
+      var src = (window._annotatedImageCache&&window._annotatedImageCache[im.name])||im.url;
+      var note = (_reviewNotes&&_reviewNotes[im.name]&&_reviewNotes[im.name].text)||'';
+      imgsHtml +=
+        '<div style="break-inside:avoid;border:1px solid #ddd;border-radius:5px;overflow:hidden">'+
+          '<div style="background:#1a1a1a;padding:3px 8px;display:flex;justify-content:space-between">'+
+            '<span style="font-family:monospace;font-size:8px;color:#aaa">IMG '+String(i+1).padStart(2,'0')+'</span>'+
+            '<span style="font-family:monospace;font-size:8px;color:#666">'+escH((im.name||'').slice(0,22))+'</span>'+
+          '</div>'+
+          '<img src="'+src+'" style="width:100%;display:block;background:#000;max-height:160px;object-fit:contain">'+
+          (note?'<div style="padding:4px 8px;background:#fffbe6;border-top:1px solid #e8d44d;font-size:8px;color:#555"><strong style="color:#8B6914">Nota: </strong>'+escH(note)+'</div>':'')+
+        '</div>';
+    });
+    imgsHtml += '</div></div>';
   }
 
-  // Make all report sections visible for print
-  if(invEl)  invEl.style.display='block';
-  if(vetEl)  vetEl.style.display='block';
-  if(cliEl)  cliEl.style.display='block';
-  if(sepEl)  sepEl.style.display='block';
-  if(imgEl)  imgEl.style.display='block';
+  var css =
+    '*{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:Georgia,serif;font-size:11px;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    '@page{size:A4 portrait;margin:13mm 13mm 17mm 13mm}'+
+    '.noprint{display:none}@media print{.noprint{display:none!important}}'+
+    'h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#333;padding-bottom:5px;border-bottom:1.5px solid #ccc;margin-bottom:12px;margin-top:0}'+
+    '.sec{margin-bottom:18px;break-inside:avoid}'+
+    'table{width:100%;border-collapse:collapse;font-size:10px}'+
+    'th{background:#f5f0e8;font-family:monospace;font-size:8px;text-transform:uppercase;letter-spacing:.07em;padding:5px 8px;text-align:left;border-bottom:2px solid #ccc;color:#666}'+
+    'td{padding:5px 8px;border-bottom:1px solid #ececec;vertical-align:top;line-height:1.5}'+
+    'tr:nth-child(even) td{background:#fafafa}'+
+    '.sev{font-family:monospace;font-size:8px;font-weight:700;border-radius:3px;padding:1px 6px;display:inline-block}'+
+    '.foot{font-family:monospace;font-size:8px;color:#bbb;display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid #ddd;margin-top:20px}';
 
-  // Clinic header
-  var clinic=document.getElementById('fClinic').value.trim();
-  var vet=document.getElementById('fVet').value.trim();
-  var hdr=document.getElementById('rpt-clinic-hdr');
-  if(hdr){
-    hdr.style.display=clinic||vet?'block':'none';
-    hdr.innerHTML=(clinic?'<strong>'+clinic+'</strong>':'')+(vet?' · '+vet:'');
-  }
+  var body =
+    _pdfClinicHeader(clinic, vet)+
 
-  // Restore after print (use afterprint event for reliability)
-  function restoreAfterPrint() {
-    var mode = window._reportMode||'inv';
-    if(invEl)  invEl.style.display = mode==='inv'?'block':'none';
-    if(vetEl)  vetEl.style.display = mode==='vet'?'block':'none';
-    if(cliEl)  cliEl.style.display = mode==='cli'?'block':'none';
-    if(sepEl)  sepEl.style.display = 'none';
-    if(imgEl)  imgEl.style.display = 'none';
-    window.removeEventListener('afterprint', restoreAfterPrint);
-  }
-  window.addEventListener('afterprint', restoreAfterPrint);
+    '<div style="padding:16px 0 14px;border-bottom:2.5px solid #8B6914;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start">'+
+      '<div>'+
+        '<div style="font-family:monospace;font-size:8px;color:#8B6914;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">Relatório Clínico · Uso Veterinário</div>'+
+        '<div style="font-size:20px;font-weight:700;color:#111">'+escH(horse)+'</div>'+
+        ((info.breed&&info.breed!=='Não especificada')||info.age?'<div style="font-size:10px;color:#666;margin-top:4px">'+escH(info.breed||'')+(info.age&&info.age!=='?'?' · '+info.age+' anos':'')+(info.sex&&info.sex!=='—'?' · '+info.sex:'')+'</div>':'')+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<div style="border:2px solid '+scColor+';border-radius:8px;padding:6px 14px;display:inline-block;text-align:center">'+
+          '<div style="font-size:24px;font-weight:700;color:'+scColor+'">'+sc+'</div>'+
+          '<div style="font-family:monospace;font-size:7px;color:#999;text-transform:uppercase">score</div>'+
+        '</div>'+
+        '<div style="font-family:monospace;font-size:8px;color:#aaa;margin-top:6px">'+date+'</div>'+
+        '<div style="font-family:monospace;font-size:8px;color:#bbb">Ref: '+ref+'</div>'+
+      '</div>'+
+    '</div>'+
 
-  window.print();
+    // Classificação
+    '<div class="sec" style="background:#f9f9f9;border:1px solid #e0e0e0;border-left:4px solid '+scColor+';border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:18px">'+
+      '<div style="font-family:monospace;font-size:8px;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Classificação Global</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+scColor+'">'+escH(cl)+'</div>'+
+      (r.resumo_inventario?'<div style="font-size:10px;color:#444;margin-top:6px;line-height:1.75">'+escH(r.resumo_inventario)+'</div>':'')+
+    '</div>'+
+
+    // Ficha
+    '<div class="sec">'+
+      '<h2>Ficha Clínica</h2>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 20px;font-size:10px">'+
+        _pdfRow('Disciplina',info.disc,'Não especificada')+
+        _pdfRow('Região',info.reg,'')+
+        _pdfRow('Sinais clínicos',info.symp,'Não descritos')+
+        _pdfRow('Flexões',info.flexoes,'')+
+        _pdfRow('História',info.hist,'Sem história')+
+        (info.vet_impressao?_pdfRow('Impressão vet.',info.vet_impressao,''):'')+
+        (info.vet_opinion?_pdfRow('Opinião clínica',info.vet_opinion,''):'')+
+      '</div>'+
+    '</div>'+
+
+    // Inventário
+    (achados.length?
+      '<div class="sec">'+
+        '<h2>Inventário Radiográfico &nbsp;<span style="font-weight:400;font-size:10px;color:#888">('+achados.length+' estruturas avaliadas)</span></h2>'+
+        '<table>'+
+          '<thead><tr><th>Estrutura</th><th>Membro</th><th>Achado</th><th>Gravidade</th><th>Grading</th></tr></thead>'+
+          '<tbody>'+achados.map(function(a){
+            var sc2=_pdfSevColor(a.sev);
+            return '<tr>'+
+              '<td style="font-weight:600">'+escH(a.estrutura||'—')+'</td>'+
+              '<td>'+escH(a.membro||'—')+'</td>'+
+              '<td style="max-width:200px">'+escH((a.lesao||a.achado||'—').slice(0,90))+'</td>'+
+              '<td><span class="sev" style="color:'+sc2+';border:1px solid '+sc2+'">'+escH(a.sev||'—')+'</span></td>'+
+              '<td style="font-family:monospace;font-size:9px;color:#666">'+escH(a.grading||'—')+'</td>'+
+            '</tr>';
+          }).join('')+
+          '</tbody>'+
+        '</table>'+
+      '</div>'
+    :
+      '<div class="sec"><h2>Inventário Radiográfico</h2><div style="padding:10px 14px;background:#f5f5f5;border-radius:5px;font-size:10px;color:#555">Sem achados patológicos relevantes identificados.</div></div>'
+    )+
+
+    // Interpretação
+    (interp.length?
+      '<div class="sec" style="break-before:auto">'+
+        '<h2>Interpretação Clínica</h2>'+
+        interp.map(function(item){
+          return '<div style="margin-bottom:10px;padding:10px 12px;border:1px solid #e8e8e8;border-radius:5px;break-inside:avoid">'+
+            '<div style="font-weight:700;font-size:11px;margin-bottom:5px;color:#111">'+escH(item.estrutura||'')+(item.membro?' &nbsp;·&nbsp; <span style="font-weight:400;color:#666">'+escH(item.membro)+'</span>':'')+
+              (item.confianca?'<span style="font-family:monospace;font-size:8px;color:#888;font-weight:400;float:right">Confiança: '+escH(item.confianca)+'</span>':'')+
+            '</div>'+
+            (item.contexto?'<div style="font-size:10px;color:#333;line-height:1.75;margin-bottom:4px">'+escH(item.contexto)+'</div>':'')+
+            (item.implicacao_clinica?'<div style="font-size:10px;color:#555;line-height:1.7"><strong>Implicação:</strong> '+escH(item.implicacao_clinica)+'</div>':'')+
+          '</div>';
+        }).join('')+
+      '</div>'
+    :'')+
+
+    // Recomendações
+    (recs.length?
+      '<div class="sec">'+
+        '<h2>Recomendações</h2>'+
+        '<ol style="padding-left:18px;font-size:10px;line-height:1">'+
+          recs.map(function(rec,i){
+            var txt=rec.descricao||rec.acao||rec.texto||'';
+            var prazo=rec.prazo||rec.timing||'';
+            return '<li style="margin-bottom:7px;line-height:1.7">'+escH(txt)+
+              (prazo?'<span style="font-family:monospace;font-size:8px;color:#888;margin-left:6px">['+escH(prazo)+']</span>':'')+
+            '</li>';
+          }).join('')+
+        '</ol>'+
+      '</div>'
+    :'')+
+
+    // Prognóstico
+    ((r.prognostico&&(r.prognostico.desempenho||r.prognostico.recuperacao))?
+      '<div class="sec"><h2>Prognóstico</h2>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          (r.prognostico.desempenho?'<div style="padding:8px 12px;border:1px solid #e0e0e0;border-radius:5px"><div style="font-family:monospace;font-size:8px;color:#999;text-transform:uppercase;margin-bottom:3px">Desempenho</div><div style="font-size:11px;font-weight:600">'+escH(r.prognostico.desempenho)+'</div></div>':'')+
+          (r.prognostico.recuperacao?'<div style="padding:8px 12px;border:1px solid #e0e0e0;border-radius:5px"><div style="font-family:monospace;font-size:8px;color:#999;text-transform:uppercase;margin-bottom:3px">Recuperação</div><div style="font-size:11px;font-weight:600">'+escH(r.prognostico.recuperacao)+'</div></div>':'')+
+        '</div>'+
+      '</div>'
+    :'')+
+
+    '<div class="foot">'+
+      '<span>EquiScan Pro &nbsp;·&nbsp; '+escH(date)+(clinic?' &nbsp;·&nbsp; '+escH(clinic):'')+'</span>'+
+      '<span>Ref: '+ref+' &nbsp;·&nbsp; Documento de uso veterinário</span>'+
+    '</div>'+
+
+    imgsHtml+
+    '<script>setTimeout(function(){window.print()},600)<\/script>';
+
+  _openPdfWindow(
+    '<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Relatório Clínico · '+escH(horse)+'</title><style>'+css+'</style></head><body>'+body+'</body></html>',
+    'Relatório Clínico'
+  );
+}
+
+function _pdfRow(lbl,val,skip){
+  if(!val||val===skip||val==='—') return '';
+  return '<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0">'+
+    '<span style="font-family:monospace;font-size:9px;color:#888;min-width:100px;flex-shrink:0;padding-top:1px">'+escH(lbl)+'</span>'+
+    '<span style="font-size:10px;color:#222;line-height:1.6">'+escH(val)+'</span>'+
+  '</div>';
+}
+
+// ── PDF CLIENTE — Resumo para proprietário ──────────────────────────
+function generatePdfCliente(){
+  var r    = S.lastResult;
+  var info = S._lastInfo || {};
+  if(!r){ showToast('⚠ Nenhum relatório disponível','warning'); return; }
+
+  var clinic = (document.getElementById('fClinic')&&document.getElementById('fClinic').value.trim()) || '';
+  var vet    = (document.getElementById('fVet')&&document.getElementById('fVet').value.trim()) || '';
+  var horse  = info.name || 'Animal';
+  var date   = new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+
+  var achados = (r.achados||[]).filter(function(a){ return a.sev&&a.sev!=='Normal'&&!isQualidadeAchado(a); });
+  achados = achados.slice().sort(function(a,b){
+    var o={Severo:0,Moderado:1,Leve:2};
+    return (o[a.sev]||3)-(o[b.sev]||3);
+  });
+
+  var hasSev = achados.some(function(a){ return a.sev==='Severo'; });
+  var nMod   = achados.filter(function(a){ return a.sev==='Moderado'; }).length;
+  var nLev   = achados.filter(function(a){ return a.sev==='Leve'; }).length;
+
+  var semColor = hasSev?'#b00020':nMod?'#b05000':nLev?'#7a6800':'#1a6a1a';
+  var semBg    = hasSev?'#fff2f3':nMod?'#fff7f0':nLev?'#fffce6':'#f2fff6';
+  var semBorder= hasSev?'#e0a0a0':nMod?'#e0b080':nLev?'#d0c060':'#80c090';
+  var semEmoji = hasSev?'🔴':nMod?'🟠':nLev?'🟡':'🟢';
+  var semTitle = hasSev?'Alterações que requerem atenção veterinária':
+                 nMod?'Alterações presentes — acompanhamento recomendado':
+                 nLev?'Alterações ligeiras detectadas':
+                 'Exame sem alterações significativas';
+  var semSub   = hasSev?'O seu veterinário recomenda avaliação prioritária.':
+                 nMod?'Recomenda-se reavaliação em consulta veterinária.':
+                 nLev?'Monitorizar nas próximas consultas.':
+                 'O animal encontra-se em boas condições radiológicas.';
+
+  var recs = r.recomendacoes || r.plano_accao || [];
+  if(!Array.isArray(recs)) recs=[];
+  var allRecs = recs.slice(0,4).map(function(rec){ return rec.descricao||rec.acao||rec.texto||''; }).filter(Boolean);
+
+  var findingsHtml = achados.length===0
+    ? '<div style="padding:12px 16px;background:#f5fff8;border:1px solid #b0d8b0;border-radius:8px;font-size:12px;color:#1a5a1a">✓ Nenhuma alteração radiológica significativa detectada.</div>'
+    : achados.slice(0,5).map(function(a){
+        var est = _friendlyEst(a.estrutura||'');
+        var memb = a.membro?' ('+a.membro+')':'';
+        var les = _friendlyLes((a.lesao||a.achado||'').split(/[.;]/)[0].trim());
+        if(les.length>100) les=les.slice(0,97)+'…';
+        var dot = _pdfSevColor(a.sev);
+        return '<div style="display:flex;gap:14px;padding:11px 0;border-bottom:1px solid #f0f0f0;align-items:flex-start">'+
+          '<div style="width:12px;height:12px;border-radius:50%;background:'+dot+';flex-shrink:0;margin-top:3px"></div>'+
+          '<div>'+
+            '<div style="font-weight:700;font-size:12px;color:#111">'+escH(est+memb)+'</div>'+
+            (les?'<div style="font-size:11px;color:#555;margin-top:3px;line-height:1.6">'+escH(les)+'</div>':'')+
+          '</div>'+
+        '</div>';
+      }).join('')+
+      (achados.length>5?'<div style="font-size:10px;color:#888;padding:6px 0;font-style:italic">+ '+(achados.length-5)+' achado(s) adicional(ais) — consultar relatório clínico completo</div>':'');
+
+  var css =
+    '*{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;font-size:12px;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    '@page{size:A4 portrait;margin:14mm 14mm 18mm 14mm}'+
+    '@media print{.noprint{display:none!important}}'+
+    '.footer{font-family:monospace;font-size:8px;color:#ccc;border-top:1px solid #eee;padding-top:10px;margin-top:22px;display:flex;justify-content:space-between;line-height:1.5}';
+
+  var body =
+    // Header clínica
+    (clinic||vet?
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:3px solid #8B6914;margin-bottom:20px">'+
+        '<div>'+
+          (clinic?'<div style="font-size:15px;font-weight:700;color:#222">'+escH(clinic)+'</div>':'')+
+          (vet?'<div style="font-size:11px;color:#777;margin-top:2px">Dr(a). '+escH(vet)+'</div>':'')+
+        '</div>'+
+        '<div style="text-align:right;font-size:10px;color:#999">'+date+'</div>'+
+      '</div>'
+    :
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:3px solid #8B6914;margin-bottom:20px">'+
+        '<div style="font-size:13px;font-weight:700;color:#8B6914">EquiScan Pro</div>'+
+        '<div style="font-size:10px;color:#999">'+date+'</div>'+
+      '</div>'
+    )+
+
+    // Animal
+    '<div style="margin-bottom:20px">'+
+      '<div style="font-family:monospace;font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Resultado do Exame Radiológico</div>'+
+      '<div style="font-size:24px;font-weight:700;color:#111;line-height:1.2">'+escH(horse)+'</div>'+
+      ((info.breed&&info.breed!=='Não especificada')||(info.age&&info.age!=='?')?'<div style="font-size:12px;color:#666;margin-top:4px">'+escH(info.breed||'')+(info.age&&info.age!=='?'?' · '+info.age+' anos':'')+'</div>':'')+
+    '</div>'+
+
+    // Semáforo
+    '<div style="background:'+semBg+';border:2px solid '+semBorder+';border-radius:12px;padding:18px 20px;margin-bottom:22px">'+
+      '<div style="display:flex;align-items:center;gap:16px">'+
+        '<div style="font-size:38px;line-height:1;flex-shrink:0">'+semEmoji+'</div>'+
+        '<div>'+
+          '<div style="font-size:14px;font-weight:700;color:'+semColor+';line-height:1.3">'+semTitle+'</div>'+
+          '<div style="font-size:11px;color:#555;margin-top:5px">'+semSub+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+
+    // Achados
+    '<div style="margin-bottom:22px">'+
+      '<div style="font-family:monospace;font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">O que foi encontrado</div>'+
+      findingsHtml+
+    '</div>'+
+
+    // Recomendações
+    (allRecs.length?
+      '<div style="margin-bottom:22px">'+
+        '<div style="font-family:monospace;font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Próximos passos</div>'+
+        allRecs.map(function(rec,i){
+          return '<div style="display:flex;gap:12px;margin-bottom:8px;align-items:flex-start">'+
+            '<div style="width:20px;height:20px;border-radius:50%;background:#8B6914;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">'+(i+1)+'</div>'+
+            '<div style="font-size:11px;color:#333;line-height:1.7;padding-top:2px">'+escH(_friendlyLes(rec.split(/[.;]/)[0].trim()))+'</div>'+
+          '</div>';
+        }).join('')+
+      '</div>'
+    :'')+
+
+    '<div class="footer">'+
+      '<span>'+escH(clinic||'EquiScan Pro')+(vet?' &nbsp;·&nbsp; Dr(a). '+escH(vet):'')+' &nbsp;·&nbsp; '+date+'</span>'+
+      '<span>Análise assistida por IA · Não substitui avaliação veterinária</span>'+
+    '</div>'+
+
+    '<script>setTimeout(function(){window.print()},600)<\/script>';
+
+  _openPdfWindow(
+    '<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Resumo · '+escH(horse)+'</title><style>'+css+'</style></head><body>'+body+'</body></html>',
+    'Resumo Proprietário'
+  );
+}
+
+function _openPdfWindow(html){
+  var w = window.open('','_blank','width=900,height=750');
+  if(!w){ showToast('⚠ Activa popups neste site para exportar PDF','warning'); return; }
+  w.document.write(html);
+  w.document.close();
 }
 
 function autoDetectModels(key){
@@ -2899,13 +3252,14 @@ function renderGrid() {
     if(sbBar) sbBar.style.display='none';
     if(sbDz) sbDz.style.display='';
   }
-  // Update mini strip in sidebar
+  // Update mini strip in sidebar — single source of truth
   var mini = document.getElementById('sbMiniStrip');
   if(mini) {
     mini.innerHTML = S.imgs.map(function(im,i){
       var active = i===S.idx;
-      return '<div onclick="setImg('+i+')" style="width:32px;height:32px;border-radius:3px;overflow:hidden;cursor:pointer;border:1px solid '+(active?'var(--gold)':'rgba(255,255,255,.1)')+';flex-shrink:0;transition:border-color .15s">' +
+      return '<div onclick="setImg('+i+')" style="position:relative;width:52px;height:52px;border-radius:4px;overflow:hidden;cursor:pointer;border:2px solid '+(active?'var(--gold)':'rgba(255,255,255,.12)')+';flex-shrink:0;transition:border-color .15s">' +
         '<img src="'+im.url+'" style="width:100%;height:100%;object-fit:cover;display:block">' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);font-family:JetBrains Mono,monospace;font-size:7px;color:'+(active?'var(--gold)':'rgba(255,255,255,.5)')+';text-align:center;padding:1px">' + String(i+1).padStart(2,'0') + '</div>' +
       '</div>';
     }).join('');
   }
@@ -2944,15 +3298,6 @@ function showImg() {
     if (bar) bar.style.display = 'block';
     if (dz)  dz.style.display = 'none';
     if (cnt) cnt.textContent = S.imgs.length + ' imagem' + (S.imgs.length > 1 ? 'ns' : '') + ' carregada' + (S.imgs.length > 1 ? 's' : '');
-    // Mini strip
-    if (strip) {
-      strip.innerHTML = S.imgs.map(function(im, i) {
-        var active = i === S.idx ? 'border-color:var(--gold)' : 'border-color:rgba(255,255,255,.1)';
-        return '<div onclick="setImg('+i+')" style="width:36px;height:36px;border-radius:3px;overflow:hidden;cursor:pointer;border:1px solid;flex-shrink:0;transition:border-color .15s;'+active+'">' +
-          '<img src="'+im.url+'" style="width:100%;height:100%;object-fit:cover;display:block">' +
-        '</div>';
-      }).join('');
-    }
   }
 
   // Update placeholder step 1
@@ -15844,24 +16189,15 @@ var _compareMode = false;
 var _compareIdx = null; // segundo índice
 
 function toggleCompareMode() {
-  _compareMode = !_compareMode;
-  var btn = document.getElementById('reviewBtnCompare');
-  if (btn) {
-    btn.style.background = _compareMode ? 'rgba(74,201,201,.2)' : 'transparent';
-    btn.style.color = _compareMode ? 'var(--ice)' : 'rgba(74,201,201,.7)';
-    btn.textContent = _compareMode ? '⊞ Comparar ✓' : '⊞ Comparar';
-  }
   if (_compareMode) {
-    // Escolher segundo índice: próxima imagem ou anterior
-    _compareIdx = S.idx + 1 < S.imgs.length ? S.idx + 1 : (S.idx > 0 ? S.idx - 1 : S.idx);
-    renderCompareMode();
-  } else {
-    // Voltar ao modo normal
+    // Desactivar
+    _compareMode = false;
+    var btn = document.getElementById('reviewBtnCompare');
+    if (btn) { btn.style.background = 'rgba(74,201,201,.06)'; btn.style.borderColor = 'rgba(74,201,201,.2)'; btn.style.color = 'rgba(74,201,201,.6)'; btn.textContent = '⊞ Comparar'; }
     var imgArea = document.getElementById('reviewMainImgArea');
     if (imgArea) {
       imgArea.innerHTML = '';
       imgArea.style.flexDirection = '';
-      // Recriar imagem normal
       var wrap = document.createElement('div');
       wrap.id = 'reviewImgWrap';
       wrap.className = 'compare-img-wrap';
@@ -15877,7 +16213,56 @@ function toggleCompareMode() {
       setupReviewInteraction();
       renderReviewFrame();
     }
+    return;
   }
+
+  // Activar — mostrar picker de imagem
+  if (S.imgs.length < 2) { showToast('⚠ Precisas de pelo menos 2 imagens para comparar', 'warning'); return; }
+
+  // Criar picker overlay
+  var existingPicker = document.getElementById('comparePicker');
+  if (existingPicker) existingPicker.remove();
+
+  var picker = document.createElement('div');
+  picker.id = 'comparePicker';
+  picker.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:rgba(8,10,14,.97);border:1px solid rgba(74,201,201,.3);border-radius:10px;padding:18px 20px;min-width:260px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,.6)';
+  picker.innerHTML =
+    '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(74,201,201,.7);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px">Comparar com:</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;max-height:200px;overflow-y:auto">' +
+      S.imgs.map(function(im, i) {
+        if (i === S.idx) return ''; // skip current
+        return '<div onclick="startCompareWith('+i+',this)" style="position:relative;width:60px;height:60px;border-radius:5px;overflow:hidden;cursor:pointer;border:2px solid rgba(255,255,255,.15);transition:border-color .15s;flex-shrink:0" onmouseover="this.style.borderColor=\'rgba(74,201,201,.6)\'" onmouseout="if(!this.classList.contains(\'selected\'))this.style.borderColor=\'rgba(255,255,255,.15)\'">' +
+          '<img src="'+im.url+'" style="width:100%;height:100%;object-fit:cover">' +
+          '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);font-family:JetBrains Mono,monospace;font-size:7px;color:rgba(255,255,255,.7);text-align:center;padding:1px">'+String(i+1).padStart(2,'0')+'</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<div style="display:flex;gap:8px">' +
+      '<button onclick="document.getElementById(\'comparePicker\').remove()" style="flex:1;font-family:JetBrains Mono,monospace;font-size:10px;padding:7px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:5px;color:rgba(255,255,255,.5);cursor:pointer">Cancelar</button>' +
+    '</div>';
+
+  var reviewOverlay = document.getElementById('reviewOverlay');
+  if (reviewOverlay) reviewOverlay.appendChild(picker);
+}
+
+function startCompareWith(idx, el) {
+  // Visual feedback
+  document.querySelectorAll('#comparePicker .selected').forEach(function(d){ d.classList.remove('selected'); d.style.borderColor='rgba(255,255,255,.15)'; });
+  if (el) { el.classList.add('selected'); el.style.borderColor='rgba(74,201,201,.7)'; }
+
+  _compareIdx = idx;
+  _compareMode = true;
+
+  // Update button
+  var btn = document.getElementById('reviewBtnCompare');
+  if (btn) { btn.style.background = 'rgba(74,201,201,.18)'; btn.style.borderColor = 'rgba(74,201,201,.5)'; btn.style.color = 'var(--ice)'; btn.textContent = '⊞ Comparar ✓'; }
+
+  // Remove picker after short delay
+  setTimeout(function() {
+    var p = document.getElementById('comparePicker');
+    if (p) p.remove();
+    renderCompareMode();
+  }, 200);
 }
 
 function renderCompareMode() {

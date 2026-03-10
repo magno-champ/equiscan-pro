@@ -99,6 +99,14 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
 .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(201,168,76,.4)}
 .field input::placeholder,.field textarea::placeholder{color:var(--t3)}
 .field select option{background:var(--ink3)}
+/* Chips de sintomas */
+.symp-chip{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 9px;border-radius:4px;border:1px solid rgba(74,201,201,.18);color:rgba(74,201,201,.7);cursor:pointer;background:rgba(74,201,201,.04);transition:all .15s;user-select:none}
+.symp-chip:hover{background:rgba(74,201,201,.1);border-color:rgba(74,201,201,.35);color:rgba(74,201,201,.95)}
+/* Step number circles */
+.sb-step-num{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* Details/summary para contexto extra */
+.sidebar details summary::-webkit-details-marker{display:none}
+.sidebar details[open] summary span:first-child{content:'▾'}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .key-wrap{position:relative}
 .key-wrap input{font-family:'JetBrains Mono',monospace;font-size:11px;padding-right:32px}
@@ -1799,23 +1807,33 @@ window.addEventListener('DOMContentLoaded', function() {
   <!-- ══ SCROLL AREA ══════════════════════════════════════════ -->
   <div class="sb-scroll">
 
-    <!-- ── CAVALO ──────────────────────────────────────────── -->
-    <div style="padding:14px 14px 10px">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Cavalo</div>
-      <div style="display:flex;align-items:center;gap:5px">
+    <!-- ── STEP 1: CAVALO ─────────────────────────────────── -->
+    <div style="padding:12px 14px 10px;border-bottom:1px solid rgba(255,255,255,.05)">
+
+      <!-- Step label -->
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+        <div style="width:18px;height:18px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#000">1</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em">Paciente</span>
+      </div>
+
+      <!-- Selector + actions -->
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
         <select id="horseSelect" class="horse-select" onchange="onHorseSelect(this.value)"
           style="flex:1;height:34px;font-size:11px">
-          <option value="">— seleccionar —</option>
+          <option value="">— seleccionar cavalo —</option>
         </select>
         <button onclick="openNewHorseModal()" title="Novo cavalo"
-          style="width:34px;height:34px;background:rgba(201,168,76,.08);color:var(--gold);border:1px solid rgba(201,168,76,.2);border-radius:5px;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+          style="width:34px;height:34px;background:rgba(201,168,76,.08);color:var(--gold);border:1px solid rgba(201,168,76,.2);border-radius:5px;cursor:pointer;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
         <button onclick="openCavalosPanel()" title="Gerir cavalos"
           style="width:34px;height:34px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center">≡</button>
       </div>
-      <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:4px;display:block"></span>
 
-      <!-- Horse card — só aparece quando cavalo seleccionado -->
-      <div class="horse-card" id="horseCard" style="margin-top:8px">
+      <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);display:block"></span>
+
+      <!-- Horse card -->
+      <div class="horse-card" id="horseCard" style="margin-top:6px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="display:flex;gap:10px">
             <div class="horse-stat"><span class="horse-stat-label">Raça</span><span class="horse-stat-val" id="hcRaca">—</span></div>
@@ -1834,9 +1852,18 @@ window.addEventListener('DOMContentLoaded', function() {
       </div>
     </div>
 
-    <!-- ── IMAGENS ──────────────────────────────────────────── -->
-    <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.05)">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Radiografias <span id="imgBadge" style="color:var(--gold)"></span></div>
+    <!-- ── STEP 2: RADIOGRAFIAS ────────────────────────────── -->
+    <div style="padding:12px 14px 10px;border-bottom:1px solid rgba(255,255,255,.05)">
+
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+        <div style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:rgba(255,255,255,.7)">2</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em">Radiografias</span>
+        <span id="imgBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);margin-left:auto"></span>
+      </div>
+
+      <!-- Drop zone -->
       <div class="drop" id="dropzone"
         ondragover="event.preventDefault();event.stopPropagation();this.classList.add('over')"
         ondragleave="event.preventDefault();this.classList.remove('over')"
@@ -1848,9 +1875,9 @@ window.addEventListener('DOMContentLoaded', function() {
         <div class="drop-hint" id="dropHint" style="display:none;font-size:9px;color:var(--amber);margin-top:2px">⚠ Carrega toda a sessão de uma vez</div>
       </div>
 
-      <!-- Com imagens — contador limpo + acções -->
+      <!-- Com imagens -->
       <div id="sbThumbBar" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="width:6px;height:6px;border-radius:50%;background:var(--gold)"></div>
             <span id="sbThumbCount" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t1)"></span>
@@ -1860,8 +1887,7 @@ window.addEventListener('DOMContentLoaded', function() {
             <button onclick="clearImages()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:4px;cursor:pointer;padding:4px 8px" title="Limpar tudo">✕</button>
           </div>
         </div>
-        <!-- Mini strip — scroll horizontal, 1 linha -->
-        <div id="sbMiniStrip" style="display:flex;gap:4px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+        <div id="sbMiniStrip" style="display:flex;gap:4px;overflow-x:auto;padding:2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
       </div>
 
       <input type="file" id="addIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" style="display:none" onchange="onFileInput(this)">
@@ -1869,53 +1895,22 @@ window.addEventListener('DOMContentLoaded', function() {
       <div id="clearRow" style="display:none"></div>
     </div>
 
-    <!-- ── DADOS CLÍNICOS ──────────────────────────────────── -->
-    <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.05)">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.14em;margin-bottom:10px">Contexto Clínico</div>
+    <!-- ── STEP 3: CONTEXTO CLÍNICO ────────────────────────── -->
+    <div style="padding:12px 14px 10px">
 
-      <div class="row2" style="margin-bottom:7px">
-        <div class="field" style="margin-bottom:0">
-          <label>Nome</label>
-          <input id="fName" placeholder="Lusitano Prince">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:11px">
+        <div style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:rgba(255,255,255,.7)">3</span>
         </div>
-        <div class="field" style="margin-bottom:0">
-          <label>Idade</label>
-          <input id="fAge" type="number" min="1" max="35" placeholder="8">
-        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em">Contexto Clínico</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);margin-left:auto">opcional</span>
       </div>
 
-      <div class="row2" style="margin-bottom:7px">
-        <div class="field" style="margin-bottom:0">
-          <label>Raça</label>
-          <select id="fBreed">
-            <option value="">—</option>
-            <option>Lusitano</option><option>PSI</option><option>KWPN</option>
-            <option>Hanoveriano</option><option>Westfaliano</option><option>PRE</option>
-            <option>Árabe</option><option>Lipizzaner</option><option>Quarto de Milha</option><option>Outra</option>
-          </select>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label>Sexo</label>
-          <select id="fSex">
-            <option value="">—</option>
-            <option>Garanhão</option><option>Castrado</option><option>Égua</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row2" style="margin-bottom:7px">
-        <div class="field" style="margin-bottom:0">
-          <label>Disciplina</label>
-          <select id="fDisc">
-            <option value="">—</option>
-            <option>Dressage</option><option>Saltos</option><option>CCE</option>
-            <option>Endurance</option><option>Alta Escola</option><option>Corridas</option>
-            <option>Pré-compra</option><option>Outra</option>
-          </select>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label>Região</label>
-          <select id="fRegion">
+      <!-- Região + Disciplina — os 2 mais importantes, em destaque -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <div>
+          <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Região</label>
+          <select id="fRegion" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:7px 8px;color:var(--t1);outline:none">
             <option value="">Corpo completo</option>
             <option>Casco / P3</option><option>Quartela</option><option>Boleto</option>
             <option>Canela / Metacarpo</option><option>Carpo (Joelho)</option>
@@ -1924,26 +1919,28 @@ window.addEventListener('DOMContentLoaded', function() {
             <option>Crânio / Dentes</option><option>Outro</option>
           </select>
         </div>
+        <div>
+          <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Disciplina</label>
+          <select id="fDisc" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:7px 8px;color:var(--t1);outline:none">
+            <option value="">—</option>
+            <option>Dressage</option><option>Saltos</option><option>CCE</option>
+            <option>Endurance</option><option>Alta Escola</option><option>Corridas</option>
+            <option>Pré-compra</option><option>Outra</option>
+          </select>
+        </div>
       </div>
 
-      <div class="field" style="margin-bottom:7px">
-        <label>Perfil</label>
-        <select id="fPerfil">
-          <option value="">— não especificado —</option>
-          <option value="lazer">🌿 Lazer / Passeio</option>
-          <option value="jovem">🐴 Jovem em formação (≤5 anos)</option>
-          <option value="funcional">🏇 Desporto Funcional</option>
-          <option value="gp">🏆 Alto Nível / GP</option>
-        </select>
-      </div>
-
-      <div class="field" style="margin-bottom:7px">
-        <label style="display:flex;align-items:center;justify-content:space-between">
-          Sinais Clínicos
-          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.4);font-size:13px;cursor:pointer;padding:0;line-height:1">🎙</button>
-        </label>
-        <textarea id="fSymp" rows="3" placeholder="ex: Flexões P/P positivas bilateral, claudicação grau 2/5 MAD..."></textarea>
-        <div id="sympChips" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+      <!-- Sinais clínicos — campo principal com chips rápidos -->
+      <div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em">Sinais Clínicos</label>
+          <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 voz</button>
+        </div>
+        <textarea id="fSymp" rows="3" placeholder="ex: claudicação 2/5 MAD, flexões distais +, testador de cascos positivo..."
+          style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:9px 10px;font-family:'Syne',sans-serif;font-size:14px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .15s"
+          onfocus="this.style.borderColor='rgba(201,168,76,.4)'" onblur="this.style.borderColor='var(--wire2)'"></textarea>
+        <!-- Chips -->
+        <div id="sympChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
           <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAD ++')">Flex. distal MAD ++</span>
           <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAE ++')">Flex. distal MAE ++</span>
           <span class="symp-chip" onclick="appendChip('fSymp','Flexão jarrete MPD ++')">Flex. jarrete MPD ++</span>
@@ -1952,26 +1949,99 @@ window.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
 
-      <div class="field" style="margin-bottom:7px">
-        <label style="display:flex;align-items:center;justify-content:space-between">
-          História Clínica
-          <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.4);font-size:13px;cursor:pointer;padding:0;line-height:1">🎙</button>
-        </label>
-        <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nerviação..."></textarea>
-      </div>
+      <!-- História + Flexões — colapsáveis, menos destaque -->
+      <details style="margin-bottom:8px">
+        <summary style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px;padding:3px 0">
+          <span>▸</span> Mais contexto (história, flexões, perfil)
+        </summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:7px">
 
-      <div class="field" style="margin-bottom:0">
-        <label>Flexões +</label>
-        <input id="fFlexoes" type="text" placeholder="ex: distal MAE ++, jarrete MPD +" style="font-size:10px;font-family:'JetBrains Mono',monospace">
-      </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em">História Clínica</label>
+              <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" style="background:transparent;border:1px solid rgba(74,201,201,.2);border-radius:3px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer">🎙 voz</button>
+            </div>
+            <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nervação digital..."
+              style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:8px 10px;font-family:'Syne',sans-serif;font-size:14px;color:var(--t1);resize:none;outline:none;line-height:1.5;transition:border-color .15s"
+              onfocus="this.style.borderColor='rgba(201,168,76,.4)'" onblur="this.style.borderColor='var(--wire2)'"></textarea>
+          </div>
+
+          <div>
+            <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Flexões Positivas</label>
+            <input id="fFlexoes" type="text" placeholder="ex: distal MAE ++, jarrete MPD +"
+              style="width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:8px 10px;color:var(--t1);outline:none;transition:border-color .15s"
+              onfocus="this.style.borderColor='rgba(201,168,76,.4)'" onblur="this.style.borderColor='var(--wire2)'">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Nome</label>
+              <input id="fName" placeholder="Lusitano Prince"
+                style="width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 8px;color:var(--t1);outline:none">
+            </div>
+            <div>
+              <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Idade</label>
+              <input id="fAge" type="number" min="1" max="35" placeholder="8"
+                style="width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 8px;color:var(--t1);outline:none">
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Raça</label>
+              <select id="fBreed" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 8px;color:var(--t1);outline:none">
+                <option value="">—</option>
+                <option>Lusitano</option><option>PSI</option><option>KWPN</option>
+                <option>Hanoveriano</option><option>Westfaliano</option><option>PRE</option>
+                <option>Árabe</option><option>Lipizzaner</option><option>Quarto de Milha</option><option>Outra</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Sexo</label>
+              <select id="fSex" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 8px;color:var(--t1);outline:none">
+                <option value="">—</option>
+                <option>Garanhão</option><option>Castrado</option><option>Égua</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Perfil do Animal</label>
+            <select id="fPerfil" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--wire2);border-radius:5px;padding:7px 8px;color:var(--t1);outline:none">
+              <option value="">— não especificado —</option>
+              <option value="lazer">🌿 Lazer / Passeio</option>
+              <option value="jovem">🐴 Jovem em formação (≤5 anos)</option>
+              <option value="funcional">🏇 Desporto Funcional</option>
+              <option value="gp">🏆 Alto Nível / GP</option>
+            </select>
+          </div>
+
+        </div>
+      </details>
+
     </div>
 
-    <!-- hidden fields sempre presentes -->
+    <!-- hidden fields para compatibilidade JS -->
     <div style="display:none">
       <input type="hidden" id="fKey" value="server-managed">
       <input id="fClinic" value="">
       <input id="fVet" value="">
       <input id="fWeight" type="number" value="">
+      <div id="sbMemoria"></div>
+      <div id="sbPaciente"></div>
+      <div id="sbClinical"></div>
+      <span id="calibActiveBadge2"></span>
+      <div id="intelSidebarStatus"></div>
+      <div id="intelSidebarCount"></div>
+      <div id="confidencePanelWrap"></div>
+      <div id="confidencePanelBody"></div>
+      <button id="btnCalibsActive"></button>
+      <button id="btnImportPdf"></button>
+      <span id="calibPendingBadge"></span>
+      <span id="caseStudyCount"></span>
+      <div id="vetPendingBadge"></div>
+      <div id="vetImportStatus"></div>
+      <input type="file" id="vetReportIn" accept=".pdf,application/pdf" onchange="openImportModeModal(this.files[0])">
     </div>
 
     <!-- DICOM Panel -->
@@ -1993,31 +2063,12 @@ window.addEventListener('DOMContentLoaded', function() {
       <div id="dicomMeta" style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
     </div>
 
-    <!-- Memória / Admin — escondido, acessível via painel -->
-    <div style="display:none">
-      <div id="sbMemoria"></div>
-      <div id="sbPaciente"></div>
-      <div id="sbClinical"></div>
-      <span id="calibActiveBadge2"></span>
-      <div id="intelSidebarStatus"></div>
-      <div id="intelSidebarCount"></div>
-      <div id="confidencePanelWrap"></div>
-      <div id="confidencePanelBody"></div>
-      <button id="btnCalibsActive"></button>
-      <button id="btnImportPdf"></button>
-      <span id="calibPendingBadge"></span>
-      <span id="caseStudyCount"></span>
-      <div id="vetPendingBadge"></div>
-      <div id="vetImportStatus"></div>
-      <input type="file" id="vetReportIn" accept=".pdf,application/pdf" onchange="openImportModeModal(this.files[0])">
-    </div>
-
   </div><!-- fim sb-scroll -->
 
   <!-- ══ FOOTER — sempre visível ════════════════════════════ -->
   <div class="sb-footer">
 
-    <!-- Opinião clínica — aparece quando imagens carregadas -->
+    <!-- Impressão clínica — aparece quando imagens carregadas -->
     <div id="vetOpinionWrap" style="margin-bottom:10px;display:none">
       <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">⚕ Impressão Clínica</div>
       <div style="display:flex;gap:4px;margin-bottom:6px">
@@ -2044,15 +2095,12 @@ window.addEventListener('DOMContentLoaded', function() {
       <span style="font-size:9px;color:var(--t3)">+20-40s</span>
     </div>
 
-    <!-- Readiness -->
     <div id="readinessBar" style="margin-top:8px;display:none">
       <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Pronto para análise</div>
       <div id="readinessList" style="display:flex;flex-direction:column;gap:3px"></div>
     </div>
 
     <p class="run-hint" id="hint" style="margin-top:6px;margin-bottom:0">Carregue imagens radiográficas.</p>
-
-    <!-- testOut escondido mas presente para compatibilidade -->
     <div id="testOut" style="display:none"></div>
   </div>
 </aside>
@@ -8462,12 +8510,13 @@ function syncToolsBadges() {
 
 var _reviewMode = false;
 var _reviewNotes = {};      // imgName → {text, confirmed, corrected, ignored}
-var _reviewPointer = null;  // canvas overlay para caneta temporária
+var _reviewPointer = null;
 var _reviewPointerTimer = null;
 var _reviewPermanentMarks = {}; // imgName → [{x,y,r,color}]
-var _reviewMarkMode = false; // tr
+var _reviewMarkMode = false;
+var _reviewArrows = {};     // imgName → [{x1,y1,x2,y2,color}]
 var _annotations = {};      // imgName → [{type,x,y,r,color,label}]
-var _pointerMarks = {};     // imgName → [{nx,ny}] persistent pointer dotsue = círculo permanente, false = caneta temporária
+var _pointerMarks = {};     // imgName → [{nx,ny}]
 
 // Sugestões IA por imagem — construídas a partir de S.lastResult.achados
 function getIaSuggestionsForImg(imgName) {
@@ -8524,47 +8573,109 @@ function openReviewMode(startFromIdx) {
         '</div>' +
       '</div>' +
 
-      // Row 2: Tool groups
-      '<div style="display:flex;align-items:center;gap:6px;padding:0 12px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">' +
+      // Row 2: Tool groups — paridade com ecrã principal + extras review
+      '<div style="display:flex;align-items:center;gap:5px;padding:0 12px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">' +
 
-        // GROUP 1: Image adjustments (W/L)
-        '<div style="display:flex;align-items:center;gap:5px;padding:4px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;flex-shrink:0">' +
-          '<span style="font-family:'+mono+';font-size:7px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em">☀</span>' +
-          '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,.15);border-radius:2px;width:52px;cursor:pointer;outline:none;min-height:24px;accent-color:var(--gold)">' +
-          '<span style="font-family:'+mono+';font-size:7px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em">◑</span>' +
-          '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,.15);border-radius:2px;width:52px;cursor:pointer;outline:none;min-height:24px;accent-color:var(--gold)">' +
-          '<button onclick="if(window._reviewResetWL)window._reviewResetWL()" style="font-size:11px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:4px;color:rgba(255,255,255,.3);cursor:pointer" title="Reset">↺</button>' +
+        // ── GRUPO IMAGEM ─────────────────────────────────────────────
+        '<div style="display:flex;align-items:center;gap:2px;padding:3px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;flex-shrink:0">' +
+
+          // Brilho — slider popover
+          '<div style="position:relative">' +
+            '<button id="reviewBtnBright" onclick="toggleReviewSlider(\'bright\')" title="Brilho" '+
+              'style="font-size:15px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s">☀</button>' +
+            '<div id="reviewSliderPop_bright" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0d1018;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px 14px;z-index:200;width:150px;box-shadow:0 12px 32px rgba(0,0,0,.8)">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+                '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em">Brilho</span>' +
+                '<span id="reviewBrightVal" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold)">50</span>' +
+              '</div>' +
+              '<input id="reviewWSlider" type="range" min="0" max="100" value="50" '+
+                'style="width:122px;height:4px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.15);border-radius:2px;cursor:pointer;outline:none;accent-color:var(--gold);display:block" '+
+                'oninput="applyReviewWL();document.getElementById(\'reviewBrightVal\').textContent=this.value">' +
+            '</div>' +
+          '</div>' +
+
+          // Contraste — slider popover
+          '<div style="position:relative">' +
+            '<button id="reviewBtnContrast" onclick="toggleReviewSlider(\'contrast\')" title="Contraste" '+
+              'style="font-size:15px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s">◑</button>' +
+            '<div id="reviewSliderPop_contrast" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0d1018;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px 14px;z-index:200;width:150px;box-shadow:0 12px 32px rgba(0,0,0,.8)">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+                '<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em">Contraste</span>' +
+                '<span id="reviewContrastVal" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--gold)">50</span>' +
+              '</div>' +
+              '<input id="reviewLSlider" type="range" min="0" max="100" value="50" '+
+                'style="width:122px;height:4px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.15);border-radius:2px;cursor:pointer;outline:none;accent-color:var(--gold);display:block" '+
+                'oninput="applyReviewWL();document.getElementById(\'reviewContrastVal\').textContent=this.value">' +
+            '</div>' +
+          '</div>' +
+
+          // Inverter (crítico para RX — negativo/positivo)
+          '<button id="reviewBtnInvert" onclick="window._reviewInverted=!window._reviewInverted;applyReviewWL();this.style.background=window._reviewInverted?\'rgba(139,92,246,.25)\':\' transparent\';this.style.borderColor=window._reviewInverted?\'rgba(139,92,246,.5)\':\' transparent\';this.style.color=window._reviewInverted?\'#b06aff\':\'rgba(255,255,255,.5)\'" title="Inverter (negativo)" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s">⊙</button>' +
+
+          // Rodar 90°
+          '<button onclick="window._reviewRotation=((window._reviewRotation||0)+90)%360;applyReviewWL()" title="Rodar 90°" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.9)\'" onmouseout="this.style.color=\'rgba(255,255,255,.5)\'">↻</button>' +
+
+          // Reset imagem
+          '<button onclick="window._reviewRotation=0;window._reviewInverted=false;document.getElementById(\'reviewBtnInvert\').style.background=\'transparent\';document.getElementById(\'reviewBtnInvert\').style.borderColor=\'transparent\';document.getElementById(\'reviewBtnInvert\').style.color=\'rgba(255,255,255,.5)\';if(window._reviewResetWL)window._reviewResetWL()" title="Reset imagem" '+
+            'style="font-size:13px;width:28px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:4px;color:rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.color=\'rgba(255,255,255,.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,.3)\'">↺</button>' +
+
         '</div>' +
 
-        // Divider
-        '<div style="width:1px;height:24px;background:rgba(255,255,255,.08);flex-shrink:0"></div>' +
+        // ── DIVISOR ──────────────────────────────────────────────────
+        '<div style="width:1px;height:24px;background:rgba(255,255,255,.07);flex-shrink:0"></div>' +
 
-        // GROUP 2: Drawing tools
-        '<div style="display:flex;align-items:center;gap:3px;padding:3px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;flex-shrink:0">' +
-          '<button id="reviewBtnPointer" onclick="setReviewTool(\'pointer\')" title="Caneta temporária" '+
-            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:rgba(201,168,76,.2);border:1px solid rgba(201,168,76,.4);border-radius:4px;color:var(--gold);cursor:pointer;flex-shrink:0;transition:all .15s">✏</button>' +
+        // ── GRUPO ANOTAÇÃO ───────────────────────────────────────────
+        '<div style="display:flex;align-items:center;gap:2px;padding:3px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;flex-shrink:0">' +
+
+          // Navegar (padrão)
+          '<button id="reviewBtnNav" onclick="setReviewTool(\'nav\')" title="Navegar / Pan" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.8);cursor:pointer;flex-shrink:0;transition:all .15s">✋</button>' +
+
+          // Traço livre
           '<button id="reviewBtnFreeDraw" onclick="setReviewTool(\'freedraw\')" title="Traço livre" '+
-            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;transition:all .15s">〜</button>' +
-          '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Marcar zona (círculo)" '+
-            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;transition:all .15s">◯</button>' +
-          '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar marcas" '+
-            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer;flex-shrink:0;transition:all .15s">⌫</button>' +
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.45);cursor:pointer;flex-shrink:0;transition:all .15s">✏</button>' +
+
+          // Círculo
+          '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Marcar zona (círculo — arrastar)" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.45);cursor:pointer;flex-shrink:0;transition:all .15s">◯</button>' +
+
+          // Seta (nova — linha com seta)
+          '<button id="reviewBtnArrow" onclick="setReviewTool(\'arrow\')" title="Seta indicadora" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.45);cursor:pointer;flex-shrink:0;transition:all .15s">↗</button>' +
+
+          // Apagar
+          '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar (clica numa marca)" '+
+            'style="font-size:14px;width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer;flex-shrink:0;transition:all .15s">⌫</button>' +
+
+          // Cor da marcação
+          '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor" ' +
+            'style="width:26px;height:26px;border:2px solid rgba(255,255,255,.12);border-radius:5px;background:transparent;cursor:pointer;padding:1px;flex-shrink:0;margin-left:2px" ' +
+            'onchange="window._reviewColor=this.value">' +
+
+          // Limpar tudo
+          '<button onclick="clearAllReviewMarks()" title="Limpar todas as marcas" '+
+            'style="font-size:13px;width:28px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,80,80,.12);border-radius:4px;color:rgba(255,100,100,.4);cursor:pointer;flex-shrink:0;transition:all .15s;margin-left:2px" onmouseover="this.style.borderColor=\'rgba(255,80,80,.5)\';this.style.color=\'rgba(255,100,100,.9)\'" onmouseout="this.style.borderColor=\'rgba(255,80,80,.12)\';this.style.color=\'rgba(255,100,100,.4)\'">🗑</button>' +
+
         '</div>' +
 
-        // Color picker standalone
-        '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor da marcação" ' +
-          'style="width:30px;height:30px;border:2px solid rgba(255,255,255,.15);border-radius:6px;background:transparent;cursor:pointer;padding:1px;flex-shrink:0" ' +
-          'onchange="window._reviewColor=this.value">' +
+        // ── DIVISOR ──────────────────────────────────────────────────
+        '<div style="width:1px;height:24px;background:rgba(255,255,255,.07);flex-shrink:0"></div>' +
 
-        // Divider
-        '<div style="width:1px;height:24px;background:rgba(255,255,255,.08);flex-shrink:0"></div>' +
+        // ── GRUPO ANÁLISE IA — destaque ──────────────────────────────
+        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">' +
 
-        // GROUP 3: Actions
-        '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0">' +
-          '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar com outra imagem" '+
-            'style="font-family:'+mono+';font-size:10px;padding:5px 10px;height:30px;display:flex;align-items:center;gap:4px;background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.2);border-radius:5px;color:rgba(74,201,201,.6);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap" onmouseover="this.style.borderColor=\'rgba(74,201,201,.5)\';this.style.color=\'var(--ice)\'" onmouseout="this.style.borderColor=\'rgba(74,201,201,.2)\';this.style.color=\'rgba(74,201,201,.6)\'">⊞ Comparar</button>' +
-          '<button onclick="clearAllReviewMarks()" title="Limpar todas as marcas" '+
-            'style="font-family:'+mono+';font-size:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,80,80,.15);border-radius:5px;color:rgba(255,100,100,.4);cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor=\'rgba(255,80,80,.4)\';this.style.color=\'rgba(255,100,100,.8)\'" onmouseout="this.style.borderColor=\'rgba(255,80,80,.15)\';this.style.color=\'rgba(255,100,100,.4)\'">🗑</button>' +
+          // SpotAI — botão principal de análise
+          '<button id="btnSpotAIToolbar" onclick="window._reviewAnalyzeMode=true;setReviewTool(\'circle\');showToast(\'Desenha um círculo na zona a analisar — IA analisa automaticamente\',\'info\')" title="Marcar zona para análise IA — a IA analisa automaticamente ao desenhar o círculo" '+
+            'style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:5px 11px;height:30px;display:flex;align-items:center;gap:5px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);border-radius:5px;color:var(--gold);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap;letter-spacing:.04em" '+
+            'onmouseover="this.style.background=\'rgba(201,168,76,.2)\';this.style.borderColor=\'rgba(201,168,76,.6)\'" onmouseout="this.style.background=\'rgba(201,168,76,.1)\';this.style.borderColor=\'rgba(201,168,76,.35)\'">✦ Analisar zona</button>' +
+
+          // Comparar
+          '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar duas imagens" '+
+            'style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:5px 10px;height:30px;display:flex;align-items:center;gap:4px;background:rgba(74,201,201,.05);border:1px solid rgba(74,201,201,.18);border-radius:5px;color:rgba(74,201,201,.6);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap" '+
+            'onmouseover="this.style.background=\'rgba(74,201,201,.12)\';this.style.color=\'var(--ice)\'" onmouseout="this.style.background=\'rgba(74,201,201,.05)\';this.style.color=\'rgba(74,201,201,.6)\'">⊞ Comparar</button>' +
+
         '</div>' +
 
       '</div>' +
@@ -8593,69 +8704,124 @@ function openReviewMode(startFromIdx) {
 
     '</div>' + // end body row
 
-    // Bottom panel
-    '<div id="reviewBottomPanel" style="position:relative;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.97) 85%,transparent);padding:10px 14px 16px">' +
+    // Bottom panel — compact, only expands when content
+    '<div id="reviewBottomPanel" style="position:relative;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.97) 85%,transparent);padding:8px 14px 12px">' +
 
-      // IA suggestions
-      '<div id="reviewSuggestions" style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap"></div>' +
+      // IA suggestions — hidden by default, shown only when populated
+      '<div id="reviewSuggestions" style="margin-bottom:0;display:none;gap:6px;flex-wrap:wrap"></div>' +
 
-      // Note input row with voice
-      '<div style="display:flex;gap:7px;align-items:flex-end;margin-bottom:8px">' +
+      // Note input — compact single row with inline actions
+      '<div style="display:flex;gap:6px;align-items:center">' +
+
+        // Nav arrow left — discrete
+        '<button onclick="reviewPrev()" title="Anterior" '+
+          'style="width:36px;height:36px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:rgba(255,255,255,.35);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s" '+
+          'onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.color=\'rgba(255,255,255,.8)\'" '+
+          'onmouseout="this.style.background=\'rgba(255,255,255,.05)\';this.style.color=\'rgba(255,255,255,.35)\'">‹</button>' +
+
+        // Textarea + mic
         '<div style="flex:1;position:relative">' +
-          '<textarea id="reviewNote" placeholder="O que observas? (texto livre ou ditado por voz)" rows="2" '+
-            'style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:9px 38px 9px 12px;font-family:'+mono+';font-size:12px;color:#fff;resize:none;outline:none;line-height:1.5"></textarea>' +
-          // Mic button inside textarea
+          '<textarea id="reviewNote" placeholder="Observação (texto livre ou por voz)…" rows="2" '+
+            'style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:8px 36px 8px 10px;font-family:'+mono+';font-size:11px;color:#fff;resize:none;outline:none;line-height:1.5;transition:border-color .15s" '+
+            'onfocus="this.style.borderColor=\'rgba(255,255,255,.25)\'" onblur="this.style.borderColor=\'rgba(255,255,255,.12)\'"></textarea>' +
           '<button id="reviewVoiceBtn" onclick="startVoiceInput(\'reviewNote\',\'reviewVoiceBtn\')" title="Ditar nota (voz)" '+
-            'style="position:absolute;right:7px;bottom:9px;background:transparent;border:none;color:rgba(74,201,201,.5);font-size:17px;cursor:pointer;padding:2px;transition:all .2s;line-height:1" '+
-            'onmouseover="this.style.color=\'rgba(74,201,201,.9)\'" onmouseout="this.style.color=\'rgba(74,201,201,.5)\'">🎙</button>' +
+            'style="position:absolute;right:6px;bottom:8px;background:transparent;border:none;color:rgba(74,201,201,.4);font-size:16px;cursor:pointer;padding:2px;transition:all .2s;line-height:1" '+
+            'onmouseover="this.style.color=\'rgba(74,201,201,.9)\'" onmouseout="this.style.color=\'rgba(74,201,201,.4)\'">🎙</button>' +
         '</div>' +
-        '<div style="display:flex;flex-direction:column;gap:5px">' +
-          '<button onclick="reviewConfirm()" title="Confirmar — achado validado" '+
-            'style="padding:7px 12px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);border-radius:4px;font-family:'+mono+';font-size:11px;color:#4ade80;cursor:pointer;white-space:nowrap;min-height:36px">✓ OK</button>' +
-          '<button onclick="reviewNext()" title="Próxima imagem" '+
-            'style="padding:7px 12px;background:rgba(74,201,201,.12);border:1px solid rgba(74,201,201,.25);border-radius:4px;font-family:'+mono+';font-size:11px;color:var(--ice);cursor:pointer;white-space:nowrap;min-height:36px">→</button>' +
+
+        // Right button stack: confirm + spot IA
+        '<div style="display:flex;flex-direction:column;gap:4px">' +
+          '<button onclick="reviewConfirm()" title="Confirmar achado" '+
+            'style="width:52px;height:34px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:5px;font-family:'+mono+';font-size:11px;color:#4ade80;cursor:pointer;transition:all .15s" '+
+            'onmouseover="this.style.background=\'rgba(34,197,94,.22)\'" onmouseout="this.style.background=\'rgba(34,197,94,.12)\'">✓ OK</button>' +
+          '<button id="btnSpotAI" onclick="spotAIQuery()" title="Perguntar à IA sobre zona marcada" '+
+            'style="width:52px;height:34px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:5px;font-family:'+mono+';font-size:10px;color:var(--gold);cursor:pointer;transition:all .15s;white-space:nowrap" '+
+            'onmouseover="this.style.background=\'rgba(201,168,76,.18)\'" onmouseout="this.style.background=\'rgba(201,168,76,.08)\'">✦ IA</button>' +
         '</div>' +
+
+        // Nav arrow right — discrete
+        '<button onclick="reviewNext()" title="Próxima" '+
+          'style="width:36px;height:36px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:rgba(255,255,255,.35);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s" '+
+          'onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.color=\'rgba(255,255,255,.8)\'" '+
+          'onmouseout="this.style.background=\'rgba(255,255,255,.05)\';this.style.color=\'rgba(255,255,255,.35)\'">›</button>' +
+
       '</div>' +
 
-      // Action row: AI spot + nav
-      '<div style="display:flex;align-items:center;gap:6px">' +
-        '<button onclick="reviewPrev()" style="font-family:'+mono+';font-size:13px;padding:7px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:rgba(255,255,255,.6);cursor:pointer;flex-shrink:0">←</button>' +
-        '<div id="reviewDots" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;flex:1;overflow:hidden"></div>' +
-        // IA spot query button
-        '<button id="btnSpotAI" onclick="spotAIQuery()" title="Perguntar à IA sobre esta zona marcada" '+
-          'style="font-family:'+mono+';font-size:10px;padding:7px 10px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s" '+
-          'onmouseover="this.style.background=\'rgba(201,168,76,.22)\'" onmouseout="this.style.background=\'rgba(201,168,76,.12)\'">✦ IA</button>' +
-        '<button onclick="reviewNext()" style="font-family:'+mono+';font-size:13px;padding:7px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:rgba(255,255,255,.6);cursor:pointer;flex-shrink:0">→</button>' +
-      '</div>' +
+      // Progress dots — compact, below input
+      '<div id="reviewDots" style="display:flex;gap:3px;justify-content:center;margin-top:6px;overflow:hidden;flex-wrap:wrap"></div>' +
+
     '</div>';
 
   document.body.appendChild(overlay);
   renderReviewFrame();
   setupReviewInteraction();
-  setReviewTool('pointer');
-  window._reviewColor = '#C9A84C'; // default gold
+  setReviewTool('nav');           // ← default: navigate, NOT laser
+  window._reviewColor = '#C9A84C';
+
+  // ── Slider popover toggle ──────────────────────────────────────────
+  window.toggleReviewSlider = function(which) {
+    var pops = ['bright', 'contrast'];
+    pops.forEach(function(p) {
+      var el = document.getElementById('reviewSliderPop_' + p);
+      var btn = document.getElementById('reviewBtn' + (p === 'bright' ? 'Bright' : 'Contrast'));
+      if (p === which) {
+        var isOpen = el && el.style.display !== 'none';
+        if (el) el.style.display = isOpen ? 'none' : 'block';
+        if (btn) { btn.style.background = isOpen ? 'transparent' : 'rgba(201,168,76,.15)'; btn.style.color = isOpen ? 'rgba(255,255,255,.45)' : 'var(--gold)'; }
+      } else {
+        if (el) el.style.display = 'none';
+        if (btn) { btn.style.background = 'transparent'; btn.style.color = 'rgba(255,255,255,.45)'; }
+      }
+    });
+    // Close on outside click
+    if (!window._reviewSliderOutsideListener) {
+      window._reviewSliderOutsideListener = function(e) {
+        var insidePop = e.target.closest && (e.target.closest('#reviewSliderPop_bright') || e.target.closest('#reviewSliderPop_contrast'));
+        var insideBtn = e.target.id === 'reviewBtnBright' || e.target.id === 'reviewBtnContrast';
+        if (!insidePop && !insideBtn) {
+          ['bright','contrast'].forEach(function(p) {
+            var el = document.getElementById('reviewSliderPop_' + p);
+            var btn = document.getElementById('reviewBtn' + (p==='bright'?'Bright':'Contrast'));
+            if (el) el.style.display = 'none';
+            if (btn) { btn.style.background = 'transparent'; btn.style.color = 'rgba(255,255,255,.45)'; }
+          });
+        }
+      };
+      document.addEventListener('click', window._reviewSliderOutsideListener);
+    }
+  };
 
   // Wire W/L sliders
-  function applyReviewWL() {
+  window.applyReviewWL = function() {
     var img = document.getElementById('reviewImg');
     if (!img) return;
-    var w = parseFloat(document.getElementById('reviewWSlider').value);
-    var l = parseFloat(document.getElementById('reviewLSlider').value);
+    var w = parseFloat((document.getElementById('reviewWSlider') || {}).value || 50);
+    var l = parseFloat((document.getElementById('reviewLSlider') || {}).value || 50);
     var brightness = 0.4 + (l / 100) * 1.4;
     var contrast   = 0.5 + (w / 100) * 1.8;
-    img.style.filter = 'brightness(' + brightness + ') contrast(' + contrast + ')';
-  }
+    var inv = window._reviewInverted ? ' invert(1)' : '';
+    img.style.filter = 'brightness(' + brightness + ') contrast(' + contrast + ')' + inv;
+    // Rotation stored in data, applied via rotate on the wrap (doesn't conflict with zoom)
+    var rot = window._reviewRotation || 0;
+    img.dataset.rotation = rot;
+    if (rot) img.style.rotate = rot + 'deg';
+    else img.style.rotate = '';
+  };
   window._reviewResetWL = function() {
     var ws = document.getElementById('reviewWSlider');
     var ls = document.getElementById('reviewLSlider');
-    if (ws) ws.value = 50;
-    if (ls) ls.value = 50;
-    applyReviewWL();
+    var bv = document.getElementById('reviewBrightVal');
+    var cv = document.getElementById('reviewContrastVal');
+    if (ws) ws.value = 50; if (bv) bv.textContent = '50';
+    if (ls) ls.value = 50; if (cv) cv.textContent = '50';
+    window._reviewInverted = false;
+    window._reviewRotation = 0;
+    window.applyReviewWL();
   };
   var ws = document.getElementById('reviewWSlider');
   var ls = document.getElementById('reviewLSlider');
-  if (ws) ws.addEventListener('input', applyReviewWL);
-  if (ls) ls.addEventListener('input', applyReviewWL);
+  if (ws) ws.addEventListener('input', window.applyReviewWL);
+  if (ls) ls.addEventListener('input', window.applyReviewWL);
 
   // Keyboard nav
   document._reviewKeyHandler = function(e) {
@@ -8689,7 +8855,7 @@ function renderReviewFrame(direction) {
 
   // Clear spot AI panel on frame change
   var sugg = document.getElementById('reviewSuggestions');
-  if (sugg) sugg.innerHTML = '';
+  if (sugg) { sugg.innerHTML = ''; sugg.style.display = 'none'; sugg.style.marginBottom = '0'; }
 
   // Update top bar
   var tag = document.getElementById('reviewImgTag');
@@ -8860,6 +9026,26 @@ function redrawReviewCanvas() {
     ctx.fillStyle = 'rgba(255,120,120,1)'; ctx.fill();
   });
 
+  // Draw arrows
+  var arrows = (_reviewArrows && _reviewArrows[imgName]) || [];
+  arrows.forEach(function(a) {
+    var x1 = a.x1 * canvas.width, y1 = a.y1 * canvas.height;
+    var x2 = a.x2 * canvas.width, y2 = a.y2 * canvas.height;
+    ctx.strokeStyle = a.color || '#C9A84C';
+    ctx.fillStyle   = a.color || '#C9A84C';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    // Arrowhead
+    var ang = Math.atan2(y2 - y1, x2 - x1);
+    var headLen = 14;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(ang - Math.PI/6), y2 - headLen * Math.sin(ang - Math.PI/6));
+    ctx.lineTo(x2 - headLen * Math.cos(ang + Math.PI/6), y2 - headLen * Math.sin(ang + Math.PI/6));
+    ctx.closePath(); ctx.fill();
+  });
+
   // Draw free draw paths
   var fpaths = (window._freeDrawPaths && window._freeDrawPaths[imgName]) || [];
   fpaths.forEach(function(path) {
@@ -8920,7 +9106,7 @@ function setupReviewInteraction() {
 
   // ── ERASER: check if click is near a circle or free path ──
   function tryErase(rx, ry, isTouchEvent) {
-    var tol = isTouchEvent ? 0.08 : 0.04; // muito maior em touch
+    var tol = isTouchEvent ? 0.08 : 0.05;
     var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
     var erased = false;
 
@@ -8929,11 +9115,7 @@ function setupReviewInteraction() {
     for (var i = anns.length - 1; i >= 0; i--) {
       var a = anns[i];
       var dist = Math.sqrt(Math.pow(rx - a.x, 2) + Math.pow(ry - a.y, 2));
-      if (dist <= a.r + tol) {
-        anns.splice(i, 1);
-        erased = true;
-        break;
-      }
+      if (dist <= a.r + tol) { anns.splice(i, 1); erased = true; break; }
     }
     // Also check permanentMarks
     var pm = _reviewPermanentMarks[imgName] || [];
@@ -8941,6 +9123,13 @@ function setupReviewInteraction() {
       var m = pm[j];
       var d2 = Math.sqrt(Math.pow(rx - m.x, 2) + Math.pow(ry - m.y, 2));
       if (d2 <= m.r + tol) { pm.splice(j, 1); erased = true; break; }
+    }
+    // Check laser/pointer marks
+    var pts = _pointerMarks[imgName] || [];
+    for (var pi = pts.length - 1; pi >= 0; pi--) {
+      var pt = pts[pi];
+      var dp = Math.sqrt(Math.pow(rx - pt.nx, 2) + Math.pow(ry - pt.ny, 2));
+      if (dp < tol * 1.5) { pts.splice(pi, 1); erased = true; break; }
     }
     // Free draw paths — erase path if click is near any point
     var fp = (window._freeDrawPaths || {})[imgName] || [];
@@ -8951,13 +9140,26 @@ function setupReviewInteraction() {
         if (dd < tol * 1.5) { fp.splice(k, 1); erased = true; break; }
       }
     }
-    if (erased) { redrawReviewCanvas(); showToast('Marca apagada'); }
+    // Check arrows — erase if click near line
+    var arrs = (_reviewArrows || {})[imgName] || [];
+    for (var ai = arrs.length - 1; ai >= 0; ai--) {
+      var ar = arrs[ai];
+      // distance from point to segment
+      var ax = ar.x2-ar.x1, ay = ar.y2-ar.y1;
+      var bx = rx-ar.x1,    by = ry-ar.y1;
+      var t2 = Math.max(0, Math.min(1, (bx*ax+by*ay)/(ax*ax+ay*ay+0.0001)));
+      var nearX = ar.x1+t2*ax, nearY = ar.y1+t2*ay;
+      var dist2 = Math.sqrt(Math.pow(rx-nearX,2)+Math.pow(ry-nearY,2));
+      if (dist2 < tol) { arrs.splice(ai,1); erased = true; break; }
+    }
+    if (erased) { redrawReviewCanvas(); showToast('✓ Marca apagada'); }
+    else showToast('Clica mais perto de uma marca');
   }
 
   // ── MOUSEDOWN ──
   canvas.addEventListener('mousedown', function(e) {
-    var tool = window._reviewTool || 'pointer';
-    if (_vZoom > 1 && tool !== 'freedraw') {
+    var tool = window._reviewTool || 'nav';
+    if (tool === 'nav' || (_vZoom > 1 && tool !== 'freedraw')) {
       _isPanning = true;
       _panStart = { x: e.clientX - _vPanX, y: e.clientY - _vPanY };
       canvas.style.cursor = 'grabbing';
@@ -8979,11 +9181,12 @@ function setupReviewInteraction() {
   });
 
   function handleDrawEnd(clientX, clientY) {
-    if (_isPanning) { _isPanning = false; canvas.style.cursor = _vZoom > 1 ? 'grab' : 'crosshair'; return; }
+    if (_isPanning) { _isPanning = false; canvas.style.cursor = _vZoom > 1 ? 'grab' : (window._reviewTool === 'nav' ? 'default' : 'crosshair'); return; }
     if (_isFreeDraw) { _isFreeDraw = false; redrawReviewCanvas(); return; }
     if (!pointerStart) return;
     var pos = getRelPos(clientX, clientY);
-    var tool = window._reviewTool || 'pointer';
+    var tool = window._reviewTool || 'nav';
+    if (tool === 'nav') { pointerStart = null; return; }
     if (tool === 'circle' || _reviewMarkMode) {
       var dx = pos.x - pointerStart.x, dy = pos.y - pointerStart.y;
       var r = Math.sqrt(dx * dx + dy * dy);
@@ -8997,8 +9200,19 @@ function setupReviewInteraction() {
       _annotations[imgName].push({ type: 'circle', x: pointerStart.x, y: pointerStart.y, r: r, color: markColorHex, label: '' });
       redrawReviewCanvas();
       renderReviewFrame();
-    } else {
-      showPointerFlash(pointerStart.x, pointerStart.y, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height);
+      // Auto-trigger SpotAI if user drew circle via the "Analisar zona" button
+      if (window._reviewAnalyzeMode) {
+        window._reviewAnalyzeMode = false;
+        setTimeout(function() { spotAIQuery(); }, 180);
+        // Switch back to nav after analysis triggered
+        setReviewTool('nav');
+      }
+    } else if (tool === 'arrow') {
+      var imgNameA = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
+      var arrowColor = window._reviewColor || '#C9A84C';
+      if (!_reviewArrows[imgNameA]) _reviewArrows[imgNameA] = [];
+      _reviewArrows[imgNameA].push({ x1: pointerStart.x, y1: pointerStart.y, x2: pos.x, y2: pos.y, color: arrowColor });
+      redrawReviewCanvas();
     }
     pointerStart = null;
   }
@@ -9033,7 +9247,7 @@ function setupReviewInteraction() {
       _touchSwipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, panX: _vPanX, panY: _vPanY };
       _touchMoved = false;
       // Touch draw start
-      var tool = window._reviewTool || 'pointer';
+      var tool = window._reviewTool || 'nav';
       if (tool === 'freedraw') {
         _isFreeDraw = true;
         var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
@@ -9086,7 +9300,7 @@ function setupReviewInteraction() {
     if (window._reviewLongPressTimer) { clearTimeout(window._reviewLongPressTimer); window._reviewLongPressTimer = null; }
     if (_touch0 && e.touches.length < 2) { _touch0 = null; return; }
     if (_touchSwipeStart && !_touchMoved && _vZoom <= 1) {
-      var t = window._reviewTool || 'pointer';
+      var t = window._reviewTool || 'nav';
       var dx = e.changedTouches[0].clientX - _touchSwipeStart.x;
       var dy = e.changedTouches[0].clientY - _touchSwipeStart.y;
       if (t === 'eraser') {
@@ -9122,37 +9336,42 @@ function clearPointerMarks() {
 
 function setReviewTool(tool) {
   _reviewMarkMode = (tool === 'circle');
-  window._reviewTool = tool; // 'pointer' | 'circle' | 'freedraw' | 'eraser'
+  window._reviewTool = tool; // 'nav' | 'freedraw' | 'circle' | 'arrow' | 'eraser'
 
-  var btnP = document.getElementById('reviewBtnPointer');
+  var btnN = document.getElementById('reviewBtnNav');
   var btnF = document.getElementById('reviewBtnFreeDraw');
   var btnC = document.getElementById('reviewBtnCircle');
+  var btnA = document.getElementById('reviewBtnArrow');
   var btnE = document.getElementById('reviewBtnEraser');
   var canvas = document.getElementById('reviewCanvas');
 
-  // Reset all buttons
-  var allBtns = [btnP, btnF, btnC, btnE];
-  allBtns.forEach(function(b) {
-    if (b) { b.style.background = 'transparent'; b.style.opacity = '0.6'; }
+  // Reset all
+  [btnN, btnF, btnC, btnA, btnE].forEach(function(b) {
+    if (b) { b.style.background = 'transparent'; b.style.borderColor = 'transparent'; b.style.opacity = '0.55'; }
   });
 
-  // Activate selected
-  var activeBg = { pointer: 'rgba(201,168,76,.25)', freedraw: 'rgba(139,92,246,.25)', circle: 'rgba(74,201,201,.2)', eraser: 'rgba(255,80,80,.2)' };
-  var activeBtn = { pointer: btnP, freedraw: btnF, circle: btnC, eraser: btnE };
-  if (activeBtn[tool]) { activeBtn[tool].style.background = activeBg[tool]; activeBtn[tool].style.opacity = '1'; }
-
-  // Cursor
-  var cursors = { pointer: 'cell', freedraw: 'crosshair', circle: 'crosshair', eraser: 'not-allowed' };
-  if (canvas) canvas.style.cursor = cursors[tool] || 'default';
+  // Activate
+  var cfg = {
+    nav:      { btn: btnN, bg: 'rgba(255,255,255,.16)',   border: 'rgba(255,255,255,.3)',    cursor: 'default' },
+    freedraw: { btn: btnF, bg: 'rgba(201,168,76,.2)',     border: 'rgba(201,168,76,.4)',     cursor: 'crosshair' },
+    circle:   { btn: btnC, bg: 'rgba(74,201,201,.18)',    border: 'rgba(74,201,201,.4)',     cursor: 'crosshair' },
+    arrow:    { btn: btnA, bg: 'rgba(74,201,201,.18)',    border: 'rgba(74,201,201,.4)',     cursor: 'crosshair' },
+    eraser:   { btn: btnE, bg: 'rgba(255,100,100,.18)',   border: 'rgba(255,100,100,.4)',    cursor: 'not-allowed' }
+  };
+  var c = cfg[tool];
+  if (c && c.btn) { c.btn.style.background = c.bg; c.btn.style.borderColor = c.border; c.btn.style.opacity = '1'; }
+  if (canvas) canvas.style.cursor = (c && c.cursor) || 'default';
 }
 
 function clearAllReviewMarks() {
   var imgName = (S.imgs[S.idx] || {}).name || ('IMG' + (S.idx + 1));
   _pointerMarks[imgName] = [];
+  _reviewPermanentMarks[imgName] = [];
+  _reviewArrows[imgName] = [];
   _annotations[imgName] = [];
   if (window._freeDrawPaths) window._freeDrawPaths[imgName] = [];
   redrawReviewCanvas();
-  showToast('Marcas limpas');
+  showToast('✓ Todas as marcas limpas');
 }
 
 // Alias para compatibilidade
@@ -13093,6 +13312,8 @@ function spotAIQuery() {
   var panel = document.getElementById('reviewSuggestions');
   if (!panel) return;
 
+  panel.style.display = 'flex';
+  panel.style.marginBottom = '8px';
   panel.innerHTML = '<div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:6px;padding:8px 10px;width:100%;font-family:JetBrains Mono,monospace;font-size:10px;color:var(--gold)">✦ A analisar zona marcada…</div>';
 
   // Get annotated image (current canvas merge)
@@ -13129,7 +13350,7 @@ function spotAIQuery() {
         '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:rgba(201,168,76,.6);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">✦ IA — Zona Marcada</div>' +
         '<div style="font-size:11px;color:rgba(255,255,255,.85);line-height:1.6">' + escH(text) + '</div>' +
         '<button onclick="var ta=document.getElementById(\'reviewNote\');if(ta){var cur=ta.value.trim();ta.value=cur?(cur+\'. \'+' + JSON.stringify(text) + '):' + JSON.stringify(text) + ';}this.closest(\'div\').style.borderColor=\'rgba(74,170,122,.4)\'" style="margin-top:6px;font-family:JetBrains Mono,monospace;font-size:9px;padding:3px 8px;background:rgba(74,170,122,.1);border:1px solid rgba(74,170,122,.25);border-radius:3px;color:#4aaa7a;cursor:pointer">+ Adicionar à nota</button>' +
-        '<button onclick="this.closest(\'[id=reviewSuggestions]\').innerHTML=\'\'" style="position:absolute;top:6px;right:8px;background:transparent;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:13px">✕</button>' +
+        '<button onclick="var p=this.closest(\'[id=reviewSuggestions]\');if(p){p.innerHTML=\'\';p.style.display=\'none\';p.style.marginBottom=\'0\'}" style="position:absolute;top:6px;right:8px;background:transparent;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:13px">✕</button>' +
       '</div>';
     })
     .catch(function() {

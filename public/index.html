@@ -1798,34 +1798,32 @@ window.addEventListener('DOMContentLoaded', function() {
   <!-- ══ SCROLL AREA ══════════════════════════════════════════ -->
   <div class="sb-scroll">
 
-    <!-- DROP / VIEWER — com selector de cavalo integrado no topo -->
-    <div class="sb">
-      <!-- Cavalo selector integrado — compacto, sem secção separada -->
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--wire)">
+    <!-- ── CAVALO ─────────────────────────────────────── -->
+    <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">🐴 Cavalo</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
         <select id="horseSelect" class="horse-select" onchange="onHorseSelect(this.value)"
-          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink2);border:1px solid var(--wire2);color:var(--t1);padding:7px 10px;border-radius:5px;cursor:pointer">
-          <option value="">🐴 — Seleccionar cavalo —</option>
+          style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink2);border:1px solid var(--wire2);border-radius:5px;color:var(--t1);padding:6px 8px;cursor:pointer;height:32px">
+          <option value="">— Seleccionar —</option>
         </select>
         <button onclick="openNewHorseModal()" title="Criar novo cavalo"
-          style="font-family:'JetBrains Mono',monospace;font-size:14px;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:5px;padding:6px 11px;cursor:pointer;flex-shrink:0;line-height:1">+</button>
+          style="font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1;background:rgba(201,168,76,.08);color:var(--gold);border:1px solid rgba(201,168,76,.2);border-radius:5px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
         <button onclick="openCavalosPanel()" title="Gerir cavalos"
-          style="font-family:'JetBrains Mono',monospace;font-size:11px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;padding:6px 9px;cursor:pointer;flex-shrink:0;line-height:1" onmouseover="this.style.color='var(--ice)'" onmouseout="this.style.color='var(--t3)'">⊞</button>
-        <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);flex-shrink:0"></span>
+          style="font-family:'JetBrains Mono',monospace;font-size:13px;background:transparent;color:var(--t3);border:1px solid var(--wire);border-radius:5px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">≡</button>
       </div>
-
-      <!-- Horse mini-card — aparece só quando cavalo seleccionado -->
-      <div class="horse-card" id="horseCard" style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="display:flex;gap:12px">
+      <span id="horseBadge" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)"></span>
+      <div class="horse-card" id="horseCard" style="margin-top:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div style="display:flex;gap:8px">
             <div class="horse-stat"><span class="horse-stat-label">Raça</span><span class="horse-stat-val" id="hcRaca">—</span></div>
             <div class="horse-stat"><span class="horse-stat-label">Idade</span><span class="horse-stat-val" id="hcIdade">—</span></div>
             <div class="horse-stat"><span class="horse-stat-label">Disc.</span><span class="horse-stat-val" id="hcDisc">—</span></div>
             <div class="horse-stat"><span class="horse-stat-label">Exames</span><span class="horse-stat-val" id="hcExames">0</span></div>
           </div>
-          <div style="display:flex;gap:4px">
-            <button onclick="openHorseProfileModal(window._selectedHorseId)" title="Perfil" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 7px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:3px;color:var(--gold);cursor:pointer">📋</button>
-            <button onclick="openEditHorseModal(window._selectedHorseId)" title="Editar" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 7px;background:rgba(74,201,201,.07);border:1px solid rgba(74,201,201,.15);border-radius:3px;color:var(--ice);cursor:pointer">✏</button>
-            <button onclick="deleteHorse(window._selectedHorseId)" title="Apagar" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 7px;background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.15);border-radius:3px;color:var(--red);cursor:pointer">🗑</button>
+          <div style="display:flex;gap:3px">
+            <button onclick="openHorseProfileModal(window._selectedHorseId)" title="Perfil" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;padding:2px 5px">👁</button>
+            <button onclick="openEditHorseModal(window._selectedHorseId)" title="Editar" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer;padding:2px 5px">✎</button>
+            <button onclick="deleteHorse(window._selectedHorseId)" title="Apagar" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:3px;color:rgba(255,80,80,.4);cursor:pointer;padding:2px 5px">✕</button>
           </div>
         </div>
         <div class="horse-timeline" id="hcTimeline" style="display:none">
@@ -1833,42 +1831,42 @@ window.addEventListener('DOMContentLoaded', function() {
           <div id="hcTimelineList"></div>
         </div>
       </div>
+    </div>
 
-      <div class="sb-lbl">Radiografias <span id="imgBadge" style="color:var(--gold);margin-left:3px"></span></div>
+    <!-- ── RADIOGRAFIAS ───────────────────────────────── -->
+    <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">🩻 Radiografias <span id="imgBadge" style="color:var(--gold);margin-left:4px"></span></div>
       <div class="drop" id="dropzone"
         ondragover="event.preventDefault();event.stopPropagation();this.classList.add('over')"
         ondragleave="event.preventDefault();this.classList.remove('over')"
         ondrop="onDrop(event)">
-        <input type="file" id="fileIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" onchange="onFileInput(this)">
-        <svg class="drop-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21" stroke-linecap="round"/></svg>
-        <div class="drop-title" id="dropTitle">Clica aqui ou arrasta imagens</div>
-        <div class="drop-sub">JPG · PNG · PDF · DICOM · até 60 imagens</div>
-        <div style="font-size:10px;color:var(--amber);margin-top:4px">⚠ PDF: usa sempre <strong>clica aqui</strong> — arrastar PDFs pode abrir no browser</div>
-        <div class="drop-hint" id="dropHint" style="font-size:10px;color:var(--amber);margin-top:4px;display:none">⚠ Carregue <strong>todas</strong> as imagens da sessão de uma vez para obter um único relatório</div>
+        <input type="file" id="fileIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" onchange="onFileInput(this)" style="display:none">
+        <svg class="drop-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <div class="drop-title" id="dropTitle">Clica ou arrasta</div>
+        <div class="drop-sub">JPG · PNG · PDF · DICOM</div>
+        <div style="font-size:9px;color:var(--amber);margin-top:3px">⚠ PDFs: clica, não arrastes</div>
+        <div class="drop-hint" id="dropHint" style="font-size:10px;color:var(--amber);margin-top:4px;display:none">⚠ Carrega <strong>toda</strong> a sessão de uma vez</div>
       </div>
-      <!-- Thumb count bar — substitui viewer+grid na sidebar -->
-      <div id="sbThumbBar" style="display:none;margin-top:6px;padding:6px 0">
+      <div id="sbThumbBar" style="display:none;margin-top:6px">
         <div id="sbThumbCount" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:5px"></div>
-        <!-- Mini strip de thumbs clicáveis -->
-        <div id="sbMiniStrip" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px"></div>
+        <div id="sbMiniStrip" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px"></div>
         <div style="display:flex;gap:4px">
-          <button onclick="document.getElementById('addIn').click()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t2);background:transparent;border:1px solid var(--wire2);border-radius:4px;padding:5px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='rgba(255,255,255,.3)'" onmouseout="this.style.borderColor='var(--wire2)'">+ Adicionar</button>
-          <button onclick="clearImages()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:transparent;border:1px solid rgba(224,85,85,.2);border-radius:4px;padding:5px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='rgba(224,85,85,.5)'" onmouseout="this.style.borderColor='rgba(224,85,85,.2)'">✕ Limpar</button>
+          <button onclick="document.getElementById('addIn').click()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.2);border-radius:4px;cursor:pointer;padding:5px 4px">+ Adicionar</button>
+          <button onclick="clearImages()" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:transparent;border:1px solid rgba(255,80,80,.15);border-radius:4px;cursor:pointer;padding:5px 8px">✕</button>
         </div>
       </div>
       <input type="file" id="addIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" style="display:none" onchange="onFileInput(this)">
-      <!-- thumb-grid mantida oculta para compatibilidade com renderGrid() -->
       <div class="thumb-grid" id="grid" style="display:none!important;position:absolute;visibility:hidden"></div>
       <div id="clearRow" style="display:none"></div>
     </div>
 
-    <!-- PACIENTE — accordion -->
+    <!-- ── PACIENTE — accordion ───────────────────────── -->
     <div class="sb sb-accordion" id="sbPaciente">
-      <div class="sb-acc-header" onclick="toggleAccordion('sbPaciente')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:0">
-        <div class="sb-lbl" style="margin-bottom:0">Paciente</div>
-        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▼</span>
+      <div class="sb-acc-header" onclick="toggleAccordion('sbPaciente')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em">👤 Paciente</div>
+        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▶</span>
       </div>
-      <div class="sb-acc-body" style="margin-top:10px">
+      <div class="sb-acc-body" style="margin-top:0;display:none;padding:10px 14px">
         <div class="field"><label>Nome</label><input id="fName" placeholder="ex: Lusitano Prince"></div>
         <div class="row2">
           <div class="field"><label>Raça</label>
@@ -1893,13 +1891,13 @@ window.addEventListener('DOMContentLoaded', function() {
       </div>
     </div>
 
-    <!-- DADOS CLÍNICOS — accordion -->
+    <!-- ── DADOS CLÍNICOS — accordion ────────────────── -->
     <div class="sb sb-accordion" id="sbClinical">
-      <div class="sb-acc-header" onclick="toggleAccordion('sbClinical')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:0">
-        <div class="sb-lbl" style="margin-bottom:0">Dados Clínicos</div>
-        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▼</span>
+      <div class="sb-acc-header" onclick="toggleAccordion('sbClinical')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em">⚕ Dados Clínicos</div>
+        <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▶</span>
       </div>
-      <div class="sb-acc-body" style="margin-top:10px">
+      <div class="sb-acc-body" style="margin-top:0;display:none;padding:10px 14px">
         <div class="field"><label>Disciplina</label>
           <select id="fDisc">
             <option value="">—</option>
@@ -1908,16 +1906,16 @@ window.addEventListener('DOMContentLoaded', function() {
             <option>Pré-compra</option><option>Outra</option>
           </select>
         </div>
-        <div class="field"><label>Perfil do Cavalo <span style="font-weight:400;color:var(--t3)">(contexto de uso)</span></label>
+        <div class="field"><label>Perfil</label>
           <select id="fPerfil">
             <option value="">— não especificado —</option>
             <option value="lazer">🌿 Lazer / Passeio</option>
             <option value="jovem">🐴 Jovem em formação (≤5 anos)</option>
-            <option value="funcional">🏇 Desporto Funcional (competição regular)</option>
-            <option value="gp">🏆 Alto Nível / GP (elite activa)</option>
+            <option value="funcional">🏇 Desporto Funcional</option>
+            <option value="gp">🏆 Alto Nível / GP</option>
           </select>
         </div>
-        <div class="field"><label>Região Anatómica <span style="font-weight:400;color:var(--t3)">(opcional)</span></label>
+        <div class="field"><label>Região Anatómica</label>
           <select id="fRegion">
             <option value="">Corpo completo</option>
             <option>Casco / P3</option><option>Quartela</option><option>Boleto</option>
@@ -1930,85 +1928,68 @@ window.addEventListener('DOMContentLoaded', function() {
         <div class="field">
           <label style="display:flex;align-items:center;justify-content:space-between">
             Sinais Clínicos
-            <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar (voz)" style="background:transparent;border:1px solid rgba(74,201,201,.25);border-radius:4px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;transition:all .2s;letter-spacing:.04em">🎙 Ditar</button>
+            <button id="btnVoiceSymp" onclick="startVoiceInput('fSymp','btnVoiceSymp')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.5);font-size:14px;cursor:pointer;padding:0">🎙</button>
           </label>
-          <textarea id="fSymp" rows="3" placeholder="ex: Flexões P/P positivas bilateral, claudicação grau 2/5 MAD, testador de cascos positivo...&#10;(deixar vazio = sem sinais clínicos descritos)"></textarea>
-          <!-- Quick-fill chips — os mais comuns em medicina desportiva equina -->
+          <textarea id="fSymp" rows="3" placeholder="ex: Flexões P/P positivas bilateral, claudicação grau 2/5 MAD..."></textarea>
           <div id="sympChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
-            <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAD ++')" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(74,201,201,.2);color:rgba(74,201,201,.7);cursor:pointer;background:rgba(74,201,201,.04);transition:all .15s;white-space:nowrap" onmouseover="this.style.background='rgba(74,201,201,.12)'" onmouseout="this.style.background='rgba(74,201,201,.04)'">Flex. distal MAD ++</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAE ++')" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(74,201,201,.2);color:rgba(74,201,201,.7);cursor:pointer;background:rgba(74,201,201,.04);transition:all .15s;white-space:nowrap" onmouseover="this.style.background='rgba(74,201,201,.12)'" onmouseout="this.style.background='rgba(74,201,201,.04)'">Flex. distal MAE ++</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Flexão jarrete MPD ++')" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(201,168,76,.2);color:rgba(201,168,76,.7);cursor:pointer;background:rgba(201,168,76,.04);transition:all .15s;white-space:nowrap" onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='rgba(201,168,76,.04)'">Flex. jarrete MPD ++</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Testador de cascos positivo bilateral')" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(201,168,76,.2);color:rgba(201,168,76,.7);cursor:pointer;background:rgba(201,168,76,.04);transition:all .15s;white-space:nowrap" onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='rgba(201,168,76,.04)'">Testador + bilateral</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Claudicação grau 2/5 MAD')" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(224,85,85,.2);color:rgba(224,85,85,.7);cursor:pointer;background:rgba(224,85,85,.04);transition:all .15s;white-space:nowrap" onmouseover="this.style.background='rgba(224,85,85,.12)'" onmouseout="this.style.background='rgba(224,85,85,.04)'">Claudicação 2/5 MAD</span>
-            <span class="symp-chip" onclick="appendChip('fSymp','Bloqueio perineural distal positivo MAD')" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(224,85,85,.2);color:rgba(224,85,85,.7);cursor:pointer;background:rgba(224,85,85,.04);transition:all .15s;white-space:nowrap" onmouseover="this.style.background='rgba(224,85,85,.12)'" onmouseout="this.style.background='rgba(224,85,85,.04)'">Bloqueio peneural +</span>
+            <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAD ++')">Flex. distal MAD ++</span>
+            <span class="symp-chip" onclick="appendChip('fSymp','Flexão distal MAE ++')">Flex. distal MAE ++</span>
+            <span class="symp-chip" onclick="appendChip('fSymp','Flexão jarrete MPD ++')">Flex. jarrete MPD ++</span>
+            <span class="symp-chip" onclick="appendChip('fSymp','Testador de cascos positivo bilateral')">Testador + bilateral</span>
+            <span class="symp-chip" onclick="appendChip('fSymp','Claudicação grau 2/5 MAD')">Claudicação 2/5 MAD</span>
+            <span class="symp-chip" onclick="appendChip('fSymp','Bloqueio perineural distal positivo MAD')">Bloqueio peneural +</span>
           </div>
         </div>
-        <div class="field"><label style="display:flex;align-items:center;justify-content:space-between">Flexões Positivas <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);font-weight:400">membro + grau</span></label>
+        <div class="field">
+          <label style="display:flex;align-items:center;justify-content:space-between">Flexões Positivas <span style="font-weight:400;color:var(--t3);font-size:8px">(resumo)</span></label>
           <input id="fFlexoes" type="text" placeholder="ex: distal MAE ++, jarrete MPD +" style="font-size:10px;font-family:'JetBrains Mono',monospace">
         </div>
         <div class="field">
           <label style="display:flex;align-items:center;justify-content:space-between">
             História
-            <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" title="Ditar (voz)" style="background:transparent;border:1px solid rgba(74,201,201,.25);border-radius:4px;padding:2px 7px;color:rgba(74,201,201,.6);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;transition:all .2s;letter-spacing:.04em">🎙 Ditar</button>
+            <button id="btnVoiceHist" onclick="startVoiceInput('fHist','btnVoiceHist')" title="Ditar" style="background:transparent;border:none;color:rgba(74,201,201,.5);font-size:14px;cursor:pointer;padding:0">🎙</button>
           </label>
-          <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nerviação, medicação intra-articular..."></textarea>
+          <textarea id="fHist" rows="2" placeholder="ex: osteotomia MTC II MAE 2023, nerviação..."></textarea>
         </div>
-        <div class="field"><label>Nome da Clínica</label><input id="fClinic" placeholder="ex: Clínica Equina Lisboa" oninput="saveClinic()"></div>
-        <div class="field"><label>Médico Veterinário</label><input id="fVet" placeholder="ex: Dr. João Silva, ECVDI" oninput="saveClinic()"></div>
+        <div class="field"><label>Clínica</label><input id="fClinic" placeholder="ex: Clínica Equina Lisboa" oninput="saveClinic()"></div>
+        <div class="field"><label>Veterinário</label><input id="fVet" placeholder="ex: Dr. João Silva, ECVDI" oninput="saveClinic()"></div>
       </div>
     </div>
 
-    <!-- MEMÓRIA / ADMIN — accordion, colapsado por defeito -->
+    <!-- ── MEMÓRIA — accordion, fechado ──────────────── -->
     <div class="sb sb-accordion" id="sbMemoria">
-      <div class="sb-acc-header" onclick="toggleAccordion('sbMemoria')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:0">
-        <div class="sb-lbl" style="margin-bottom:0">
-          🧠 Memória &amp; Calibrações
-          <span id="calibActiveBadge2" style="display:none;background:var(--gold);color:#000;font-size:8px;padding:1px 5px;border-radius:2px;margin-left:4px">0</span>
-        </div>
+      <div class="sb-acc-header" onclick="toggleAccordion('sbMemoria')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em">🧠 Memória <span id="calibActiveBadge2" style="display:none;background:var(--gold);color:#000;font-size:7px;padding:1px 4px;border-radius:3px;margin-left:4px"></span></div>
         <span class="sb-acc-arrow" style="font-size:10px;color:var(--t3);transition:transform .2s">▶</span>
       </div>
-      <div class="sb-acc-body" style="margin-top:10px;display:none">
-        <!-- Intel quick status -->
-        <div id="intelSidebarStatus" onclick="openIntelligencePanel()" style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:4px;cursor:pointer;margin-bottom:8px;transition:all .15s" onmouseover="this.style.background='rgba(139,92,246,.13)'" onmouseout="this.style.background='rgba(139,92,246,.07)'" title="Abrir Painel de Inteligência">
+      <div class="sb-acc-body" style="margin-top:0;display:none;padding:10px 14px">
+        <div id="intelSidebarStatus" onclick="openIntelligencePanel()" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(138,43,226,.06);border:1px solid rgba(138,43,226,.15);border-radius:6px;cursor:pointer;margin-bottom:8px">
           <span style="font-size:13px">🧠</span>
           <div style="flex:1">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em">Inteligência Adaptativa</div>
-            <div id="intelSidebarCount" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:1px">0 casos memorizados</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em">Inteligência</div>
+            <div id="intelSidebarCount" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-top:1px"></div>
           </div>
           <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">→</span>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button onclick="openDistillModal()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--ice);border:1px solid rgba(74,201,201,.25);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em">⟳ Destilar Feedbacks</button>
-          <button id="btnCalibsActive" onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--t3);border:1px solid var(--wire);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;position:relative" title="Ver CALIBs activas">☰ CALIBs <span id="calibActiveBadge" style="display:none;background:var(--gold);color:#000;font-size:8px;padding:1px 4px;border-radius:2px;margin-left:3px">0</span></button>
+        <div style="display:flex;gap:5px;margin-bottom:8px">
+          <button onclick="openDistillModal()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(138,43,226,.06);border:1px solid rgba(138,43,226,.2);color:#a78bfa;border-radius:4px;cursor:pointer;padding:5px 4px">🔄 Destilar</button>
+          <button id="btnCalibsActive" onclick="openCalibsModal()" style="font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);color:var(--gold);border-radius:4px;cursor:pointer;padding:5px 4px">📐 CALIBs</button>
         </div>
-        <!-- Confiança por estrutura -->
         <div id="confidencePanelWrap" style="margin-bottom:8px;display:none">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-            <span>Confiança por Estrutura</span>
-            <button onclick="refreshConfidencePanel()" style="background:transparent;border:none;color:var(--t3);font-size:10px;cursor:pointer" title="Actualizar">↻</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Confiança</span>
+            <button onclick="refreshConfidencePanel()" style="background:transparent;border:none;color:var(--t3);font-size:10px;cursor:pointer">↻</button>
           </div>
           <div id="confidencePanelBody" style="font-size:9px;line-height:1.8"></div>
         </div>
-        <!-- Importar / casos -->
-        <button id="btnImportPdf" onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--amber);border:1px solid rgba(212,147,58,.3);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:5px">
-          <span>📄</span> Importar Relatório Vet (PDF) <span id="calibPendingBadge" style="display:none;background:var(--amber);color:#000;font-size:8px;padding:1px 4px;border-radius:2px;margin-left:3px">0</span>
+        <button id="btnImportPdf" onclick="document.getElementById('vetReportIn').click()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;padding:6px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:5px">
+          📄 Importar Relatório Vet <span id="calibPendingBadge" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 5px;font-size:8px"></span>
         </button>
-        <button onclick="openCaseStudyModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:var(--ice);border:1px solid rgba(74,201,201,.25);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
-          <span>🔬</span> Registar Caso de Estudo
-        </button>
-        <button onclick="openCaseStudiesListModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink3);color:#b06aff;border:1px solid rgba(138,43,226,.25);padding:6px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
-          <span>🧪</span> Casos de Estudo <span id="caseStudyCount" style="background:rgba(138,43,226,.25);border-radius:10px;padding:0 6px;font-size:9px"></span>
-        </button>
-        <button onclick="openCleanCalibsBySourceModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;color:var(--t3);border:1px solid var(--wire);padding:5px 10px;border-radius:4px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:4px">
-          🗑 Limpar CALIBs por Fonte
-        </button>
-        <button onclick="seedLiteraturaCalibs()" id="btnSeedLit" style="font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(34,197,94,.07);color:#4ade80;border:1px solid rgba(34,197,94,.25);padding:5px 12px;border-radius:4px;cursor:pointer;letter-spacing:.05em;width:100%;margin-bottom:4px">
-          📚 Carregar Literatura Base (Butler/Dyson)
-        </button>
-        <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="openImportModeModal(this)">
-        <div id="vetPendingBadge" style="display:none;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);cursor:pointer" onclick="openPendingCalibsModal()">&#9888; CALIBs pendentes de aprovação</div>
-        <div id="vetImportStatus" style="display:none;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
-        <div style="font-size:10px;color:var(--t3);line-height:1.6;margin-top:6px">Analisa os erros acumulados e propõe novas regras permanentes.</div>
+        <button onclick="openCaseStudyModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;padding:6px;margin-bottom:4px">🔬 Registar Caso de Estudo</button>
+        <button onclick="openCaseStudiesListModal()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;background:transparent;border:1px solid var(--wire);border-radius:4px;color:var(--t3);cursor:pointer;padding:6px;margin-bottom:4px">🧪 Casos de Estudo <span id="caseStudyCount" style="background:rgba(138,43,226,.25);border-radius:10px;padding:0 5px"></span></button>
+        <input type="file" id="vetReportIn" accept=".pdf,application/pdf" style="display:none" onchange="openImportModeModal(this.files[0])">
+        <div id="vetPendingBadge" style="display:none;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber)"></div>
+        <div id="vetImportStatus" style="display:none;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)"></div>
       </div>
     </div>
 
@@ -2017,13 +1998,13 @@ window.addEventListener('DOMContentLoaded', function() {
 
     <!-- DICOM Panel -->
     <div id="wlPanel" style="display:none;margin:0 14px 10px;padding:10px 12px;background:var(--ink3);border:1px solid rgba(74,201,201,.2);border-radius:6px">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">⬡ DICOM · Window/Level</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">DICOM W/L</div>
       <div style="margin-bottom:6px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);display:block;margin-bottom:3px">Window Center (WC) <span id="wcVal" style="color:var(--t1)">400</span></label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);display:block;margin-bottom:3px">Window Center</label>
         <input type="range" id="wcSlider" min="-2000" max="4000" value="400" oninput="applyDICOMWL()" style="width:100%;accent-color:var(--ice)">
       </div>
       <div style="margin-bottom:6px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);display:block;margin-bottom:3px">Window Width (WW) <span id="wwVal" style="color:var(--t1)">1500</span></label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);display:block;margin-bottom:3px">Window Width</label>
         <input type="range" id="wwSlider" min="1" max="8000" value="1500" oninput="applyDICOMWL()" style="width:100%;accent-color:var(--ice)">
       </div>
       <div style="display:flex;gap:4px">
@@ -2031,10 +2012,8 @@ window.addEventListener('DOMContentLoaded', function() {
         <button onclick="dicomPreset('bone')" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer">Osso</button>
         <button onclick="dicomPreset('soft')" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px;background:transparent;border:1px solid var(--wire);border-radius:3px;color:var(--t3);cursor:pointer">Tecido</button>
       </div>
-      <div id="dicomMeta" style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.7"></div>
+      <div id="dicomMeta" style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.6"></div>
     </div>
-
-  </div>
   <!-- ══ FIM SCROLL ══════════════════════════════════════════ -->
 
   <!-- ══ FOOTER FIXO — SEMPRE VISÍVEL ══════════════════════ -->
@@ -8184,45 +8163,65 @@ function openReviewMode(startFromIdx) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:950;background:#000;display:flex;flex-direction:column;overflow:hidden';
 
   overlay.innerHTML =
-    // Top bar — 2 rows no mobile
-    '<div id="reviewTopBar" style="position:relative;z-index:10;background:rgba(10,12,16,.98);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">' +
-      // Row 1: filename + close
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px 4px">' +
+    // ══ TOP BAR ══════════════════════════════════════════════════════
+    '<div id="reviewTopBar" style="position:relative;z-index:10;background:rgba(6,8,12,.99);border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0">' +
+
+      // Row 1: filename + progress + zoom + close
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px 5px">' +
         '<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">' +
-          '<span id="reviewImgTag" style="font-family:'+mono+';font-size:10px;color:var(--gold);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px"></span>' +
-          '<span id="reviewProgress" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.35);flex-shrink:0"></span>' +
+          '<div style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0"></div>' +
+          '<span id="reviewImgTag" style="font-family:'+mono+';font-size:10px;color:var(--gold);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px"></span>' +
+          '<span id="reviewProgress" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.25);flex-shrink:0;padding:2px 6px;background:rgba(255,255,255,.04);border-radius:3px"></span>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">' +
-          '<span id="reviewZoomBadge" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.3);min-width:34px;text-align:right">100%</span>' +
-          '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:11px;padding:5px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.7);cursor:pointer;min-height:36px">✕</button>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
+          '<span id="reviewZoomBadge" style="font-family:'+mono+';font-size:9px;color:rgba(255,255,255,.25);min-width:36px;text-align:right">100%</span>' +
+          '<button onclick="closeReviewMode()" style="font-family:'+mono+';font-size:12px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s" onmouseover="this.style.background=\'rgba(255,80,80,.15)\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(255,255,255,.06)\';this.style.color=\'rgba(255,255,255,.5)\'">✕</button>' +
         '</div>' +
       '</div>' +
-      // Row 2: W/L sliders + tools
-      '<div style="display:flex;align-items:center;gap:5px;padding:4px 10px 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">' +
-        // W/L group
-        '<div style="display:flex;align-items:center;gap:4px;padding:3px 7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;flex-shrink:0">' +
-          '<span style="font-family:'+mono+';font-size:8px;color:rgba(255,255,255,.35)">W</span>' +
-          '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px;width:55px;cursor:pointer;outline:none;min-height:22px">' +
-          '<span style="font-family:'+mono+';font-size:8px;color:rgba(255,255,255,.35)">L</span>' +
-          '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px;width:55px;cursor:pointer;outline:none;min-height:22px">' +
-          '<button onclick="if(window._reviewResetWL)window._reviewResetWL()" style="font-size:12px;padding:2px 5px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.3);cursor:pointer;min-height:26px" title="Reset">⊡</button>' +
+
+      // Row 2: Tool groups
+      '<div style="display:flex;align-items:center;gap:6px;padding:0 12px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">' +
+
+        // GROUP 1: Image adjustments (W/L)
+        '<div style="display:flex;align-items:center;gap:5px;padding:4px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;flex-shrink:0">' +
+          '<span style="font-family:'+mono+';font-size:7px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em">☀</span>' +
+          '<input id="reviewWSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,.15);border-radius:2px;width:52px;cursor:pointer;outline:none;min-height:24px;accent-color:var(--gold)">' +
+          '<span style="font-family:'+mono+';font-size:7px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em">◑</span>' +
+          '<input id="reviewLSlider" type="range" min="0" max="100" value="50" style="-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,.15);border-radius:2px;width:52px;cursor:pointer;outline:none;min-height:24px;accent-color:var(--gold)">' +
+          '<button onclick="if(window._reviewResetWL)window._reviewResetWL()" style="font-size:11px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:4px;color:rgba(255,255,255,.3);cursor:pointer" title="Reset">↺</button>' +
         '</div>' +
-        '<div style="width:1px;height:20px;background:rgba(255,255,255,.1);flex-shrink:0"></div>' +
-        '<button id="reviewBtnPointer" onclick="setReviewTool(\'pointer\')" title="Caneta temporária" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:32px">✏</button>' +
-        '<button id="reviewBtnFreeDraw" onclick="setReviewTool(\'freedraw\')" title="Desenho livre" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;min-height:32px">🖊</button>' +
-        '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Círculo" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;color:rgba(255,255,255,.5);cursor:pointer;flex-shrink:0;min-height:32px">⊙</button>' +
-        '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,80,80,.3);border-radius:4px;color:rgba(255,100,100,.6);cursor:pointer;flex-shrink:0;min-height:32px">⌫</button>' +
-        '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor" ' +
-          'style="width:32px;height:32px;border:1px solid rgba(255,255,255,.15);border-radius:4px;background:transparent;cursor:pointer;padding:2px;flex-shrink:0" ' +
+
+        // Divider
+        '<div style="width:1px;height:24px;background:rgba(255,255,255,.08);flex-shrink:0"></div>' +
+
+        // GROUP 2: Drawing tools
+        '<div style="display:flex;align-items:center;gap:3px;padding:3px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;flex-shrink:0">' +
+          '<button id="reviewBtnPointer" onclick="setReviewTool(\'pointer\')" title="Caneta temporária" '+
+            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:rgba(201,168,76,.2);border:1px solid rgba(201,168,76,.4);border-radius:4px;color:var(--gold);cursor:pointer;flex-shrink:0;transition:all .15s">✏</button>' +
+          '<button id="reviewBtnFreeDraw" onclick="setReviewTool(\'freedraw\')" title="Traço livre" '+
+            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;transition:all .15s">〜</button>' +
+          '<button id="reviewBtnCircle" onclick="setReviewTool(\'circle\')" title="Marcar zona (círculo)" '+
+            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;transition:all .15s">◯</button>' +
+          '<button id="reviewBtnEraser" onclick="setReviewTool(\'eraser\')" title="Apagar marcas" '+
+            'style="font-family:'+mono+';font-size:14px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer;flex-shrink:0;transition:all .15s">⌫</button>' +
+        '</div>' +
+
+        // Color picker standalone
+        '<input id="reviewColorPicker" type="color" value="#C9A84C" title="Cor da marcação" ' +
+          'style="width:30px;height:30px;border:2px solid rgba(255,255,255,.15);border-radius:6px;background:transparent;cursor:pointer;padding:1px;flex-shrink:0" ' +
           'onchange="window._reviewColor=this.value">' +
-        '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(74,201,201,.3);border-radius:4px;color:rgba(74,201,201,.7);cursor:pointer;flex-shrink:0;min-height:32px">⊞</button>' +
-        '<button onclick="clearAllReviewMarks()" title="Limpar marcas" '+
-          'style="font-family:'+mono+';font-size:10px;padding:5px 9px;background:transparent;border:1px solid rgba(255,80,80,.2);border-radius:4px;color:rgba(255,100,100,.5);cursor:pointer;flex-shrink:0;min-height:32px">🗑</button>' +
+
+        // Divider
+        '<div style="width:1px;height:24px;background:rgba(255,255,255,.08);flex-shrink:0"></div>' +
+
+        // GROUP 3: Actions
+        '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0">' +
+          '<button id="reviewBtnCompare" onclick="toggleCompareMode()" title="Comparar com outra imagem" '+
+            'style="font-family:'+mono+';font-size:10px;padding:5px 10px;height:30px;display:flex;align-items:center;gap:4px;background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.2);border-radius:5px;color:rgba(74,201,201,.6);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap" onmouseover="this.style.borderColor=\'rgba(74,201,201,.5)\';this.style.color=\'var(--ice)\'" onmouseout="this.style.borderColor=\'rgba(74,201,201,.2)\';this.style.color=\'rgba(74,201,201,.6)\'">⊞ Comparar</button>' +
+          '<button onclick="clearAllReviewMarks()" title="Limpar todas as marcas" '+
+            'style="font-family:'+mono+';font-size:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,80,80,.15);border-radius:5px;color:rgba(255,100,100,.4);cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor=\'rgba(255,80,80,.4)\';this.style.color=\'rgba(255,100,100,.8)\'" onmouseout="this.style.borderColor=\'rgba(255,80,80,.15)\';this.style.color=\'rgba(255,100,100,.4)\'">🗑</button>' +
+        '</div>' +
+
       '</div>' +
     '</div>' +
 
@@ -8460,7 +8459,7 @@ function renderReviewFrame(direction) {
         }).join('') +
         '<button onclick="rejectAllIaSuggestions()" style="font-family:JetBrains Mono,monospace;font-size:9px;padding:3px 8px;background:transparent;border:1px solid rgba(224,85,85,.2);border-radius:3px;color:rgba(224,85,85,.5);cursor:pointer">✕ ignorar</button>';
     } else {
-      sugEl.innerHTML = '<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.2)">Sem achados IA para esta imagem</span>';
+      sugEl.innerHTML = '';
     }
   }
 

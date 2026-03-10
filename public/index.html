@@ -817,8 +817,13 @@ body{font-family:'Syne',system-ui,sans-serif;background:var(--ink);color:var(--t
   #horseSelect { font-size: 12px !important; padding: 7px 8px !important; min-height: 36px !important; }
 
   /* Viewer no sidebar — mais pequeno */
-  .viewer { max-height: 120px !important; }
-  .viewer #viewImg { max-height: 120px !important; object-fit: contain !important; }
+  /* ── Image workstation on mobile ── */
+  #imgWorkstation { height: 100%; }
+  #mainImgArea { min-height: 0; }
+  #mainThumbStrip { min-height: 60px; max-height: 60px; padding: 4px 6px; }
+  #mainThumbStrip > div { width: 50px !important; height: 50px !important; }
+  /* Nav arrows bigger on touch */
+  #mainImgPrev, #mainImgNext { width: 44px !important; height: 44px !important; font-size: 22px !important; }
 
   /* Footer compacto */
   .sb-footer { padding: 8px 10px !important; }
@@ -1414,24 +1419,20 @@ window.addEventListener('DOMContentLoaded', function() {
         <div style="font-size:10px;color:var(--amber);margin-top:4px">⚠ PDF: usa sempre <strong>clica aqui</strong> — arrastar PDFs pode abrir no browser</div>
         <div class="drop-hint" id="dropHint" style="font-size:10px;color:var(--amber);margin-top:4px;display:none">⚠ Carregue <strong>todas</strong> as imagens da sessão de uma vez para obter um único relatório</div>
       </div>
-      <div class="viewer" id="viewer">
-        <img id="viewImg" alt="" onclick="if(S.imgs.length)openReviewMode(S.idx)" title="Clica para abrir em ecrã inteiro" style="cursor:zoom-in">
-        <div class="viewer-tag" id="viewTag"></div>
-        <div class="viewer-ctrls">
-          <button class="vbtn" onclick="fa(.1,0)" title="Brilho +">☀</button>
-          <button class="vbtn" onclick="fa(-.1,0)" title="Brilho -">☾</button>
-          <button class="vbtn" onclick="fa(0,.15)" title="Contraste +">◑</button>
-          <button class="vbtn" onclick="fa(0,-.15)" title="Contraste -">◐</button>
-          <button class="vbtn" onclick="fi()" title="Inverter">⊙</button>
-          <button class="vbtn" onclick="fr()" title="Rodar">↺</button>
-          <button class="vbtn" onclick="openReviewMode(S.idx)" title="Ecrã inteiro" style="color:var(--gold);font-size:13px">⤢</button>
+      <!-- Thumb count bar — substitui viewer+grid na sidebar -->
+      <div id="sbThumbBar" style="display:none;margin-top:6px;padding:6px 0">
+        <div id="sbThumbCount" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:5px"></div>
+        <!-- Mini strip de thumbs clicáveis -->
+        <div id="sbMiniStrip" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px"></div>
+        <div style="display:flex;gap:4px">
+          <button onclick="document.getElementById('addIn').click()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t2);background:transparent;border:1px solid var(--wire2);border-radius:4px;padding:5px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='rgba(255,255,255,.3)'" onmouseout="this.style.borderColor='var(--wire2)'">+ Adicionar</button>
+          <button onclick="clearImages()" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:transparent;border:1px solid rgba(224,85,85,.2);border-radius:4px;padding:5px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='rgba(224,85,85,.5)'" onmouseout="this.style.borderColor='rgba(224,85,85,.2)'">✕ Limpar</button>
         </div>
       </div>
-      <div class="thumb-grid" id="grid"></div>
       <input type="file" id="addIn" multiple accept="image/*,.pdf,application/pdf,.dcm,.dicom,application/dicom" style="display:none" onchange="onFileInput(this)">
-      <div id="clearRow" style="display:none;margin-top:6px">
-        <button onclick="clearImages()" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.15);border-radius:3px;padding:5px;cursor:pointer;letter-spacing:.04em">✕ LIMPAR IMAGENS</button>
-      </div>
+      <!-- thumb-grid mantida oculta para compatibilidade com renderGrid() -->
+      <div class="thumb-grid" id="grid" style="display:none!important;position:absolute;visibility:hidden"></div>
+      <div id="clearRow" style="display:none"></div>
     </div>
 
     <!-- PACIENTE — accordion -->
@@ -1665,8 +1666,8 @@ window.addEventListener('DOMContentLoaded', function() {
 <!-- ══ BOTTOM NAV MOBILE ══════════════════════════════════════════ -->
 <nav id="mobNav" style="display:none">
   <button class="mob-nav-btn active" id="mobNavForm" onclick="mobSwitchTab('form')">
-    <span class="mob-nav-icon">📂</span>
-    <span>Imagens</span>
+    <span class="mob-nav-icon">📷</span>
+    <span>Exame</span>
   </button>
   <button class="mob-nav-btn" id="mobNavResult" onclick="mobSwitchTab('result')">
     <span class="mob-nav-icon">📋</span>
@@ -1675,6 +1676,10 @@ window.addEventListener('DOMContentLoaded', function() {
   <button class="mob-nav-btn" id="mobNavHorses" onclick="mobSwitchTab('horses')">
     <span class="mob-nav-icon">🐴</span>
     <span>Cavalos</span>
+  </button>
+  <button class="mob-nav-btn" id="mobNavMenu" onclick="toggleMobMenu()">
+    <span class="mob-nav-icon">⋯</span>
+    <span>Mais</span>
   </button>
 </nav>
 
@@ -1694,6 +1699,87 @@ window.addEventListener('DOMContentLoaded', function() {
   <button class="mob-menu-btn" id="mobMenuPDF" onclick="mobMenuAction('pdf')">⎙ <span>Exportar PDF</span></button>
   <div style="flex:1"></div>
   <button class="mob-menu-btn" onclick="doLogout();closeMobMenu()" style="color:var(--red);border-color:rgba(224,85,85,.3)">⏻ <span>Sair</span></button>
+</div>
+
+<!-- ══ MOBILE CLINICAL DRAWER ════════════════════════════════════ -->
+<!-- FAB para abrir o drawer de dados clínicos — só aparece quando há imagens em mobile -->
+<button id="mobClinicalFAB" onclick="openMobClinicalDrawer()"
+  style="display:none;position:fixed;bottom:80px;right:16px;z-index:280;width:52px;height:52px;border-radius:50%;background:var(--gold);color:#000;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.4);align-items:center;justify-content:center;transition:all .2s;font-weight:700"
+  title="Dados Clínicos">⚕</button>
+
+<!-- Drawer — sobe de baixo com os campos clínicos -->
+<div id="mobClinicalDrawer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:var(--ink1);border-top:2px solid rgba(201,168,76,.3);border-radius:16px 16px 0 0;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)">
+  <!-- Handle -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;position:sticky;top:0;background:var(--ink1);z-index:1;border-bottom:1px solid var(--wire)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:14px">⚕</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Dados Clínicos</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="runFromDrawer()" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:6px;color:var(--gold);padding:7px 16px;cursor:pointer;font-weight:700">▶ Gerar</button>
+      <button onclick="closeMobClinicalDrawer()" style="background:transparent;border:none;color:var(--t3);font-size:20px;cursor:pointer;padding:2px 6px;line-height:1">✕</button>
+    </div>
+  </div>
+  <!-- Content — campos clínicos compactos -->
+  <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+    <!-- Cavalo -->
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(74,201,201,.06);border:1px solid rgba(74,201,201,.15);border-radius:6px">
+      <span style="font-size:14px">🐴</span>
+      <select id="horseSelectDrawer" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;background:transparent;border:none;color:var(--t1);outline:none" onchange="syncHorseFromDrawer(this.value)">
+        <option value="">— Seleccionar cavalo —</option>
+      </select>
+      <button onclick="openNewHorseModal()" style="background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);border-radius:4px;color:var(--gold);font-size:14px;width:28px;height:28px;cursor:pointer;flex-shrink:0">+</button>
+    </div>
+    <!-- Opinião rápida -->
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Impressão clínica</div>
+      <div style="display:flex;gap:6px">
+        <button class="vet-imp-btn" data-val="normal" onclick="setVetImpressao(this,'normal')" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;padding:9px 4px;border-radius:6px;border:1px solid rgba(74,170,122,.3);background:rgba(74,170,122,.08);color:#4aaa7a;cursor:pointer">✓ Normal</button>
+        <button class="vet-imp-btn" data-val="suspeito" onclick="setVetImpressao(this,'suspeito')" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;padding:9px 4px;border-radius:6px;border:1px solid rgba(212,147,58,.3);background:rgba(212,147,58,.08);color:var(--amber);cursor:pointer">⚠ Suspeito</button>
+        <button class="vet-imp-btn" data-val="problematico" onclick="setVetImpressao(this,'problematico')" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;padding:9px 4px;border-radius:6px;border:1px solid rgba(224,85,85,.3);background:rgba(224,85,85,.06);color:var(--red);cursor:pointer">✕ Problem.</button>
+      </div>
+    </div>
+    <!-- Sinais clínicos com voz -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Sinais Clínicos</span>
+        <button id="btnVoiceSympDrawer" onclick="startVoiceInput('fSympDrawer','btnVoiceSympDrawer')" style="background:transparent;border:1px solid rgba(74,201,201,.25);border-radius:4px;padding:2px 8px;color:rgba(74,201,201,.7);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer">🎙 Ditar</button>
+      </div>
+      <textarea id="fSympDrawer" rows="3" placeholder="Flexões positivas, claudicação, sinais clínicos..." style="width:100%;box-sizing:border-box;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:9px 12px;font-family:'Syne',sans-serif;font-size:15px;color:var(--t1);resize:none;outline:none;line-height:1.5" onfocus="this.style.borderColor='rgba(201,168,76,.4)'" onblur="syncDrawerFields();this.style.borderColor='var(--wire2)'"></textarea>
+      <!-- Chips rápidos -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px">
+        <span onclick="appendChip('fSympDrawer','Flexão distal MAD ++')" style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid rgba(74,201,201,.2);color:rgba(74,201,201,.8);cursor:pointer;background:rgba(74,201,201,.04)">Flex. distal MAD ++</span>
+        <span onclick="appendChip('fSympDrawer','Flexão distal MAE ++')" style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid rgba(74,201,201,.2);color:rgba(74,201,201,.8);cursor:pointer;background:rgba(74,201,201,.04)">Flex. distal MAE ++</span>
+        <span onclick="appendChip('fSympDrawer','Claudicação grau 2/5 MAD')" style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid rgba(224,85,85,.2);color:rgba(224,85,85,.7);cursor:pointer;background:rgba(224,85,85,.04)">Claudicação 2/5 MAD</span>
+        <span onclick="appendChip('fSympDrawer','Testador de cascos positivo bilateral')" style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid rgba(201,168,76,.2);color:rgba(201,168,76,.7);cursor:pointer;background:rgba(201,168,76,.04)">Testador +</span>
+        <span onclick="appendChip('fSympDrawer','Bloqueio perineural distal positivo MAD')" style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid rgba(201,168,76,.2);color:rgba(201,168,76,.7);cursor:pointer;background:rgba(201,168,76,.04)">Bloqueio +</span>
+      </div>
+    </div>
+    <!-- Região + Disciplina compactos -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Disciplina</div>
+        <select id="fDiscDrawer" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:8px 10px;color:var(--t1);outline:none" onchange="syncDrawerFields()">
+          <option value="">—</option>
+          <option>Dressage</option><option>Saltos</option><option>CCE</option><option>Endurance</option><option>Alta Escola</option><option>Corridas</option><option>Pré-compra</option><option>Outra</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Região</div>
+        <select id="fRegionDrawer" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:8px 10px;color:var(--t1);outline:none" onchange="syncDrawerFields()">
+          <option value="">Completo</option>
+          <option>Casco / P3</option><option>Quartela</option><option>Boleto</option><option>Canela</option><option>Carpo</option><option>Tarso</option><option>Estifle</option><option>Coluna</option>
+        </select>
+      </div>
+    </div>
+    <!-- Nome do cavalo (se não seleccionado) -->
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Nome do Animal</div>
+      <input id="fNameDrawer" placeholder="ex: Lusitano Prince" style="width:100%;box-sizing:border-box;font-family:'Syne',sans-serif;font-size:15px;background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;padding:9px 12px;color:var(--t1);outline:none" onfocus="this.style.borderColor='rgba(201,168,76,.4)'" onblur="syncDrawerFields();this.style.borderColor='var(--wire2)'">
+    </div>
+    <!-- Botão gerar grande -->
+    <button onclick="runFromDrawer()" style="width:100%;padding:16px;background:rgba(201,168,76,.15);border:2px solid rgba(201,168,76,.4);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--gold);cursor:pointer;font-weight:700;letter-spacing:.08em;margin-top:4px">▶ Gerar Relatório</button>
+  </div>
 </div>
 
 
@@ -1742,34 +1828,53 @@ window.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <main class="main" id="main">
+  <!-- ══ IMAGE WORKSTATION — ocupa o main quando há imagens ══════════ -->
+  <div id="imgWorkstation" style="display:none;flex-direction:column;height:100%;background:#000;position:relative">
+    <!-- Image area — ocupa tudo -->
+    <div id="mainImgArea" style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0">
+      <img id="viewImg" alt="" onclick="if(S.imgs.length)openReviewMode(S.idx)" title="Duplo clique — ecrã inteiro"
+        style="max-width:100%;max-height:100%;object-fit:contain;display:block;cursor:zoom-in;transition:filter .15s">
+      <!-- Tag e controlos de imagem -->
+      <div id="viewTag" style="position:absolute;top:10px;left:12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);background:rgba(0,0,0,.6);padding:3px 7px;border-radius:3px;pointer-events:none"></div>
+      <!-- W/L e ferramentas inline — canto superior direito -->
+      <div class="viewer-ctrls" style="position:absolute;top:8px;right:10px;display:flex;gap:4px;align-items:center">
+        <button class="vbtn" onclick="fa(.1,0)" title="Brilho +">☀</button>
+        <button class="vbtn" onclick="fa(-.1,0)" title="Brilho -">☾</button>
+        <button class="vbtn" onclick="fa(0,.15)" title="Contraste +">◑</button>
+        <button class="vbtn" onclick="fa(0,-.15)" title="Contraste -">◐</button>
+        <button class="vbtn" onclick="fi()" title="Inverter">⊙</button>
+        <button class="vbtn" onclick="fr()" title="Reset filtro">↺</button>
+        <button class="vbtn" onclick="openReviewMode(S.idx)" title="Ecrã inteiro — anotações" style="color:var(--gold);font-size:13px">⤢</button>
+      </div>
+      <!-- Nav arrows — esquerda/direita -->
+      <button id="mainImgPrev" onclick="if(S.idx>0){setImg(S.idx-1)}" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:50%;width:36px;height:36px;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(0,0,0,.8)'" onmouseout="this.style.background='rgba(0,0,0,.5)'">‹</button>
+      <button id="mainImgNext" onclick="if(S.idx<S.imgs.length-1){setImg(S.idx+1)}" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:50%;width:36px;height:36px;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(0,0,0,.8)'" onmouseout="this.style.background='rgba(0,0,0,.5)'">›</button>
+    </div>
+    <!-- Thumb strip — em baixo, horizontal -->
+    <div id="mainThumbStrip" style="flex-shrink:0;background:rgba(4,5,7,.95);border-top:1px solid rgba(255,255,255,.06);padding:6px 8px;display:flex;gap:5px;overflow-x:auto;align-items:center;min-height:68px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent">
+      <!-- preenchido por renderGrid() -->
+    </div>
+  </div>
+
+  <!-- ══ PLACEHOLDER — estado inicial sem imagens ════════════════════ -->
   <div class="placeholder" id="ph" style="opacity:1;gap:0;padding:48px 40px">
     <div style="max-width:340px;width:100%">
-      <div style="font-family:'Lora',serif;font-size:22px;font-style:italic;color:var(--t2);text-align:center;margin-bottom:6px;opacity:.5">Relatório Radiológico</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">IA · Radiologia Equina</div>
-      <!-- Steps -->
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div id="ph-step1" onclick="document.getElementById('fileIn').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(201,168,76,.5)';this.style.background='var(--ink3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)';this.style.background='var(--ink2)'">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📂</div>
+      <div style="font-family:'Lora',serif;font-size:22px;font-style:italic;color:var(--t2);text-align:center;margin-bottom:6px;opacity:.5">Radiologia Equina</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">Carrega as imagens para começar</div>
+      <!-- Drop zone grande no main — alternativa ao sidebar -->
+      <div onclick="document.getElementById('fileIn').click()" style="border:2px dashed rgba(201,168,76,.25);border-radius:12px;padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(201,168,76,.02)" onmouseover="this.style.borderColor='rgba(201,168,76,.6)';this.style.background='rgba(201,168,76,.05)'" onmouseout="this.style.borderColor='rgba(201,168,76,.25)';this.style.background='rgba(201,168,76,.02)'">
+        <div style="font-size:36px;margin-bottom:12px;opacity:.5">📂</div>
+        <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:6px">Arrastar ou clicar para carregar</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">JPG · PNG · PDF · DICOM · até 60 imagens</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px">
+        <div id="ph-step2" onclick="openCavalosPanel()" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(74,201,201,.4)'" onmouseout="this.style.borderColor='var(--wire)'">
+          <span style="font-size:18px">🐴</span>
           <div>
-            <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Carregar radiografias</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">JPG · PNG · PDF · DICOM · até 60 imagens</div>
-          </div>
-          <div id="ph-step1-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>
-        </div>
-        <div id="ph-step2" onclick="openCavalosPanel()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(74,201,201,.4)';this.style.background='var(--ink3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)';this.style.background='var(--ink2)'">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🐴</div>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Seleccionar cavalo</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)" id="ph-step2-sub">Opcional — activa histórico e evolução</div>
+            <div style="font-size:11px;font-weight:600;color:var(--t1)">Seleccionar cavalo</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)" id="ph-step2-sub">Activa histórico e evolução</div>
           </div>
           <div id="ph-step2-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>
-        </div>
-        <div onclick="document.getElementById('runBtn').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(74,170,122,.4)';this.style.background='var(--ink3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)';this.style.background='var(--ink2)'">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">▶</div>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Gerar Relatório</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3)">Carrega imagens primeiro — depois clica aqui</div>
-          </div>
         </div>
       </div>
     </div>
@@ -1867,43 +1972,36 @@ function clearImages(){
   _chatHistory = [];
   var chatEl = document.getElementById('chatPostReport');
   if(chatEl) chatEl.remove();
-  document.getElementById('grid').innerHTML='';
-  document.getElementById('viewer').style.display='none';
+
+  // Reset sidebar
   document.getElementById('imgBadge').textContent='';
-  document.getElementById('dropTitle').textContent='Prima aqui ou arrasta imagens';
-  document.getElementById('clearRow').style.display='none';
-  document.getElementById('runBtn').disabled=true;
-  document.getElementById('hint').textContent='Carregue imagens radiográficas.';
+  document.getElementById('dropTitle').textContent='Clica aqui ou arrasta imagens';
+  var sbBar = document.getElementById('sbThumbBar');
+  if(sbBar) sbBar.style.display='none';
+  var dz = document.getElementById('dropzone');
+  if(dz) dz.style.display='';
+
+  // Reset main — show placeholder, hide workstation
+  var ws = document.getElementById('imgWorkstation');
+  if(ws) ws.style.display = 'none';
+  var ph = document.getElementById('ph');
+  // Rebuild placeholder fresh
+  if(ph) {
+    ph.style.display = 'flex';
+    var phStep2sub = document.getElementById('ph-step2-sub');
+    var phStep2check = document.getElementById('ph-step2-check');
+    if(phStep2sub) phStep2sub.textContent = 'Activa histórico e evolução';
+    if(phStep2check) phStep2check.style.display = 'none';
+  }
+
   // Hide topbar report controls
   var bp=document.getElementById('btnPrint');if(bp)bp.style.display='none';
   var rmw=document.getElementById('reportMenuWrap');if(rmw)rmw.style.display='none';
-  // Remove review mode button if present
   var brm=document.getElementById('btnReviewMode');if(brm)brm.remove();
-  // Restore placeholder (build fresh so ph-step states reset)
-  document.getElementById('main').innerHTML=
-    '<div class="placeholder" id="ph" style="opacity:1;gap:0;padding:48px 40px">'+
-    '<div style="max-width:340px;width:100%">'+
-    '<div style="font-family:\'Lora\',serif;font-size:22px;font-style:italic;color:var(--t2);text-align:center;margin-bottom:6px;opacity:.5">Relatório Radiológico</div>'+
-    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3);text-align:center;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px;opacity:.4">IA · Radiologia Equina</div>'+
-    '<div style="display:flex;flex-direction:column;gap:12px">'+
-    '<div id="ph-step1" onclick="document.getElementById(\'fileIn\').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor=\'rgba(201,168,76,.5)\';this.style.background=\'var(--ink3)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.background=\'var(--ink2)\'">'+
-      '<div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📂</div>'+
-      '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Carregar radiografias</div>'+
-      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">JPG · PNG · PDF · DICOM · até 60 imagens</div></div>'+
-      '<div id="ph-step1-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>'+
-    '</div>'+
-    '<div id="ph-step2" onclick="openCavalosPanel()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor=\'rgba(74,201,201,.4)\';this.style.background=\'var(--ink3)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.background=\'var(--ink2)\'">'+
-      '<div style="width:28px;height:28px;border-radius:50%;background:rgba(74,201,201,.08);border:1px solid rgba(74,201,201,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🐴</div>'+
-      '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Seleccionar cavalo</div>'+
-      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)" id="ph-step2-sub">Opcional — activa histórico e evolução</div></div>'+
-      '<div id="ph-step2-check" style="margin-left:auto;font-size:14px;color:var(--green);display:none">✓</div>'+
-    '</div>'+
-    '<div onclick="document.getElementById(\'runBtn\').click()" style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--ink2);border:1px solid var(--wire);border-radius:8px;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor=\'rgba(74,170,122,.4)\';this.style.background=\'var(--ink3)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.background=\'var(--ink2)\'">'+
-      '<div style="width:28px;height:28px;border-radius:50%;background:rgba(74,170,122,.08);border:1px solid rgba(74,170,122,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">▶</div>'+
-      '<div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">Gerar Relatório</div>'+
-      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--t3)">Carrega imagens primeiro — depois clica aqui</div></div>'+
-    '</div>'+
-    '</div></div></div>';
+
+  document.getElementById('runBtn').disabled=true;
+  document.getElementById('hint').textContent='Carregue imagens radiográficas.';
+  ui();
 }
 
 function saveClinic(){
@@ -2356,25 +2454,104 @@ function renderGrid() {
     sub.textContent='JPG · PNG · PDF · DCM · até 60 imagens';
     sub.style.color='';
   }
-  document.getElementById('clearRow').style.display=S.imgs.length>0?'block':'none';
+  document.getElementById('clearRow').style.display='none'; // handled by sbThumbBar
+  // Update main thumb strip
+  renderMainThumbStrip();
+  // Update sidebar count bar
+  var sbBar = document.getElementById('sbThumbBar');
+  var sbDz = document.getElementById('dropzone');
+  var sbCnt = document.getElementById('sbThumbCount');
+  if(S.imgs.length > 0) {
+    if(sbBar) sbBar.style.display='block';
+    if(sbDz) sbDz.style.display='none';
+    if(sbCnt) sbCnt.textContent = S.imgs.length + ' imagem' + (S.imgs.length>1?'ns':'') + ' carregada' + (S.imgs.length>1?'s':'');
+  } else {
+    if(sbBar) sbBar.style.display='none';
+    if(sbDz) sbDz.style.display='';
+  }
+  // Update mini strip in sidebar
+  var mini = document.getElementById('sbMiniStrip');
+  if(mini) {
+    mini.innerHTML = S.imgs.map(function(im,i){
+      var active = i===S.idx;
+      return '<div onclick="setImg('+i+')" style="width:32px;height:32px;border-radius:3px;overflow:hidden;cursor:pointer;border:1px solid '+(active?'var(--gold)':'rgba(255,255,255,.1)')+';flex-shrink:0;transition:border-color .15s">' +
+        '<img src="'+im.url+'" style="width:100%;height:100%;object-fit:cover;display:block">' +
+      '</div>';
+    }).join('');
+  }
 }
 
 function showImg() {
-  var img=S.imgs[S.idx];
+  var img = S.imgs[S.idx];
   if (!img) return;
-  document.getElementById('viewer').style.display='block';
-  document.getElementById('viewImg').src=img.url;
-  document.getElementById('viewTag').textContent='IMG '+String(S.idx+1).padStart(2,'0')+' · '+img.name.slice(0,22);
+
+  // ── Main image workstation ──────────────────────────────────────
+  var ws = document.getElementById('imgWorkstation');
+  var ph = document.getElementById('ph');
+  var mainImg = document.getElementById('viewImg');
+  var mainTag = document.getElementById('viewTag');
+
+  if (ws) { ws.style.display = 'flex'; }
+  if (ph) { ph.style.display = 'none'; }
+  if (mainImg) { mainImg.src = img.url; }
+  if (mainTag) mainTag.textContent = 'IMG ' + String(S.idx+1).padStart(2,'0') + ' · ' + img.name.slice(0,28);
+
+  // Nav arrows visibility
+  var prevBtn = document.getElementById('mainImgPrev');
+  var nextBtn = document.getElementById('mainImgNext');
+  if (prevBtn) prevBtn.style.display = S.idx > 0 ? 'flex' : 'none';
+  if (nextBtn) nextBtn.style.display = S.idx < S.imgs.length - 1 ? 'flex' : 'none';
+
   applyF();
+
+  // ── Sidebar count bar ───────────────────────────────────────────
+  var bar = document.getElementById('sbThumbBar');
+  var dz  = document.getElementById('dropzone');
+  var cnt = document.getElementById('sbThumbCount');
+  var strip = document.getElementById('sbMiniStrip');
+
+  if (S.imgs.length > 0) {
+    if (bar) bar.style.display = 'block';
+    if (dz)  dz.style.display = 'none';
+    if (cnt) cnt.textContent = S.imgs.length + ' imagem' + (S.imgs.length > 1 ? 'ns' : '') + ' carregada' + (S.imgs.length > 1 ? 's' : '');
+    // Mini strip
+    if (strip) {
+      strip.innerHTML = S.imgs.map(function(im, i) {
+        var active = i === S.idx ? 'border-color:var(--gold)' : 'border-color:rgba(255,255,255,.1)';
+        return '<div onclick="setImg('+i+')" style="width:36px;height:36px;border-radius:3px;overflow:hidden;cursor:pointer;border:1px solid;flex-shrink:0;transition:border-color .15s;'+active+'">' +
+          '<img src="'+im.url+'" style="width:100%;height:100%;object-fit:cover;display:block">' +
+        '</div>';
+      }).join('');
+    }
+  }
+
   // Update placeholder step 1
-  var s1 = document.getElementById('ph-step1');
   var s1c = document.getElementById('ph-step1-check');
-  if (s1) s1.style.borderColor = 'rgba(74,170,122,.4)';
   if (s1c) s1c.style.display = 'block';
+  // Update mobile FAB
+  updateMobClinicalFAB();
 }
 
-function setImg(i){S.idx=i;renderGrid();showImg();updateDICOMPanel(S.imgs[i]);}
-function delImg(i){S.imgs.splice(i,1);S.idx=Math.min(S.idx,Math.max(0,S.imgs.length-1));renderGrid();if(S.imgs.length)showImg();else{document.getElementById('viewer').style.display='none';document.getElementById('imgBadge').textContent='';};ui();}
+// Also update the main thumb strip at the bottom of the workstation
+function renderMainThumbStrip() {
+  var strip = document.getElementById('mainThumbStrip');
+  if (!strip) return;
+  strip.innerHTML = S.imgs.map(function(img, i) {
+    var active = i === S.idx;
+    return '<div onclick="setImg('+i+')" style="flex-shrink:0;width:56px;height:56px;border-radius:4px;overflow:hidden;cursor:pointer;border:2px solid '+(active?'var(--gold)':'rgba(255,255,255,.1)')+';transition:border-color .15s;position:relative">' +
+      '<img src="'+img.url+'" style="width:100%;height:100%;object-fit:cover;display:block">' +
+      '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);font-family:JetBrains Mono,monospace;font-size:7px;color:rgba(255,255,255,.6);text-align:center;padding:1px">' + String(i+1).padStart(2,'0') + '</div>' +
+      '<button onclick="event.stopPropagation();delImg('+i+')" style="position:absolute;top:1px;right:1px;width:14px;height:14px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:rgba(255,255,255,.5);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>' +
+    '</div>';
+  }).join('');
+  // Add+ button
+  if (S.imgs.length < C.MAX_IMG) {
+    strip.innerHTML += '<div onclick="document.getElementById(\'addIn\').click()" style="flex-shrink:0;width:56px;height:56px;border-radius:4px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:20px;transition:all .15s" onmouseover="this.style.borderColor=\'rgba(201,168,76,.5)\';this.style.color=\'var(--gold)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.15)\';this.style.color=\'rgba(255,255,255,.3)\'">+</div>';
+  }
+}
+
+function setImg(i){S.idx=i;renderGrid();renderMainThumbStrip();showImg();updateDICOMPanel(S.imgs[i]);}
+function delImg(i){S.imgs.splice(i,1);S.idx=Math.min(S.idx,Math.max(0,S.imgs.length-1));renderGrid();renderMainThumbStrip();if(S.imgs.length)showImg();else{var ws=document.getElementById('imgWorkstation');var ph=document.getElementById('ph');if(ws)ws.style.display='none';if(ph)ph.style.display='flex';var bar=document.getElementById('sbThumbBar');var dz=document.getElementById('dropzone');if(bar)bar.style.display='none';if(dz)dz.style.display='';document.getElementById('imgBadge').textContent='';};ui();}
 function setDrop(t){var e=document.getElementById('dropTitle');if(e)e.textContent=t;}
 
 // ═══════════════════════════════════════════════════════
@@ -16262,27 +16439,39 @@ function mobSwitchTab(tab) {
 
   var sidebar = document.querySelector('.sidebar');
   var main    = document.querySelector('.main');
+  var ws      = document.getElementById('imgWorkstation');
+  var ph      = document.getElementById('ph');
 
-  // Fechar menu se aberto
   closeMobMenu();
 
-  // Activar o painel certo
   if (tab === 'form') {
-    if (sidebar) { sidebar.style.display = 'flex'; sidebar.classList.add('mob-active'); }
-    if (main)    { main.style.display = 'none';  main.classList.remove('mob-active'); }
+    // Exame tab: hide sidebar, show main (image workstation or placeholder)
+    if (sidebar) { sidebar.style.display = 'none'; sidebar.classList.remove('mob-active'); }
+    if (main)    { main.style.display = 'flex'; main.classList.add('mob-active'); }
+    // Show workstation if images loaded, else placeholder
+    if (S.imgs && S.imgs.length > 0) {
+      if (ws) ws.style.display = 'flex';
+      if (ph) ph.style.display = 'none';
+    } else {
+      if (ws) ws.style.display = 'none';
+      if (ph) { ph.style.display = 'flex'; }
+    }
+    updateMobClinicalFAB();
   } else if (tab === 'result') {
     if (sidebar) { sidebar.style.display = 'none'; sidebar.classList.remove('mob-active'); }
-    if (main)    { main.style.display = 'flex';  main.classList.add('mob-active'); }
-    // Mostrar FAB partilhar se há relatório
+    if (main)    { main.style.display = 'flex'; main.classList.add('mob-active'); }
+    // On result tab, workstation stays hidden if report is shown
     updateMobShareBtn();
+    // Hide FAB
+    var fab = document.getElementById('mobClinicalFAB');
+    if(fab) fab.style.display = 'none';
   } else if (tab === 'horses') {
-    // Abre o painel de cavalos existente (funciona sobre qualquer vista)
     openCavalosPanel();
-    return; // não altera sidebar/main
+    return;
   }
 
-  // Actualizar estado visual dos botões
-  ['mobNavForm','mobNavResult','mobNavHorses'].forEach(function(id) {
+  // Update nav button states
+  ['mobNavForm','mobNavResult','mobNavHorses','mobNavMenu'].forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.classList.remove('active');
   });
@@ -16396,6 +16585,83 @@ function mobMenuAction(action) {
   else if (action === 'secondop')  { runSecondOpinion(); }
   else if (action === 'compare')   { openCompareModal(); }
   else if (action === 'pdf')       { printReport(); }
+}
+
+// ── Mobile Clinical Drawer ─────────────────────────────────────────
+function openMobClinicalDrawer() {
+  var drawer = document.getElementById('mobClinicalDrawer');
+  if (!drawer) return;
+  // Sync horse select
+  var mainSel = document.getElementById('horseSelect');
+  var drawerSel = document.getElementById('horseSelectDrawer');
+  if(mainSel && drawerSel) {
+    drawerSel.innerHTML = mainSel.innerHTML;
+    drawerSel.value = mainSel.value;
+  }
+  // Sync fields from sidebar
+  var fSympEl = document.getElementById('fSymp');
+  var fDiscEl = document.getElementById('fDisc');
+  var fRegEl  = document.getElementById('fRegion');
+  var fNameEl = document.getElementById('fName');
+  if(fSympEl)  { var d = document.getElementById('fSympDrawer'); if(d) d.value = fSympEl.value; }
+  if(fDiscEl)  { var d = document.getElementById('fDiscDrawer'); if(d) d.value = fDiscEl.value; }
+  if(fRegEl)   { var d = document.getElementById('fRegionDrawer'); if(d) d.value = fRegEl.value; }
+  if(fNameEl)  { var d = document.getElementById('fNameDrawer'); if(d) d.value = fNameEl.value; }
+
+  drawer.style.display = 'block';
+  // Trigger slide up animation
+  requestAnimationFrame(function() {
+    drawer.style.transform = 'translateY(0)';
+  });
+  hapticFeedback('light');
+}
+
+function closeMobClinicalDrawer() {
+  var drawer = document.getElementById('mobClinicalDrawer');
+  if (!drawer) return;
+  syncDrawerFields();
+  drawer.style.transform = 'translateY(100%)';
+  setTimeout(function() { drawer.style.display = 'none'; }, 300);
+}
+
+function syncDrawerFields() {
+  // Push drawer values back to sidebar fields
+  var pairs = [
+    ['fSympDrawer','fSymp'],
+    ['fDiscDrawer','fDisc'],
+    ['fRegionDrawer','fRegion'],
+    ['fNameDrawer','fName']
+  ];
+  pairs.forEach(function(p) {
+    var src = document.getElementById(p[0]);
+    var dst = document.getElementById(p[1]);
+    if(src && dst) dst.value = src.value;
+  });
+}
+
+function syncHorseFromDrawer(val) {
+  var mainSel = document.getElementById('horseSelect');
+  if(mainSel) { mainSel.value = val; onHorseSelect(val); }
+}
+
+function runFromDrawer() {
+  syncDrawerFields();
+  closeMobClinicalDrawer();
+  setTimeout(function() {
+    var runBtn = document.getElementById('runBtn');
+    if(runBtn && !runBtn.disabled) runBtn.click();
+    else showToast('Carregue imagens primeiro');
+  }, 350);
+}
+
+// Show/hide FAB when images are loaded in mobile
+function updateMobClinicalFAB() {
+  if (!isMobile()) return;
+  var fab = document.getElementById('mobClinicalFAB');
+  if (!fab) return;
+  var hasImgs = S.imgs && S.imgs.length > 0;
+  var onFormTab = _mobTab === 'form';
+  fab.style.display = (hasImgs && onFormTab) ? 'flex' : 'none';
 }
 
 // Hook no fim de run() para detectar relatório pronto em mobile
